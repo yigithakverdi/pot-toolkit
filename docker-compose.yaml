@@ -1,0 +1,57 @@
+version: '3.8'
+
+# deploy:
+#   resources:
+#     limits:
+#         cpus: '2.00'
+#         memory: 2G
+
+volumes:
+  hugepages:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=1G,noexec,nosuid
+
+services:
+  controller:
+    build: .
+    command: ["controller", "-l", "0-1"]
+    volumes:
+      - ./code:/app
+      - hugepages:/dev/hugepages
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges
+    networks:
+      - srv6-net
+
+  middlenode:
+    build: .
+    command: ["middlenode", "-l", "0-1"]
+    volumes:
+      - ./code:/app
+      - hugepages:/dev/hugepages
+    depends_on:
+      - controller
+    deploy:
+      replicas: 2  # Initial node count
+    networks:
+      - srv6-net
+
+  creator:
+    build: .
+    command: ["creator", "-l", "0-1"]
+    volumes:
+      - ./code:/app
+      - hugepages:/dev/hugepages
+    networks:
+      - srv6-net
+
+networks:
+  srv6-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.88.0.0/24

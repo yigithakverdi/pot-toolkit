@@ -1,8 +1,0 @@
-version: '3.8'
-
-volumes:
-  hugepages:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: size=1G,noexec,nosuid
