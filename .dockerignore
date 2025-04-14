@@ -1,0 +1,23 @@
+# Git specific
+.git
+.gitignore
+
+# Python virtual environment
+.venv
+
+# Docker specific
+Dockerfile
+.dockerignore
+
+# Build artifacts (local)
+build/
+builddir/ # Meson often uses builddir
+
+# Dependencies (we copy DPDK explicitly in the Dockerfile)
+deps/
+
+# OS / IDE specific
+.DS_Store
+*.pyc
+__pycache__/
+*.swp
