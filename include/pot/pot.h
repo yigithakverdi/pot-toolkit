@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <rte_ethdev.h>
 
-#include "packet_utils.h"
-#include "dpdk_utils.h"
-#include "crypto_utils.h"
+#include "../packet_utils.h"
+#include "../dpdk_utils.h"
+#include "../crypto_utils.h"
 
 #define SID_NO 2
 
