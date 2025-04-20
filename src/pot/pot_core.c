@@ -1,7 +1,7 @@
 #include "include/pot/pot.h"
 
 // Initialize a port
-static int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
+int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
   struct rte_eth_conf port_conf = {0};
   const uint16_t rx_rings = 1, tx_rings = 1;
   int retval;

@@ -54,5 +54,7 @@ static uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused,
                              void *_ __rte_unused);
 void add_custom_header6(struct rte_mbuf *pkt);
 int generate_nonce(uint8_t nonce[NONCE_LENGTH]);
+void parse_eth_packet();
+void process_packet();
 
 #endif // PACKET_UTILS_H

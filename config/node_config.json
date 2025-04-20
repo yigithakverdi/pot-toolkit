@@ -1,0 +1,36 @@
+{
+    "role": "ingress",
+    // DPDK specific configurations, port configurations etc.
+    "interfaces": {
+        // REQUIRED DPDK Port ID for receiving and transmitting packets, 
+        "rx_port_id": 0,
+        "tx_port_id": 0,
+        // NOTE Optional ports, current port configuratiosn are referenced through
+        //      previous POT implementation, beacause of this, port_id and tap_port_id
+        //      is used as optional ports replacing the above required port once
+        //      the testings are done these port configs will be replaced with STANDARD
+        //      rx and tx logic
+        "port_id": 0,
+        "tap_port_id": 0
+    },
+
+    // Name of the PoT profile set to load from the config/pot_profiles directory
+    // The application logic (e.g., config_loader.c or pot_profile.c) will
+    // likely use this name to find and load corresponding files
+    // (e.g., "profile_set_A_even.json", "profile_set_A_odd.json")    
+    "pot_profile_set_name": "profile_set_A",
+    "node_id": "ingress-node-01",
+
+
+  // Optional: EAL core configuration override (if not using default from start script)
+  // "eal_coremask" : "0x3"
+
+  // Optional: Logging level for the application
+  // "log_level": "info" // e.g., "debug", "info", "warning", "error"
+
+  // Optional: Placeholder for node-specific cryptographic keys or secrets
+  // if they are not solely derived from the PoT profiles.
+  // "secrets": {
+  //   "my_secret_key": "some_value_here"
+  // }  
+}
