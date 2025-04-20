@@ -19,6 +19,6 @@ struct pot_tlv
 };
 
 // Initialize a port
-static int port_init(uint16_t port, struct rte_mempool *mbuf_pool);
+int port_init(uint16_t port, struct rte_mempool *mbuf_pool);
 int decrypt_pvf(uint8_t *k_pot_in, uint8_t *nonce, uint8_t pvf_out[32]);
 void encrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hmac_out[32]);

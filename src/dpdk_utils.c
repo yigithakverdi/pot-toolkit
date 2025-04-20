@@ -18,3 +18,8 @@ void display_mac_address(uint16_t port_id)
            mac_addr.addr_bytes[4],
            mac_addr.addr_bytes[5]);
 }
+
+
+int port_exists(uint16_t port_id) {
+    return 0;
+}

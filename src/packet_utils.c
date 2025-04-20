@@ -2,6 +2,11 @@
 #include "include/crypto_utils.h"
 #include "include/pot/pot.h"
 
+// TODO Functions that will be implemented. These are the main logic of 
+//      packet processing
+void packet_eth_parsing() {}
+void process_packet() {}
+
 void print_ipv6_address(const struct in6_addr *ipv6_addr, const char *label) {
   char addr_str[INET6_ADDRSTRLEN]; // Buffer for human-readable address
 
