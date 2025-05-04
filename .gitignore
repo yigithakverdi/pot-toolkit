@@ -1,3 +1,6 @@
+# Unecessary documentations and notes
+/docs/notes/*.md
+
 # Python virtual environment
 .venv/
 

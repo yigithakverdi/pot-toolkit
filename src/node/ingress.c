@@ -6,10 +6,17 @@
 #include <rte_branch_prediction.h>
 #include <rte_eal.h>
 #include <rte_ethdev.h>
+#include <rte_log.h>
 #include <rte_mempool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+RTE_LOG_REGISTER_DEFAULT(ingress, INFO);
+#define RTE_LOGTYPE_INGRESS ingress
+#define INGRESS_LOG(level, fmt, ...) \
+        RTE_LOG(level, INGRESS, "%s(): " fmt "\n", __func__, ##__VA_ARGS__)
+
 
 typedef struct {
   const struct node_config *config;
@@ -30,31 +37,45 @@ typedef struct {
 // Implementing the node interfaces for ingress node
 static int ingress_init(int argc, char **argv, const struct node_config *config,
                         void **node_specific_data) {
-  printf("Initializing INGRESS node ... \n");
+  
+  
+  INGRESS_LOG(INFO, "Initializing INGRESS node...");
 
   // Allocating memory for ingress-specific data
   ingress_data_t *data = calloc(1, sizeof(ingress_data_t));
+  INGRESS_LOG(DEBUG, "Allocated memory for ingress data: %p", data);                          
+
   if (!data) {
-    perror("Failed to allocate memory for ingress data");
+    INGRESS_LOG(ERR, "Failed to allocate memory for ingress data");
     return -1;
   }
+
   data->config = config;
+  INGRESS_LOG(DEBUG, "Config data: %p", config);
 
   // Initialize the EAL
   int ret = rte_eal_init(argc, argv);
+  INGRESS_LOG(DEBUG, "EAL initialized with ret: %d", ret);
+
   if (ret < 0) {
+    INGRESS_LOG(ERR, "Error initializing EAL: %s", rte_strerror(rte_errno));
     rte_exit(EXIT_FAILURE, "Error with EAL initialization\n");
   }
 
   // Check that there is at least one port available
   port_exists(data->port_id);
-
+  
   // Create a memory pool to hold the mbufs
   data->mbuf_pool = rte_pktmbuf_pool_create(
-      "MBUF_POOL", NUM_MBUFS * rte_eth_dev_count_avail(), MBUF_CACHE_SIZE, 0,
-      RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+      "MBUF_POOL", 
+      NUM_MBUFS * rte_eth_dev_count_avail(), 
+      MBUF_CACHE_SIZE, 0,
+      RTE_MBUF_DEFAULT_BUF_SIZE, 
+      rte_socket_id());
+  INGRESS_LOG(DEBUG, "Created mbuf pool: %p", data->mbuf_pool);
 
   if (data->mbuf_pool == NULL) {
+    INGRESS_LOG(ERR, "Cannot create mbuf pool: %s", rte_strerror(rte_errno));
     rte_exit(EXIT_FAILURE, "Cannot create mbuf pool\n");
   }
 
@@ -62,14 +83,16 @@ static int ingress_init(int argc, char **argv, const struct node_config *config,
   port_init(data->port_id, data->mbuf_pool);
   port_init(data->tap_port_id, data->mbuf_pool);
 
-  // Parse ingress-specific command-line arguments (if any)
-  // Configure DPDK ports based on config
-  // Initialize Proof of Transit state specific to ingress
-  // ... implementation details
+  // - Parse ingress-specific command-line arguments (if any)
+  // - Configure DPDK ports based on config
+  // - Initialize Proof of Transit state specific to ingress
+  // ... 
   // ...
-  printf("Ingress DPDK Ports: RX=%d, TX=%d\n", data->port_id,
-         data->tap_port_id); // Example
-  printf("Ingress node initialized.\n");
+  //
+
+  INGRESS_LOG(INFO, "Ingress DPDK Ports: RX=%d, TX=%d\n", data->port_id, data->tap_port_id);
+  INGRESS_LOG(INFO, "Ingress node initialized");
+  return 0;
 }
 
 static int ingress_run(void *node_specific_data) {

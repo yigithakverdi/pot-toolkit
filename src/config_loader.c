@@ -16,9 +16,13 @@
 //    file locations
 //
 
+
+// NOTE temporarly hardocoding the configurations here to see if the app
+//      successfully runs, this will be replaced by the config file
+//      parsing logic later on
+
 #define DEFAULT_NODE_ROOT "/usr/local/pot"
 #define DEFAULT_CONFIG_DIR "conf/pot.conf"
-
 
 typedef struct {
   char *role;
@@ -28,6 +32,4 @@ typedef struct {
 } app_config;
 
 app_config *parse_json_config(const char *file_path) {}
-app_config *load_application_config(const char *config_path_cli) {
-  
-}
+app_config *load_application_config(const char *config_path_cli) {}
