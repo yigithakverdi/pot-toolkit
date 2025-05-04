@@ -95,6 +95,7 @@ int process_ip6_with_srh(struct rte_ether_hdr *eth_hdr, struct rte_mbuf *mbuf,
       return retval;
     }
   }
+  return -1;
 }
 
 void process_ip4(struct rte_mbuf *mbuf, uint16_t nb_rx,
