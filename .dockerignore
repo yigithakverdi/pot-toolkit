@@ -14,7 +14,7 @@ build/
 builddir/ # Meson often uses builddir
 
 # Dependencies (we copy DPDK explicitly in the Dockerfile)
-deps/
+# deps/
 
 # OS / IDE specific
 .DS_Store
