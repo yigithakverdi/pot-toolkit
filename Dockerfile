@@ -1,7 +1,7 @@
 # === Stage 1: Build DPDK ===
 # Use an ARG for flexibility
 ARG UBUNTU_VERSION=22.04
-FROM ubuntu:${UBUNTU_VERSION} as dpdk-builder
+FROM ubuntu:${UBUNTU_VERSION} AS dpdk-builder
 
 LABEL stage="dpdk-builder"
 
@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     libpcap-dev \
     libnuma-dev \
-    # Add other DPDK dependencies if required (e.g., libssl-dev for crypto)
+    libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory for the build
@@ -31,7 +31,7 @@ COPY deps/dpdk /build/dpdk
 # Build and install DPDK
 # Note: Default install prefix is /usr/local
 # Add any custom DPDK meson options if needed (e.g., -Dexamples=...)
-WORKDIR /build/dpdk
+WORKDIR /build/dpdk 
 RUN meson setup build
 RUN ninja -C build
 RUN ninja -C build install
@@ -40,7 +40,7 @@ RUN ldconfig
 
 # === Stage 2: Build PoT Application ===
 # Use the DPDK builder stage as the base
-FROM dpdk-builder as app-builder
+FROM dpdk-builder AS app-builder
 
 LABEL stage="app-builder"
 
