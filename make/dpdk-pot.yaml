@@ -61,6 +61,12 @@ topology:
   # User specifies how many transit nodes they want (e.g., 0, 1, 2, ...)
   number_of_transit_nodes: 2
 
+  # Template for naming transit nodes
+  transit_node_naming_tempalte: "transit_node_{index}" 
+
+  # To ensure unique port IDs across nodes
+  transit_port_offset: 2
+
 # Configuration for the DPDK application running on the HOST that provides vhost-user sockets.
 # Host backend network configurations, there are three or four way of doing this, one is using
 # overlay network supplied by docker-compose, another is using testpmd tool supplied by DPDK
@@ -164,35 +170,51 @@ node_common_settings:
       cache_size: 250         # MBUF_CACHE_SIZE
       # num_pools: 1          # If multiple pools are needed per node    
 
-# --- Ingress Node Specifics ---
 ingress_node:
   # Inherits from node_common_settings. Define overrides or additions here.
   # For this pipeline, typically one ingress instance.
   # eal_override: # If ingress needs different EAL settings than transit/egress
   #   socket_mem: "1024,0"
+  
   app_specific_config: # To be written into the node_specific.json for ingress
     # Example:
     # external_interface_mac: "00:11:22:33:44:55" # If ingress captures from a TAP or physical
     pot_profile_name: "ingress_strong_pot" # Reference to a PoT profile defined below
     # Any other parameters specific to ingress logic (e.g., ACLs, rate limits)
 
-# --- Transit Node Specifics ---
 transit_node:
   # Inherits from node_common_settings.
   # The 'prepare' script will generate 'pipeline.num_transit_nodes' instances.
   # eal_override:
   #   socket_mem: "256,0" # If transit nodes are lighter
+  
   app_specific_config:
     pot_profile_name: "transit_standard_pot"
     # Any other parameters specific to transit logic (e.g., TTL decrement behavior)
 
-# --- Egress Node Specifics ---
 egress_node:
   # Inherits from node_common_settings.
   # For this pipeline, typically one egress instance.
   # eal_override:
   #   socket_mem: "1024,0"
+  
   app_specific_config:
     pot_profile_name: "egress_validation_pot"
     # Any other parameters specific to egress logic (e.g., reporting, final validation)
+
+# Specifies where the 'prepare' script should look for secret files on the host
+# and how they should be named/mounted into containers.
+secrets_management:
+
+  # Base path on the HOST where all secret files (like PoT keys) are stored.
+  host_secrets_dir: "./pipeline_secrets"
+
+  # Define naming convention for keys if not explicitly path-defined in pot_profiles.
+  # pot_key_filename_template: "{node_type}_{profile_name}.key"
+
+  # Path inside containers where secrets directory will be mounted (if mounting whole dir)
+  # container_secrets_mount_dir: "/etc/dpdk-pot/secrets"
+
+# Similar to Harbor's _version, used by prepare/migration scripts.
+_config_version: "1.0.0"    
 
