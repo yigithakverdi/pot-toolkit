@@ -6,7 +6,7 @@
 .venv
 
 # Docker specific
-Dockerfile
+# Dockerfile
 .dockerignore
 
 # Build artifacts (local)
@@ -21,3 +21,11 @@ builddir/ # Meson often uses builddir
 *.pyc
 __pycache__/
 *.swp
+
+.git
+.venv
+deps
+build/*
+!build/bin
+*.o
+*.d
