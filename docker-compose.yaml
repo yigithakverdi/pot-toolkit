@@ -1,57 +1,102 @@
+# docker-compose.yaml (Filled for N=1 Transit Node)
 version: '3.8'
 
-# deploy:
-#   resources:
-#     limits:
-#         cpus: '2.00'
-#         memory: 2G
-
-volumes:
-  hugepages:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: size=1G,noexec,nosuid
-
 services:
-  controller:
-    build: .
-    command: ["controller", "-l", "0-1"]
+  ingress:
+    image: dpdk-pot-app:latest # Use your successfully built application image
+    container_name: dpdk-pot-ingress-0
+    hostname: dpdk-pot-ingress-0
+    privileged: true
+    stop_signal: SIGINT
+    environment:
+      - container=docker
     volumes:
-      - ./code:/app
-      - hugepages:/dev/hugepages
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges
-    networks:
-      - srv6-net
+      - /dev/hugepages:/dev/hugepages
+      - /var/run/openvswitch:/var/run/openvswitch
+      # Optional: Mount generated node-specific config file if using prepare script output
+      # - ./generated_configs/ingress_0.json:/app/config/node.json:ro
+      # Optional: Mount secrets
+      # - ./pipeline_secrets/ingress_key.pem:/etc/dpdk-pot/secrets/pot.key:ro
+    # Ensure your host has cores 1, 2, 3 available and core 5 reserved for OVS
+    command: [
+        "/usr/local/bin/dpdk-pot",
+        # --- EAL Arguments ---
+        "--lcores='1'",                    # Assign Core 1 to Ingress
+        "--socket-mem=256",                # Allocate 256MB Hugepage memory (on node 0)
+        "--file-prefix=ingress_inst0",
+        "--huge-dir=/dev/hugepages",
+        # Connect to the OVS socket for Ingress OUTPUT
+        "--vdev=virtio_user0,path=/var/run/openvswitch/vhu_ingress_out.sock,queues=1",
+        # --- Application Arguments ---
+        "--",
+        "--role", "ingress"
+        # Optional: Point to specific config file
+        # "--config-file", "/app/config/node.json"
+    ]
 
-  middlenode:
-    build: .
-    command: ["middlenode", "-l", "0-1"]
+  transit_1:
+    image: dpdk-pot-app:latest # Use the same application image
+    container_name: dpdk-pot-transit-1
+    hostname: dpdk-pot-transit-1
+    privileged: true
+    stop_signal: SIGINT
+    environment:
+      - container=docker
     volumes:
-      - ./code:/app
-      - hugepages:/dev/hugepages
+      - /dev/hugepages:/dev/hugepages
+      - /var/run/openvswitch:/var/run/openvswitch
+      # - ./generated_configs/transit_1.json:/app/config/node.json:ro
+      # - ./pipeline_secrets/transit_key.pem:/etc/dpdk-pot/secrets/pot.key:ro
+    command: [
+        "/usr/local/bin/dpdk-pot",
+        # --- EAL Arguments ---
+        "--lcores='2'",                    # Assign Core 2 to Transit 1
+        "--socket-mem=128",                # Allocate 128MB Hugepage memory
+        "--file-prefix=transit_inst1",
+        "--huge-dir=/dev/hugepages",
+        # INPUT vdev: Connects to the OVS socket for Transit 1 Input
+        "--vdev=virtio_user0,path=/var/run/openvswitch/vhu_transit1_in.sock,queues=1",
+        # OUTPUT vdev: Connects to the OVS socket for Transit 1 Output
+        "--vdev=virtio_user1,path=/var/run/openvswitch/vhu_transit1_out.sock,queues=1",
+        # --- Application Arguments ---
+        "--",
+        "--role", "transit"
+        # "--config-file", "/app/config/node.json"
+    ]
     depends_on:
-      - controller
-    deploy:
-      replicas: 2  # Initial node count
-    networks:
-      - srv6-net
+       - ingress
 
-  creator:
-    build: .
-    command: ["creator", "-l", "0-1"]
+  egress:
+    image: dpdk-pot-app:latest # Use the same application image
+    container_name: dpdk-pot-egress-0
+    hostname: dpdk-pot-egress-0
+    privileged: true
+    stop_signal: SIGINT
+    environment:
+      - container=docker
     volumes:
-      - ./code:/app
-      - hugepages:/dev/hugepages
-    networks:
-      - srv6-net
+      - /dev/hugepages:/dev/hugepages
+      - /var/run/openvswitch:/var/run/openvswitch
+      # - ./generated_configs/egress_0.json:/app/config/node.json:ro
+      # - ./pipeline_secrets/egress_key.pem:/etc/dpdk-pot/secrets/pot.key:ro
+    command: [
+        "/usr/local/bin/dpdk-pot",
+        # --- EAL Arguments ---
+        "--lcores='3'",                    # Assign Core 3 to Egress
+        "--socket-mem=256",                # Allocate 256MB Hugepage memory
+        "--file-prefix=egress_inst0",
+        "--huge-dir=/dev/hugepages",
+        # INPUT vdev: Connects to the OVS socket for Egress Input
+        "--vdev=virtio_user0,path=/var/run/openvswitch/vhu_egress_in.sock,queues=1",
+        # --- Application Arguments ---
+        "--",
+        "--role", "egress"
+        # "--config-file", "/app/config/node.json"
+    ]
+    depends_on:
+      - transit_1 # Depends on the last transit node
 
-networks:
-  srv6-net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.88.0.0/24
+# Optional network definition - not used by the DPDK data path via vhost-user
+# networks:
+#   dpdk_control_net:
+#     driver: bridge

@@ -1,98 +1,48 @@
-# === Stage 1: Build DPDK ===
-# Use an ARG for flexibility
-ARG UBUNTU_VERSION=22.04
-FROM ubuntu:${UBUNTU_VERSION} AS dpdk-builder
+# Dockerfile (Main Application Image for dpdk-pot)
+# Builds the generic application image that can run as ingress, transit, or egress.
 
-LABEL stage="dpdk-builder"
+# Use an ARG to easily reference the base image name/tag
+ARG BASE_IMAGE=photon-dpdk-base:latest
+FROM ${BASE_IMAGE}
 
-# Prevent interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
+# Define user/group again for clarity and potential use in COPY/RUN
+ARG APP_USER=dpdk
+ARG APP_GROUP=dpdk
 
-# Install build essentials and DPDK dependencies
-# Adjust dependencies based on your specific DPDK config/version if needed
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    meson \
-    ninja-build \
-    python3 \
-    pkg-config \
-    git \
-    libpcap-dev \
-    libnuma-dev \
-    libatomic1 \
-    && rm -rf /var/lib/apt/lists/*
+# Create application-specific directories needed at runtime.
+# - /opt/dpdk-pot: Working directory, scripts can go here.
+# - /etc/dpdk-pot/mounted_config: Where node-specific generated configs will be mounted.
+# - /etc/dpdk-pot/defaults: Optional location for default configs baked into the image.
+# - /var/log/dpdk-pot: For application logs (ensure host mounts a volume here if persistence is needed).
+RUN mkdir -p /opt/dpdk-pot/scripts \
+             /etc/dpdk-pot/mounted_config \
+             /etc/dpdk-pot/defaults \
+             /var/log/dpdk-pot && \
+    chown -R ${APP_USER}:${APP_GROUP} /opt/dpdk-pot \
+                                      /etc/dpdk-pot \
+                                      /var/log/dpdk-pot
 
-# Set working directory for the build
-WORKDIR /build
+# Copy the single compiled DPDK application binary from your build context.
+# Assumes your build process produces './build/bin/dpdk-pot'.
+COPY --chown=${APP_USER}:${APP_GROUP} build/dpdk-pot /usr/local/bin/dpdk-pot
 
-# Copy only the DPDK submodule source
-COPY deps/dpdk /build/dpdk
+# Copy any common helper scripts from your build context (optional)
+# Example: COPY --chown=${APP_USER}:${APP_GROUP} scripts/common/* /opt/dpdk-pot/scripts/
 
-# Build and install DPDK
-# Note: Default install prefix is /usr/local
-# Add any custom DPDK meson options if needed (e.g., -Dexamples=...)
-WORKDIR /build/dpdk 
-RUN meson setup build
-RUN ninja -C build
-RUN ninja -C build install
-# Update linker cache within this build stage
-RUN ldconfig
+# Copy any default configuration files as fallbacks (optional)
+# Example: COPY --chown=${APP_USER}:${APP_GROUP} config/default_node.conf /etc/dpdk-pot/defaults/
 
-# === Stage 2: Build PoT Application ===
-# Use the DPDK builder stage as the base
-FROM dpdk-builder AS app-builder
-
-LABEL stage="app-builder"
-
-# Set working directory for the application
-WORKDIR /app
-
-# Copy the entire application source code
-# Ensure you have a .dockerignore file to exclude .git, .venv, deps, build dirs etc.
-COPY . /app
-
-# Build the application
-# Meson will find the pre-installed DPDK via pkg-config
-RUN meson setup build
-RUN ninja -C build
-# The executable will be in /app/build/dpdk-pot based on your meson.build
-
-# === Stage 3: Final Runtime Image ===
-# Start from a clean Ubuntu base for the final image
-FROM ubuntu:${UBUNTU_VERSION}
-
-LABEL stage="runtime"
-
-# Prevent interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install only essential runtime dependencies for DPDK
-# libnuma1 is common, libpcap0.8 if using PCAP PMD (less likely for ENA)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libnuma1 \
-    libpcap0.8 \
-    # Add other runtime libs if needed (e.g. libssl3 if crypto used)
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy DPDK runtime libraries from the dpdk-builder stage
-COPY --from=dpdk-builder /usr/local/lib/ /usr/local/lib/
-
-# Copy the compiled application from the app-builder stage
-COPY --from=app-builder /app/build/dpdk-pot /usr/local/bin/dpdk-pot
-
-# Copy configuration files (adjust path as needed)
-COPY config /etc/dpdk-pot/config
-
-# Copy scripts (optional, if needed at runtime)
-COPY scripts /opt/dpdk-pot/scripts
-
-# Update linker cache to recognize the copied DPDK libraries
-RUN ldconfig
-
-# Set the working directory (optional)
+# Set the default working directory inside the container
 WORKDIR /opt/dpdk-pot
 
-# Define the default command to run when the container starts
-# Add any necessary default arguments for your application
-# You might override this command in docker-compose.yaml
-CMD ["/usr/local/bin/dpdk-pot"]
+# Switch to the non-root user to run the application
+USER ${APP_USER}
+
+# Define the application binary as the entrypoint.
+# All arguments (EAL + App specific) will be provided by the 'command:'
+# directive in the docker-compose.yaml file.
+ENTRYPOINT ["/usr/local/bin/dpdk-pot"]
+
+# Define a default command (e.g., show help) if the image is run standalone
+# without arguments from docker-compose. This will be overridden by docker-compose.
+CMD ["--help"]
