@@ -10,8 +10,11 @@
 .dockerignore
 
 # Build artifacts (local)
-build/
+build/**
+
 builddir/ # Meson often uses builddir
+
+!build/dpdk-pot
 
 # Dependencies (we copy DPDK explicitly in the Dockerfile)
 # deps/
@@ -25,7 +28,7 @@ __pycache__/
 .git
 .venv
 deps
-build/*
-!build/bin
+# build/*
+# !build/bin
 *.o
 *.d

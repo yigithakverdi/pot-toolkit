@@ -16,7 +16,7 @@ inc = include_directories('include')
 root_src = files('main.c')
 
 # Run the script to grab .c files under src/
-grabber = run_command('./scripts/grabber.sh', check: true)
+grabber = run_command('./make/scripts/grabber.sh', check: true)
 src_files = grabber.stdout().strip().split('\n')
 
 all_sources = root_src + src_files
