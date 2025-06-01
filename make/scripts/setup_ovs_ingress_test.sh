@@ -6,7 +6,7 @@ INGRESS_PORT_NAME="vhu_ingress_test_out"
 # OVS typically creates sockets in /var/run/openvswitch or a configured ovs-run directory
 # Ensure this path is accessible for mounting into the Docker container.
 HOST_OVS_RUN_DIR="/var/run/openvswitch" # Common default
-INGRESS_SOCK_PATH="${HOST_OVS_RUN_DIR}/${INGRESS_PORT_NAME}.sock"
+INGRESS_SOCK_PATH="${HOST_OVS_RUN_DIR}/${INGRESS_PORT_NAME}"
 
 echo "Host OVS Run Directory: ${HOST_OVS_RUN_DIR}"
 echo "Ingress Socket Path on Host: ${INGRESS_SOCK_PATH}"
@@ -32,6 +32,11 @@ echo "Verifying OVS setup:"
 sudo ovs-vsctl show
 echo "Checking for socket file at ${INGRESS_SOCK_PATH}:"
 ls -l ${INGRESS_SOCK_PATH}
+
+echo "Setting permissions for the socket ${INGRESS_SOCK_PATH}..."
+sudo chmod 777 ${INGRESS_SOCK_PATH}
+# Alternatively, sudo chmod 777 ${INGRESS_SOCK_PATH} for testing if 666 isn't enough
+echo "Permissions set."
 
 echo "You might need to ensure permissions on ${HOST_OVS_RUN_DIR} or specifically ${INGRESS_SOCK_PATH}"
 echo "allow the user inside the Docker container to access the socket."

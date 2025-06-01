@@ -1,4 +1,4 @@
-project('dpdk-pot', 'c') 
+project('dpdk_pot', 'c') 
 
 dep_dpdk = dependency('libdpdk', 
   fallback: ['dpdk', 'dpdk_dep'],

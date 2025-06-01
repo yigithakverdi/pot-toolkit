@@ -1,17 +1,56 @@
-FROM photon:4.0
+# Dockerfile.base
 
-ARG APP_USER=dpdk
-ARG APP_GROUP=dpdk
+FROM ubuntu:24.04
 
-# Install only runtime deps
-RUN tdnf install -y \
-      numactl \
-      libpcap \
-      libgcc \
-      libgcc-atomic \
-      shadow \
-    && tdnf clean all
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Create dpdk user
-RUN groupadd -r ${APP_GROUP} \
- && useradd --no-log-init -r -g ${APP_GROUP} ${APP_USER}
+# Install system dependencies.
+# IMPORTANT: Add any other system libraries that your ldd checks (from previous advice)
+# indicated were missing for your DPDK libraries. For example, libjansson4, etc.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnuma1 \
+    libssl3 \
+    libpcap0.8 \
+    # Example: libjansson4 (if ldd showed it was needed by a .so file)
+    && rm -rf /var/lib/apt/lists/*
+
+# Define the target root directory for DPDK libraries in the image.
+ARG DPDK_TARGET_ROOT_LIB_DIR=/usr/local/lib/x86_64-linux-gnu
+
+# Create the necessary directory structure in the image.
+# This ensures the parent 'dpdk' directory and its 'pmds-25.2' subdirectory exist.
+RUN mkdir -p ${DPDK_TARGET_ROOT_LIB_DIR}/dpdk/pmds-25.2
+RUN mkdir -p ${DPDK_TARGET_ROOT_LIB_DIR}/pkgconfig
+
+# 1. COPY main librte_*.so.25 files from your staging 'base' directory
+# Source: <build_context>/make/photon/base/librte_*.so.25
+# Target: /usr/local/lib/x86_64-linux-gnu/
+COPY make/photon/base/librte_*.so.25 ${DPDK_TARGET_ROOT_LIB_DIR}/
+
+# 2. COPY files from your 'make/photon/base/dpdk/' staging area
+#    into the image's '/usr/local/lib/x86_64-linux-gnu/dpdk/' directory.
+#    This handles any files/subdirs that should be directly under 'dpdk',
+#    as siblings to the 'pmds-25.2' directory, if you have such files.
+#    The trailing slash on the source (dpdk/*) copies the CONTENTS.
+COPY make/photon/base/dpdk/* ${DPDK_TARGET_ROOT_LIB_DIR}/dpdk/
+
+# 3. COPY PMD .so files from your staging 'pmds' directory
+#    into the image's '/usr/local/lib/x86_64-linux-gnu/dpdk/pmds-25.2/'
+#    This ensures PMDs are in their specific subdirectory.
+COPY make/photon/base/pmds/*.so ${DPDK_TARGET_ROOT_LIB_DIR}/dpdk/pmds-25.2/
+
+# 4. COPY pkgconfig files from your staging 'pkgconfig' directory (Optional for runtime)
+# Source: <build_context>/make/photon/base/pkgconfig/*
+# Target: /usr/local/lib/x86_64-linux-gnu/pkgconfig/
+COPY make/photon/base/pkgconfig/* ${DPDK_TARGET_ROOT_LIB_DIR}/pkgconfig/
+
+# Ensure the copied libraries and files have correct permissions.
+# a+rX gives read to all, and execute to all if it's a directory or already executable by owner.
+RUN chmod -R a+rX ${DPDK_TARGET_ROOT_LIB_DIR}/
+
+# Update the dynamic linker cache. This is crucial.
+RUN ldconfig
+
+# Create a non-root user and group for the application
+RUN groupadd -r dpdk -g 2000 && \
+    useradd -r -u 2000 -g dpdk -m -s /sbin/nologin dpdk # or /bin/bash if shell needed

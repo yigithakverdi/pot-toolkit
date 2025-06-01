@@ -1,23 +1,17 @@
 # Git specific
-.git
 .gitignore
 
 # Python virtual environment
 .venv
 
-# Docker specific
-# Dockerfile
-.dockerignore
+# Ignore dependency files
+deps/*/build
+deps/dpdk/build
+deps/openssl/build
 
 # Build artifacts (local)
 build/**
-
-builddir/ # Meson often uses builddir
-
-!build/dpdk-pot
-
-# Dependencies (we copy DPDK explicitly in the Dockerfile)
-# deps/
+builddir/
 
 # OS / IDE specific
 .DS_Store
@@ -25,10 +19,6 @@ builddir/ # Meson often uses builddir
 __pycache__/
 *.swp
 
-.git
-.venv
-deps
-# build/*
-# !build/bin
+# *.o and *.d are good to ignore if they are local build artifacts outside build/
 *.o
 *.d
