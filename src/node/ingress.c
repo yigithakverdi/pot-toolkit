@@ -4,16 +4,19 @@
 #include "include/pot/pot.h"
 
 #include <rte_branch_prediction.h>
+#include <rte_bus_pci.h>
 #include <rte_dev.h>
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_log.h>
 #include <rte_mempool.h>
+#include <rte_os.h>
+#include <rte_pci.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-RTE_LOG_REGISTER_DEFAULT(ingress, INFO);
+RTE_LOG_REGISTER_DEFAULT(ingress, DEBUG);
 #define RTE_LOGTYPE_INGRESS ingress
 #define INGRESS_LOG(level, fmt, ...)                                           \
   RTE_LOG(level, INGRESS, "%s(): " fmt "\n", __func__, ##__VA_ARGS__)
@@ -44,13 +47,11 @@ static int ingress_init(int argc, char **argv, const struct node_config *config,
     INGRESS_LOG(ERR, "Failed to allocate memory for ingress data");
     return -1;
   }
-  data->config = config;                            // Config still has hardcoded port_id 0, 
-                                                    // tap_port_id 1
-  INGRESS_LOG(DEBUG, "Config data: %p", config);    // Using generic struct access for example
+  data->config = config; // Config still has hardcoded port_id 0,
+                         // tap_port_id 1
+  INGRESS_LOG(DEBUG, "Config data: %p",
+              config); // Using generic struct access for example
 
-
-  exit(1);
-  
   // Initialize the EAL
   int ret = rte_eal_init(argc, argv);
   INGRESS_LOG(DEBUG, "EAL initialized with ret: %d", ret);

@@ -1,48 +1,44 @@
-# Dockerfile (Main Application Image for dpdk-pot)
-# Builds the generic application image that can run as ingress, transit, or egress.
+# Dockerfile for the dpdk-pot application
+# This file should be in the root of your 'dpdk-pot' project.
 
-# Use an ARG to easily reference the base image name/tag
-ARG BASE_IMAGE=photon-dpdk-base:latest
-FROM ${BASE_IMAGE}
+# Use your pre-built DPDK base image.
+# Replace 'your-dpdk-base-image:latest' with the actual tag of your base image,
+# e.g., 'photon-dpdk-base:latest' or 'dpdk-runtime-base:latest'.
+FROM ubuntu-dpdk-base:latest
 
-# Define user/group again for clarity and potential use in COPY/RUN
+# Arguments for flexibility
 ARG APP_USER=dpdk
 ARG APP_GROUP=dpdk
+ARG APP_HOME=/opt/dpdk-pot
+ARG BINARY_NAME=dpdk-pot
+ARG BINARY_SOURCE_PATH=./build
 
-# Create application-specific directories needed at runtime.
-# - /opt/dpdk-pot: Working directory, scripts can go here.
-# - /etc/dpdk-pot/mounted_config: Where node-specific generated configs will be mounted.
-# - /etc/dpdk-pot/defaults: Optional location for default configs baked into the image.
-# - /var/log/dpdk-pot: For application logs (ensure host mounts a volume here if persistence is needed).
-RUN mkdir -p /opt/dpdk-pot/scripts \
-             /etc/dpdk-pot/mounted_config \
-             /etc/dpdk-pot/defaults \
-             /var/log/dpdk-pot && \
-    chown -R ${APP_USER}:${APP_GROUP} /opt/dpdk-pot \
-                                      /etc/dpdk-pot \
-                                      /var/log/dpdk-pot
+# Create application directory and set ownership.
+# The base image should have created the APP_USER.
+RUN mkdir -p ${APP_HOME}/config/profiles && chown -R ${APP_USER}:${APP_GROUP} ${APP_HOME}
 
-# Copy the single compiled DPDK application binary from your build context.
-# Assumes your build process produces './build/bin/dpdk-pot'.
-COPY --chown=${APP_USER}:${APP_GROUP} build/dpdk-pot /usr/local/bin/dpdk-pot
+# Copy the compiled DPDK application binary from your project's build directory
+# into a standard location within the image.
+COPY --chown=${APP_USER}:${APP_GROUP} ${BINARY_SOURCE_PATH}/${BINARY_NAME} /usr/local/bin/${BINARY_NAME}
 
-# Copy any common helper scripts from your build context (optional)
-# Example: COPY --chown=${APP_USER}:${APP_GROUP} scripts/common/* /opt/dpdk-pot/scripts/
+# Copy default application configuration files.
+# The structure config/profiles/*.yaml from your project will be copied to ${APP_HOME}/config/profiles/
+COPY --chown=${APP_USER}:${APP_GROUP} config/profiles ${APP_HOME}/config/profiles/
 
-# Copy any default configuration files as fallbacks (optional)
-# Example: COPY --chown=${APP_USER}:${APP_GROUP} config/default_node.conf /etc/dpdk-pot/defaults/
+# Ensure the binary is executable
+RUN chmod +x /usr/local/bin/${BINARY_NAME}
 
-# Set the default working directory inside the container
-WORKDIR /opt/dpdk-pot
+# Set the working directory for the application
+WORKDIR ${APP_HOME}
 
-# Switch to the non-root user to run the application
+# Switch to the non-root user
 USER ${APP_USER}
 
-# Define the application binary as the entrypoint.
-# All arguments (EAL + App specific) will be provided by the 'command:'
-# directive in the docker-compose.yaml file.
+# Define the entrypoint for the container.
+# The application binary will be executed when the container starts.
 ENTRYPOINT ["/usr/local/bin/dpdk-pot"]
 
-# Define a default command (e.g., show help) if the image is run standalone
-# without arguments from docker-compose. This will be overridden by docker-compose.
+# Default command if none is provided to 'docker run' or in docker-compose.
+# This allows 'docker run your-image-name' to show help.
+# It will be overridden by arguments like '--role ingress ...'
 CMD ["--help"]

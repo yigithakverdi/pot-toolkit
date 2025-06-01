@@ -1,0 +1,1355 @@
+DEBUG: HOST_OVS_RUN_DIR is '/run/openvswitch'
+DEBUG: CONTAINER_OVS_RUN_DIR is '/var/run/openvswitch'
+DEBUG: INGRESS_SOCK_BASENAME is 'vhu_ingress_test_out'
+DEBUG: CONTAINER_SOCK_PATH is '/var/run/openvswitch/vhu_ingress_test_out'
+Container socket path: /var/run/openvswitch/vhu_ingress_test_out
+Socket file /run/openvswitch/vhu_ingress_test_out exists on the host.
+srwxr-xr-x 1 root root 0 Jun  1 22:36 /run/openvswitch/vhu_ingress_test_out
+DEBUG: Using --vdev arguments: 'net_virtio_user0,path=/var/run/openvswitch/vhu_ingress_test_out,server=0,queues=1'
+Stopping and removing any existing container named 'dpdk-ingress-source-test'...
+--- [DEBUG] Checking socket visibility inside a temporary container ---
+/var/run/openvswitch/:
+total 12
+srwxr-x--- 1 root root  0 Jun  1 19:36 br-dpdkpot-test.mgmt
+srwxr-x--- 1 root root  0 Jun  1 19:36 br-dpdkpot-test.snoop
+srwxr-x-w- 1 root root  0 Jun  1 09:03 db.sock
+-rw-rw-rw- 1 root root 16 Jun  1 10:27 host_test_file.txt
+srwxr-x--- 1 root root  0 Jun  1 19:36 ovs-vswitchd.1806143.ctl
+-rw-r--r-- 1 root root  8 Jun  1 19:36 ovs-vswitchd.pid
+srwxr-x-w- 1 root root  0 Jun  1 09:03 ovsdb-server.39490.ctl
+-rw-r--rw- 1 root root  6 Jun  1 09:03 ovsdb-server.pid
+srwxr-xr-x 1 root root  0 Jun  1 19:36 vhu_ingress_test_out
+--- [DEBUG] End of socket visibility check ---
+--- [DEBUG] Checking libraries and ldconfig inside a temporary container (as root) ---
+Contents of /usr/local/lib/x86_64-linux-gnu:
+total 130548
+-rw-r--r-- 1 root root    1161 Jun  1 18:13 libdpdk-libs.pc
+-rw-r--r-- 1 root root    5019 Jun  1 18:13 libdpdk.pc
+-rw-r--r-- 1 root root  195444 Jun  1 18:13 librte_acl.a
+-rwxr-xr-x 1 root root  180648 Jun  1 18:18 librte_acl.so
+-rwxr-xr-x 1 root root  180648 Jun  1 18:18 librte_acl.so.25
+-rwxr-xr-x 1 root root  180648 Jun  1 18:18 librte_acl.so.25.2
+-rw-r--r-- 1 root root   17392 Jun  1 18:13 librte_argparse.a
+-rwxr-xr-x 1 root root   21096 Jun  1 18:18 librte_argparse.so
+-rwxr-xr-x 1 root root   21096 Jun  1 18:18 librte_argparse.so.25
+-rwxr-xr-x 1 root root   21096 Jun  1 18:18 librte_argparse.so.25.2
+-rw-r--r-- 1 root root  232574 Jun  1 18:17 librte_baseband_acc.a
+-rwxr-xr-x 1 root root  177064 Jun  1 18:18 librte_baseband_acc.so
+-rwxr-xr-x 1 root root  177064 Jun  1 18:18 librte_baseband_acc.so.25
+-rwxr-xr-x 1 root root  177064 Jun  1 18:18 librte_baseband_acc.so.25.2
+-rw-r--r-- 1 root root   71404 Jun  1 18:17 librte_baseband_fpga_5gnr_fec.a
+-rwxr-xr-x 1 root root   56824 Jun  1 18:18 librte_baseband_fpga_5gnr_fec.so
+-rwxr-xr-x 1 root root   56824 Jun  1 18:18 librte_baseband_fpga_5gnr_fec.so.25
+-rwxr-xr-x 1 root root   56824 Jun  1 18:18 librte_baseband_fpga_5gnr_fec.so.25.2
+-rw-r--r-- 1 root root   44024 Jun  1 18:17 librte_baseband_fpga_lte_fec.a
+-rwxr-xr-x 1 root root   39992 Jun  1 18:18 librte_baseband_fpga_lte_fec.so
+-rwxr-xr-x 1 root root   39992 Jun  1 18:18 librte_baseband_fpga_lte_fec.so.25
+-rwxr-xr-x 1 root root   39992 Jun  1 18:18 librte_baseband_fpga_lte_fec.so.25.2
+-rw-r--r-- 1 root root   23756 Jun  1 18:17 librte_baseband_la12xx.a
+-rwxr-xr-x 1 root root   26816 Jun  1 18:18 librte_baseband_la12xx.so
+-rwxr-xr-x 1 root root   26816 Jun  1 18:18 librte_baseband_la12xx.so.25
+-rwxr-xr-x 1 root root   26816 Jun  1 18:18 librte_baseband_la12xx.so.25.2
+-rw-r--r-- 1 root root   19882 Jun  1 18:17 librte_baseband_null.a
+-rwxr-xr-x 1 root root   26216 Jun  1 18:18 librte_baseband_null.so
+-rwxr-xr-x 1 root root   26216 Jun  1 18:18 librte_baseband_null.so.25
+-rwxr-xr-x 1 root root   26216 Jun  1 18:18 librte_baseband_null.so.25.2
+-rw-r--r-- 1 root root   36996 Jun  1 18:17 librte_baseband_turbo_sw.a
+-rwxr-xr-x 1 root root   38928 Jun  1 18:18 librte_baseband_turbo_sw.so
+-rwxr-xr-x 1 root root   38928 Jun  1 18:18 librte_baseband_turbo_sw.so.25
+-rwxr-xr-x 1 root root   38928 Jun  1 18:18 librte_baseband_turbo_sw.so.25.2
+-rw-r--r-- 1 root root   69182 Jun  1 18:13 librte_bbdev.a
+-rwxr-xr-x 1 root root   51896 Jun  1 18:18 librte_bbdev.so
+-rwxr-xr-x 1 root root   51896 Jun  1 18:18 librte_bbdev.so.25
+-rwxr-xr-x 1 root root   51896 Jun  1 18:18 librte_bbdev.so.25.2
+-rw-r--r-- 1 root root    3652 Jun  1 18:13 librte_bitratestats.a
+-rwxr-xr-x 1 root root   16112 Jun  1 18:18 librte_bitratestats.so
+-rwxr-xr-x 1 root root   16112 Jun  1 18:18 librte_bitratestats.so.25
+-rwxr-xr-x 1 root root   16112 Jun  1 18:18 librte_bitratestats.so.25.2
+-rw-r--r-- 1 root root  119826 Jun  1 18:13 librte_bpf.a
+-rwxr-xr-x 1 root root   86904 Jun  1 18:18 librte_bpf.so
+-rwxr-xr-x 1 root root   86904 Jun  1 18:18 librte_bpf.so.25
+-rwxr-xr-x 1 root root   86904 Jun  1 18:18 librte_bpf.so.25.2
+-rw-r--r-- 1 root root   22160 Jun  1 18:14 librte_bus_auxiliary.a
+-rwxr-xr-x 1 root root   23048 Jun  1 18:18 librte_bus_auxiliary.so
+-rwxr-xr-x 1 root root   23048 Jun  1 18:18 librte_bus_auxiliary.so.25
+-rwxr-xr-x 1 root root   23048 Jun  1 18:18 librte_bus_auxiliary.so.25.2
+-rw-r--r-- 1 root root   40066 Jun  1 18:14 librte_bus_cdx.a
+-rwxr-xr-x 1 root root   38232 Jun  1 18:18 librte_bus_cdx.so
+-rwxr-xr-x 1 root root   38232 Jun  1 18:18 librte_bus_cdx.so.25
+-rwxr-xr-x 1 root root   38232 Jun  1 18:18 librte_bus_cdx.so.25.2
+-rw-r--r-- 1 root root  223844 Jun  1 18:14 librte_bus_dpaa.a
+-rwxr-xr-x 1 root root  130128 Jun  1 18:18 librte_bus_dpaa.so
+-rwxr-xr-x 1 root root  130128 Jun  1 18:18 librte_bus_dpaa.so.25
+-rwxr-xr-x 1 root root  130128 Jun  1 18:18 librte_bus_dpaa.so.25.2
+-rw-r--r-- 1 root root  209310 Jun  1 18:14 librte_bus_fslmc.a
+-rwxr-xr-x 1 root root  136152 Jun  1 18:18 librte_bus_fslmc.so
+-rwxr-xr-x 1 root root  136152 Jun  1 18:18 librte_bus_fslmc.so.25
+-rwxr-xr-x 1 root root  136152 Jun  1 18:18 librte_bus_fslmc.so.25.2
+-rw-r--r-- 1 root root   16884 Jun  1 18:14 librte_bus_ifpga.a
+-rwxr-xr-x 1 root root   22752 Jun  1 18:18 librte_bus_ifpga.so
+-rwxr-xr-x 1 root root   22752 Jun  1 18:18 librte_bus_ifpga.so.25
+-rwxr-xr-x 1 root root   22752 Jun  1 18:18 librte_bus_ifpga.so.25.2
+-rw-r--r-- 1 root root  117062 Jun  1 18:14 librte_bus_pci.a
+-rwxr-xr-x 1 root root   77736 Jun  1 18:18 librte_bus_pci.so
+-rwxr-xr-x 1 root root   77736 Jun  1 18:18 librte_bus_pci.so.25
+-rwxr-xr-x 1 root root   77736 Jun  1 18:18 librte_bus_pci.so.25.2
+-rw-r--r-- 1 root root   22664 Jun  1 18:14 librte_bus_platform.a
+-rwxr-xr-x 1 root root   27592 Jun  1 18:18 librte_bus_platform.so
+-rwxr-xr-x 1 root root   27592 Jun  1 18:18 librte_bus_platform.so.25
+-rwxr-xr-x 1 root root   27592 Jun  1 18:18 librte_bus_platform.so.25.2
+-rw-r--r-- 1 root root   21344 Jun  1 18:14 librte_bus_uacce.a
+-rwxr-xr-x 1 root root   27432 Jun  1 18:18 librte_bus_uacce.so
+-rwxr-xr-x 1 root root   27432 Jun  1 18:18 librte_bus_uacce.so.25
+-rwxr-xr-x 1 root root   27432 Jun  1 18:18 librte_bus_uacce.so.25.2
+-rw-r--r-- 1 root root   27190 Jun  1 18:14 librte_bus_vdev.a
+-rwxr-xr-x 1 root root   27864 Jun  1 18:18 librte_bus_vdev.so
+-rwxr-xr-x 1 root root   27864 Jun  1 18:18 librte_bus_vdev.so.25
+-rwxr-xr-x 1 root root   27864 Jun  1 18:18 librte_bus_vdev.so.25.2
+-rw-r--r-- 1 root root   69800 Jun  1 18:14 librte_bus_vmbus.a
+-rwxr-xr-x 1 root root   52448 Jun  1 18:18 librte_bus_vmbus.so
+-rwxr-xr-x 1 root root   52448 Jun  1 18:18 librte_bus_vmbus.so.25
+-rwxr-xr-x 1 root root   52448 Jun  1 18:18 librte_bus_vmbus.so.25.2
+-rw-r--r-- 1 root root   15198 Jun  1 18:13 librte_cfgfile.a
+-rwxr-xr-x 1 root root   21896 Jun  1 18:18 librte_cfgfile.so
+-rwxr-xr-x 1 root root   21896 Jun  1 18:18 librte_cfgfile.so.25
+-rwxr-xr-x 1 root root   21896 Jun  1 18:18 librte_cfgfile.so.25.2
+-rw-r--r-- 1 root root   63560 Jun  1 18:13 librte_cmdline.a
+-rwxr-xr-x 1 root root   51032 Jun  1 18:18 librte_cmdline.so
+-rwxr-xr-x 1 root root   51032 Jun  1 18:18 librte_cmdline.so.25
+-rwxr-xr-x 1 root root   51032 Jun  1 18:18 librte_cmdline.so.25.2
+-rw-r--r-- 1 root root 1332552 Jun  1 18:14 librte_common_cnxk.a
+-rwxr-xr-x 1 root root  769664 Jun  1 18:18 librte_common_cnxk.so
+-rwxr-xr-x 1 root root  769664 Jun  1 18:18 librte_common_cnxk.so.25
+-rwxr-xr-x 1 root root  769664 Jun  1 18:18 librte_common_cnxk.so.25.2
+-rw-r--r-- 1 root root   18794 Jun  1 18:14 librte_common_cpt.a
+-rwxr-xr-x 1 root root   28840 Jun  1 18:18 librte_common_cpt.so
+-rwxr-xr-x 1 root root   28840 Jun  1 18:18 librte_common_cpt.so.25
+-rwxr-xr-x 1 root root   28840 Jun  1 18:18 librte_common_cpt.so.25.2
+-rw-r--r-- 1 root root   39588 Jun  1 18:14 librte_common_dpaax.a
+-rwxr-xr-x 1 root root   35856 Jun  1 18:18 librte_common_dpaax.so
+-rwxr-xr-x 1 root root   35856 Jun  1 18:18 librte_common_dpaax.so.25
+-rwxr-xr-x 1 root root   35856 Jun  1 18:18 librte_common_dpaax.so.25.2
+-rw-r--r-- 1 root root    9912 Jun  1 18:14 librte_common_ionic.a
+-rwxr-xr-x 1 root root   17048 Jun  1 18:18 librte_common_ionic.so
+-rwxr-xr-x 1 root root   17048 Jun  1 18:18 librte_common_ionic.so.25
+-rwxr-xr-x 1 root root   17048 Jun  1 18:18 librte_common_ionic.so.25.2
+-rw-r--r-- 1 root root  307092 Jun  1 18:14 librte_common_mlx5.a
+-rwxr-xr-x 1 root root  229240 Jun  1 18:18 librte_common_mlx5.so
+-rwxr-xr-x 1 root root  229240 Jun  1 18:18 librte_common_mlx5.so.25
+-rwxr-xr-x 1 root root  229240 Jun  1 18:18 librte_common_mlx5.so.25.2
+-rw-r--r-- 1 root root   17364 Jun  1 18:14 librte_common_nfp.a
+-rwxr-xr-x 1 root root   17624 Jun  1 18:18 librte_common_nfp.so
+-rwxr-xr-x 1 root root   17624 Jun  1 18:18 librte_common_nfp.so.25
+-rwxr-xr-x 1 root root   17624 Jun  1 18:18 librte_common_nfp.so.25.2
+-rw-r--r-- 1 root root   19060 Jun  1 18:14 librte_common_nitrox.a
+-rwxr-xr-x 1 root root   17792 Jun  1 18:18 librte_common_nitrox.so
+-rwxr-xr-x 1 root root   17792 Jun  1 18:18 librte_common_nitrox.so.25
+-rwxr-xr-x 1 root root   17792 Jun  1 18:18 librte_common_nitrox.so.25.2
+-rw-r--r-- 1 root root    9110 Jun  1 18:14 librte_common_octeontx.a
+-rwxr-xr-x 1 root root   16520 Jun  1 18:18 librte_common_octeontx.so
+-rwxr-xr-x 1 root root   16520 Jun  1 18:18 librte_common_octeontx.so.25
+-rwxr-xr-x 1 root root   16520 Jun  1 18:18 librte_common_octeontx.so.25.2
+-rw-r--r-- 1 root root  490700 Jun  1 18:14 librte_common_qat.a
+-rwxr-xr-x 1 root root  337088 Jun  1 18:18 librte_common_qat.so
+-rwxr-xr-x 1 root root  337088 Jun  1 18:18 librte_common_qat.so.25
+-rwxr-xr-x 1 root root  337088 Jun  1 18:18 librte_common_qat.so.25.2
+-rw-r--r-- 1 root root  539158 Jun  1 18:14 librte_common_sfc_efx.a
+-rwxr-xr-x 1 root root  302160 Jun  1 18:18 librte_common_sfc_efx.so
+-rwxr-xr-x 1 root root  302160 Jun  1 18:18 librte_common_sfc_efx.so.25
+-rwxr-xr-x 1 root root  302160 Jun  1 18:18 librte_common_sfc_efx.so.25.2
+-rw-r--r-- 1 root root   64114 Jun  1 18:14 librte_common_zsda.a
+-rwxr-xr-x 1 root root   47384 Jun  1 18:18 librte_common_zsda.so
+-rwxr-xr-x 1 root root   47384 Jun  1 18:18 librte_common_zsda.so.25
+-rwxr-xr-x 1 root root   47384 Jun  1 18:18 librte_common_zsda.so.25.2
+-rw-r--r-- 1 root root   28198 Jun  1 18:17 librte_compress_mlx5.a
+-rwxr-xr-x 1 root root   35960 Jun  1 18:18 librte_compress_mlx5.so
+-rwxr-xr-x 1 root root   35960 Jun  1 18:18 librte_compress_mlx5.so.25
+-rwxr-xr-x 1 root root   35960 Jun  1 18:18 librte_compress_mlx5.so.25.2
+-rw-r--r-- 1 root root   38504 Jun  1 18:17 librte_compress_nitrox.a
+-rwxr-xr-x 1 root root   40680 Jun  1 18:18 librte_compress_nitrox.so
+-rwxr-xr-x 1 root root   40680 Jun  1 18:18 librte_compress_nitrox.so.25
+-rwxr-xr-x 1 root root   40680 Jun  1 18:18 librte_compress_nitrox.so.25.2
+-rw-r--r-- 1 root root   37966 Jun  1 18:17 librte_compress_octeontx.a
+-rwxr-xr-x 1 root root   40520 Jun  1 18:18 librte_compress_octeontx.so
+-rwxr-xr-x 1 root root   40520 Jun  1 18:18 librte_compress_octeontx.so.25
+-rwxr-xr-x 1 root root   40520 Jun  1 18:18 librte_compress_octeontx.so.25.2
+-rw-r--r-- 1 root root   42818 Jun  1 18:13 librte_compressdev.a
+-rwxr-xr-x 1 root root   38128 Jun  1 18:18 librte_compressdev.so
+-rwxr-xr-x 1 root root   38128 Jun  1 18:18 librte_compressdev.so.25
+-rwxr-xr-x 1 root root   38128 Jun  1 18:18 librte_compressdev.so.25.2
+-rw-r--r-- 1 root root   98288 Jun  1 18:17 librte_crypto_bcmfs.a
+-rwxr-xr-x 1 root root   64176 Jun  1 18:18 librte_crypto_bcmfs.so
+-rwxr-xr-x 1 root root   64176 Jun  1 18:18 librte_crypto_bcmfs.so.25
+-rwxr-xr-x 1 root root   64176 Jun  1 18:18 librte_crypto_bcmfs.so.25.2
+-rw-r--r-- 1 root root  144152 Jun  1 18:17 librte_crypto_caam_jr.a
+-rwxr-xr-x 1 root root  104736 Jun  1 18:18 librte_crypto_caam_jr.so
+-rwxr-xr-x 1 root root  104736 Jun  1 18:18 librte_crypto_caam_jr.so.25
+-rwxr-xr-x 1 root root  104736 Jun  1 18:18 librte_crypto_caam_jr.so.25.2
+-rw-r--r-- 1 root root  106580 Jun  1 18:17 librte_crypto_ccp.a
+-rwxr-xr-x 1 root root   90976 Jun  1 18:18 librte_crypto_ccp.so
+-rwxr-xr-x 1 root root   90976 Jun  1 18:18 librte_crypto_ccp.so.25
+-rwxr-xr-x 1 root root   90976 Jun  1 18:18 librte_crypto_ccp.so.25.2
+-rw-r--r-- 1 root root  545712 Jun  1 18:17 librte_crypto_cnxk.a
+-rwxr-xr-x 1 root root  386648 Jun  1 18:18 librte_crypto_cnxk.so
+-rwxr-xr-x 1 root root  386648 Jun  1 18:18 librte_crypto_cnxk.so.25
+-rwxr-xr-x 1 root root  386648 Jun  1 18:18 librte_crypto_cnxk.so.25.2
+-rw-r--r-- 1 root root  279012 Jun  1 18:17 librte_crypto_dpaa2_sec.a
+-rwxr-xr-x 1 root root  201784 Jun  1 18:18 librte_crypto_dpaa2_sec.so
+-rwxr-xr-x 1 root root  201784 Jun  1 18:18 librte_crypto_dpaa2_sec.so.25
+-rwxr-xr-x 1 root root  201784 Jun  1 18:18 librte_crypto_dpaa2_sec.so.25.2
+-rw-r--r-- 1 root root  233576 Jun  1 18:17 librte_crypto_dpaa_sec.a
+-rwxr-xr-x 1 root root  178496 Jun  1 18:18 librte_crypto_dpaa_sec.so
+-rwxr-xr-x 1 root root  178496 Jun  1 18:18 librte_crypto_dpaa_sec.so.25
+-rwxr-xr-x 1 root root  178496 Jun  1 18:18 librte_crypto_dpaa_sec.so.25.2
+-rw-r--r-- 1 root root   67048 Jun  1 18:17 librte_crypto_ionic.a
+-rwxr-xr-x 1 root root   50528 Jun  1 18:18 librte_crypto_ionic.so
+-rwxr-xr-x 1 root root   50528 Jun  1 18:18 librte_crypto_ionic.so.25
+-rwxr-xr-x 1 root root   50528 Jun  1 18:18 librte_crypto_ionic.so.25.2
+-rw-r--r-- 1 root root   71814 Jun  1 18:17 librte_crypto_mlx5.a
+-rwxr-xr-x 1 root root   60320 Jun  1 18:18 librte_crypto_mlx5.so
+-rwxr-xr-x 1 root root   60320 Jun  1 18:18 librte_crypto_mlx5.so.25
+-rwxr-xr-x 1 root root   60320 Jun  1 18:18 librte_crypto_mlx5.so.25.2
+-rw-r--r-- 1 root root   35876 Jun  1 18:17 librte_crypto_nitrox.a
+-rwxr-xr-x 1 root root   36624 Jun  1 18:18 librte_crypto_nitrox.so
+-rwxr-xr-x 1 root root   36624 Jun  1 18:18 librte_crypto_nitrox.so.25
+-rwxr-xr-x 1 root root   36624 Jun  1 18:18 librte_crypto_nitrox.so.25.2
+-rw-r--r-- 1 root root   23162 Jun  1 18:17 librte_crypto_null.a
+-rwxr-xr-x 1 root root   27328 Jun  1 18:18 librte_crypto_null.so
+-rwxr-xr-x 1 root root   27328 Jun  1 18:18 librte_crypto_null.so.25
+-rwxr-xr-x 1 root root   27328 Jun  1 18:18 librte_crypto_null.so.25.2
+-rw-r--r-- 1 root root  203912 Jun  1 18:17 librte_crypto_octeontx.a
+-rwxr-xr-x 1 root root  162976 Jun  1 18:18 librte_crypto_octeontx.so
+-rwxr-xr-x 1 root root  162976 Jun  1 18:18 librte_crypto_octeontx.so.25
+-rwxr-xr-x 1 root root  162976 Jun  1 18:18 librte_crypto_octeontx.so.25.2
+-rw-r--r-- 1 root root   94090 Jun  1 18:17 librte_crypto_openssl.a
+-rwxr-xr-x 1 root root   86680 Jun  1 18:18 librte_crypto_openssl.so
+-rwxr-xr-x 1 root root   86680 Jun  1 18:18 librte_crypto_openssl.so.25
+-rwxr-xr-x 1 root root   86680 Jun  1 18:18 librte_crypto_openssl.so.25.2
+-rw-r--r-- 1 root root  136582 Jun  1 18:17 librte_crypto_scheduler.a
+-rwxr-xr-x 1 root root  117176 Jun  1 18:18 librte_crypto_scheduler.so
+-rwxr-xr-x 1 root root  117176 Jun  1 18:18 librte_crypto_scheduler.so.25
+-rwxr-xr-x 1 root root  117176 Jun  1 18:18 librte_crypto_scheduler.so.25.2
+-rw-r--r-- 1 root root  154808 Jun  1 18:17 librte_crypto_virtio.a
+-rwxr-xr-x 1 root root  106768 Jun  1 18:18 librte_crypto_virtio.so
+-rwxr-xr-x 1 root root  106768 Jun  1 18:18 librte_crypto_virtio.so.25
+-rwxr-xr-x 1 root root  106768 Jun  1 18:18 librte_crypto_virtio.so.25.2
+-rw-r--r-- 1 root root  189396 Jun  1 18:13 librte_cryptodev.a
+-rwxr-xr-x 1 root root  137456 Jun  1 18:18 librte_cryptodev.so
+-rwxr-xr-x 1 root root  137456 Jun  1 18:18 librte_cryptodev.so.25
+-rwxr-xr-x 1 root root  137456 Jun  1 18:18 librte_cryptodev.so.25.2
+-rw-r--r-- 1 root root   11656 Jun  1 18:13 librte_dispatcher.a
+-rwxr-xr-x 1 root root   21568 Jun  1 18:18 librte_dispatcher.so
+-rwxr-xr-x 1 root root   21568 Jun  1 18:18 librte_dispatcher.so.25
+-rwxr-xr-x 1 root root   21568 Jun  1 18:18 librte_dispatcher.so.25.2
+-rw-r--r-- 1 root root   27246 Jun  1 18:13 librte_distributor.a
+-rwxr-xr-x 1 root root   30464 Jun  1 18:18 librte_distributor.so
+-rwxr-xr-x 1 root root   30464 Jun  1 18:18 librte_distributor.so.25
+-rwxr-xr-x 1 root root   30464 Jun  1 18:18 librte_distributor.so.25.2
+-rw-r--r-- 1 root root   58418 Jun  1 18:14 librte_dma_cnxk.a
+-rwxr-xr-x 1 root root   64880 Jun  1 18:18 librte_dma_cnxk.so
+-rwxr-xr-x 1 root root   64880 Jun  1 18:18 librte_dma_cnxk.so.25
+-rwxr-xr-x 1 root root   64880 Jun  1 18:18 librte_dma_cnxk.so.25.2
+-rw-r--r-- 1 root root   70156 Jun  1 18:14 librte_dma_dpaa.a
+-rwxr-xr-x 1 root root   68376 Jun  1 18:18 librte_dma_dpaa.so
+-rwxr-xr-x 1 root root   68376 Jun  1 18:18 librte_dma_dpaa.so.25
+-rwxr-xr-x 1 root root   68376 Jun  1 18:18 librte_dma_dpaa.so.25.2
+-rw-r--r-- 1 root root   44056 Jun  1 18:14 librte_dma_dpaa2.a
+-rwxr-xr-x 1 root root   45944 Jun  1 18:18 librte_dma_dpaa2.so
+-rwxr-xr-x 1 root root   45944 Jun  1 18:18 librte_dma_dpaa2.so.25
+-rwxr-xr-x 1 root root   45944 Jun  1 18:18 librte_dma_dpaa2.so.25.2
+-rw-r--r-- 1 root root   21682 Jun  1 18:14 librte_dma_hisilicon.a
+-rwxr-xr-x 1 root root   22632 Jun  1 18:18 librte_dma_hisilicon.so
+-rwxr-xr-x 1 root root   22632 Jun  1 18:18 librte_dma_hisilicon.so.25
+-rwxr-xr-x 1 root root   22632 Jun  1 18:18 librte_dma_hisilicon.so.25.2
+-rw-r--r-- 1 root root   52708 Jun  1 18:14 librte_dma_idxd.a
+-rwxr-xr-x 1 root root   42064 Jun  1 18:18 librte_dma_idxd.so
+-rwxr-xr-x 1 root root   42064 Jun  1 18:18 librte_dma_idxd.so.25
+-rwxr-xr-x 1 root root   42064 Jun  1 18:18 librte_dma_idxd.so.25.2
+-rw-r--r-- 1 root root   23388 Jun  1 18:14 librte_dma_ioat.a
+-rwxr-xr-x 1 root root   26920 Jun  1 18:18 librte_dma_ioat.so
+-rwxr-xr-x 1 root root   26920 Jun  1 18:18 librte_dma_ioat.so.25
+-rwxr-xr-x 1 root root   26920 Jun  1 18:18 librte_dma_ioat.so.25.2
+-rw-r--r-- 1 root root   19074 Jun  1 18:14 librte_dma_odm.a
+-rwxr-xr-x 1 root root   26136 Jun  1 18:18 librte_dma_odm.so
+-rwxr-xr-x 1 root root   26136 Jun  1 18:18 librte_dma_odm.so.25
+-rwxr-xr-x 1 root root   26136 Jun  1 18:18 librte_dma_odm.so.25.2
+-rw-r--r-- 1 root root   35362 Jun  1 18:14 librte_dma_skeleton.a
+-rwxr-xr-x 1 root root   39584 Jun  1 18:18 librte_dma_skeleton.so
+-rwxr-xr-x 1 root root   39584 Jun  1 18:18 librte_dma_skeleton.so.25
+-rwxr-xr-x 1 root root   39584 Jun  1 18:18 librte_dma_skeleton.so.25.2
+-rw-r--r-- 1 root root   61372 Jun  1 18:13 librte_dmadev.a
+-rwxr-xr-x 1 root root   48776 Jun  1 18:18 librte_dmadev.so
+-rwxr-xr-x 1 root root   48776 Jun  1 18:18 librte_dmadev.so.25
+-rwxr-xr-x 1 root root   48776 Jun  1 18:18 librte_dmadev.so.25.2
+-rw-r--r-- 1 root root  896376 Jun  1 18:13 librte_eal.a
+-rwxr-xr-x 1 root root  491232 Jun  1 18:18 librte_eal.so
+-rwxr-xr-x 1 root root  491232 Jun  1 18:18 librte_eal.so.25
+-rwxr-xr-x 1 root root  491232 Jun  1 18:18 librte_eal.so.25.2
+-rw-r--r-- 1 root root   40112 Jun  1 18:13 librte_efd.a
+-rwxr-xr-x 1 root root   42272 Jun  1 18:18 librte_efd.so
+-rwxr-xr-x 1 root root   42272 Jun  1 18:18 librte_efd.so.25
+-rwxr-xr-x 1 root root   42272 Jun  1 18:18 librte_efd.so.25.2
+-rw-r--r-- 1 root root  893838 Jun  1 18:13 librte_ethdev.a
+-rwxr-xr-x 1 root root  521968 Jun  1 18:18 librte_ethdev.so
+-rwxr-xr-x 1 root root  521968 Jun  1 18:18 librte_ethdev.so.25
+-rwxr-xr-x 1 root root  521968 Jun  1 18:18 librte_ethdev.so.25.2
+-rw-r--r-- 1 root root  381550 Jun  1 18:17 librte_event_cnxk.a
+-rwxr-xr-x 1 root root  275768 Jun  1 18:18 librte_event_cnxk.so
+-rwxr-xr-x 1 root root  275768 Jun  1 18:18 librte_event_cnxk.so.25
+-rwxr-xr-x 1 root root  275768 Jun  1 18:18 librte_event_cnxk.so.25.2
+-rw-r--r-- 1 root root  312600 Jun  1 18:17 librte_event_dlb2.a
+-rwxr-xr-x 1 root root  214872 Jun  1 18:18 librte_event_dlb2.so
+-rwxr-xr-x 1 root root  214872 Jun  1 18:18 librte_event_dlb2.so.25
+-rwxr-xr-x 1 root root  214872 Jun  1 18:18 librte_event_dlb2.so.25.2
+-rw-r--r-- 1 root root   30346 Jun  1 18:17 librte_event_dpaa.a
+-rwxr-xr-x 1 root root   38576 Jun  1 18:18 librte_event_dpaa.so
+-rwxr-xr-x 1 root root   38576 Jun  1 18:18 librte_event_dpaa.so.25
+-rwxr-xr-x 1 root root   38576 Jun  1 18:18 librte_event_dpaa.so.25.2
+-rw-r--r-- 1 root root   75458 Jun  1 18:17 librte_event_dpaa2.a
+-rwxr-xr-x 1 root root   64336 Jun  1 18:18 librte_event_dpaa2.so
+-rwxr-xr-x 1 root root   64336 Jun  1 18:18 librte_event_dpaa2.so.25
+-rwxr-xr-x 1 root root   64336 Jun  1 18:18 librte_event_dpaa2.so.25.2
+-rw-r--r-- 1 root root   52810 Jun  1 18:17 librte_event_dsw.a
+-rwxr-xr-x 1 root root   57928 Jun  1 18:18 librte_event_dsw.so
+-rwxr-xr-x 1 root root   57928 Jun  1 18:18 librte_event_dsw.so.25
+-rwxr-xr-x 1 root root   57928 Jun  1 18:18 librte_event_dsw.so.25.2
+-rw-r--r-- 1 root root  341346 Jun  1 18:17 librte_event_octeontx.a
+-rwxr-xr-x 1 root root  273552 Jun  1 18:18 librte_event_octeontx.so
+-rwxr-xr-x 1 root root  273552 Jun  1 18:18 librte_event_octeontx.so.25
+-rwxr-xr-x 1 root root  273552 Jun  1 18:18 librte_event_octeontx.so.25.2
+-rw-r--r-- 1 root root  128800 Jun  1 18:17 librte_event_opdl.a
+-rwxr-xr-x 1 root root   99648 Jun  1 18:18 librte_event_opdl.so
+-rwxr-xr-x 1 root root   99648 Jun  1 18:18 librte_event_opdl.so.25
+-rwxr-xr-x 1 root root   99648 Jun  1 18:18 librte_event_opdl.so.25.2
+-rw-r--r-- 1 root root   15028 Jun  1 18:17 librte_event_skeleton.a
+-rwxr-xr-x 1 root root   19544 Jun  1 18:18 librte_event_skeleton.so
+-rwxr-xr-x 1 root root   19544 Jun  1 18:18 librte_event_skeleton.so.25
+-rwxr-xr-x 1 root root   19544 Jun  1 18:18 librte_event_skeleton.so.25.2
+-rw-r--r-- 1 root root  232172 Jun  1 18:17 librte_event_sw.a
+-rwxr-xr-x 1 root root  145848 Jun  1 18:18 librte_event_sw.so
+-rwxr-xr-x 1 root root  145848 Jun  1 18:18 librte_event_sw.so.25
+-rwxr-xr-x 1 root root  145848 Jun  1 18:18 librte_event_sw.so.25.2
+-rw-r--r-- 1 root root  480424 Jun  1 18:13 librte_eventdev.a
+-rwxr-xr-x 1 root root  313096 Jun  1 18:18 librte_eventdev.so
+-rwxr-xr-x 1 root root  313096 Jun  1 18:18 librte_eventdev.so.25
+-rwxr-xr-x 1 root root  313096 Jun  1 18:18 librte_eventdev.so.25.2
+-rw-r--r-- 1 root root   87710 Jun  1 18:14 librte_fib.a
+-rwxr-xr-x 1 root root   80016 Jun  1 18:18 librte_fib.so
+-rwxr-xr-x 1 root root   80016 Jun  1 18:18 librte_fib.so.25
+-rwxr-xr-x 1 root root   80016 Jun  1 18:18 librte_fib.so.25.2
+-rw-r--r-- 1 root root   29846 Jun  1 18:13 librte_gpudev.a
+-rwxr-xr-x 1 root root   34640 Jun  1 18:18 librte_gpudev.so
+-rwxr-xr-x 1 root root   34640 Jun  1 18:18 librte_gpudev.so.25
+-rwxr-xr-x 1 root root   34640 Jun  1 18:18 librte_gpudev.so.25.2
+-rw-r--r-- 1 root root   97714 Jun  1 18:14 librte_graph.a
+-rwxr-xr-x 1 root root   65648 Jun  1 18:18 librte_graph.so
+-rwxr-xr-x 1 root root   65648 Jun  1 18:18 librte_graph.so.25
+-rwxr-xr-x 1 root root   65648 Jun  1 18:18 librte_graph.so.25.2
+-rw-r--r-- 1 root root   40804 Jun  1 18:13 librte_gro.a
+-rwxr-xr-x 1 root root   42448 Jun  1 18:18 librte_gro.so
+-rwxr-xr-x 1 root root   42448 Jun  1 18:18 librte_gro.so.25
+-rwxr-xr-x 1 root root   42448 Jun  1 18:18 librte_gro.so.25.2
+-rw-r--r-- 1 root root   19008 Jun  1 18:13 librte_gso.a
+-rwxr-xr-x 1 root root   20608 Jun  1 18:18 librte_gso.so
+-rwxr-xr-x 1 root root   20608 Jun  1 18:18 librte_gso.so.25
+-rwxr-xr-x 1 root root   20608 Jun  1 18:18 librte_gso.so.25.2
+-rw-r--r-- 1 root root  130246 Jun  1 18:13 librte_hash.a
+-rwxr-xr-x 1 root root  109392 Jun  1 18:18 librte_hash.so
+-rwxr-xr-x 1 root root  109392 Jun  1 18:18 librte_hash.so.25
+-rwxr-xr-x 1 root root  109392 Jun  1 18:18 librte_hash.so.25.2
+-rw-r--r-- 1 root root   48438 Jun  1 18:14 librte_ip_frag.a
+-rwxr-xr-x 1 root root   42736 Jun  1 18:18 librte_ip_frag.so
+-rwxr-xr-x 1 root root   42736 Jun  1 18:18 librte_ip_frag.so.25
+-rwxr-xr-x 1 root root   42736 Jun  1 18:18 librte_ip_frag.so.25.2
+-rw-r--r-- 1 root root  116650 Jun  1 18:14 librte_ipsec.a
+-rwxr-xr-x 1 root root  102824 Jun  1 18:18 librte_ipsec.so
+-rwxr-xr-x 1 root root  102824 Jun  1 18:18 librte_ipsec.so.25
+-rwxr-xr-x 1 root root  102824 Jun  1 18:18 librte_ipsec.so.25.2
+-rw-r--r-- 1 root root    4938 Jun  1 18:14 librte_jobstats.a
+-rwxr-xr-x 1 root root   16368 Jun  1 18:18 librte_jobstats.so
+-rwxr-xr-x 1 root root   16368 Jun  1 18:18 librte_jobstats.so.25
+-rwxr-xr-x 1 root root   16368 Jun  1 18:18 librte_jobstats.so.25.2
+-rw-r--r-- 1 root root    4732 Jun  1 18:13 librte_kvargs.a
+-rwxr-xr-x 1 root root   16136 Jun  1 18:18 librte_kvargs.so
+-rwxr-xr-x 1 root root   16136 Jun  1 18:18 librte_kvargs.so.25
+-rwxr-xr-x 1 root root   16136 Jun  1 18:18 librte_kvargs.so.25.2
+-rw-r--r-- 1 root root   14102 Jun  1 18:14 librte_latencystats.a
+-rwxr-xr-x 1 root root   22056 Jun  1 18:18 librte_latencystats.so
+-rwxr-xr-x 1 root root   22056 Jun  1 18:18 librte_latencystats.so.25
+-rwxr-xr-x 1 root root   22056 Jun  1 18:18 librte_latencystats.so.25.2
+-rw-r--r-- 1 root root   40196 Jun  1 18:13 librte_log.a
+-rwxr-xr-x 1 root root   37560 Jun  1 18:13 librte_log.so
+-rwxr-xr-x 1 root root   37560 Jun  1 18:13 librte_log.so.25
+-rwxr-xr-x 1 root root   37560 Jun  1 18:13 librte_log.so.25.2
+-rw-r--r-- 1 root root   36582 Jun  1 18:14 librte_lpm.a
+-rwxr-xr-x 1 root root   39992 Jun  1 18:18 librte_lpm.so
+-rwxr-xr-x 1 root root   39992 Jun  1 18:18 librte_lpm.so.25
+-rwxr-xr-x 1 root root   39992 Jun  1 18:18 librte_lpm.so.25.2
+-rw-r--r-- 1 root root   68734 Jun  1 18:13 librte_mbuf.a
+-rwxr-xr-x 1 root root   55616 Jun  1 18:18 librte_mbuf.so
+-rwxr-xr-x 1 root root   55616 Jun  1 18:18 librte_mbuf.so.25
+-rwxr-xr-x 1 root root   55616 Jun  1 18:18 librte_mbuf.so.25.2
+-rw-r--r-- 1 root root  137188 Jun  1 18:14 librte_member.a
+-rwxr-xr-x 1 root root  123752 Jun  1 18:18 librte_member.so
+-rwxr-xr-x 1 root root  123752 Jun  1 18:18 librte_member.so.25
+-rwxr-xr-x 1 root root  123752 Jun  1 18:18 librte_member.so.25.2
+-rw-r--r-- 1 root root   76016 Jun  1 18:13 librte_mempool.a
+-rwxr-xr-x 1 root root   65808 Jun  1 18:18 librte_mempool.so
+-rwxr-xr-x 1 root root   65808 Jun  1 18:18 librte_mempool.so.25
+-rwxr-xr-x 1 root root   65808 Jun  1 18:18 librte_mempool.so.25.2
+-rw-r--r-- 1 root root   29666 Jun  1 18:14 librte_mempool_bucket.a
+-rwxr-xr-x 1 root root   37880 Jun  1 18:18 librte_mempool_bucket.so
+-rwxr-xr-x 1 root root   37880 Jun  1 18:18 librte_mempool_bucket.so.25
+-rwxr-xr-x 1 root root   37880 Jun  1 18:18 librte_mempool_bucket.so.25.2
+-rw-r--r-- 1 root root   43210 Jun  1 18:14 librte_mempool_cnxk.a
+-rwxr-xr-x 1 root root   38520 Jun  1 18:18 librte_mempool_cnxk.so
+-rwxr-xr-x 1 root root   38520 Jun  1 18:18 librte_mempool_cnxk.so.25
+-rwxr-xr-x 1 root root   38520 Jun  1 18:18 librte_mempool_cnxk.so.25.2
+-rw-r--r-- 1 root root   13742 Jun  1 18:14 librte_mempool_dpaa.a
+-rwxr-xr-x 1 root root   17760 Jun  1 18:18 librte_mempool_dpaa.so
+-rwxr-xr-x 1 root root   17760 Jun  1 18:18 librte_mempool_dpaa.so.25
+-rwxr-xr-x 1 root root   17760 Jun  1 18:18 librte_mempool_dpaa.so.25.2
+-rw-r--r-- 1 root root   16850 Jun  1 18:14 librte_mempool_dpaa2.a
+-rwxr-xr-x 1 root root   26856 Jun  1 18:18 librte_mempool_dpaa2.so
+-rwxr-xr-x 1 root root   26856 Jun  1 18:18 librte_mempool_dpaa2.so.25
+-rwxr-xr-x 1 root root   26856 Jun  1 18:18 librte_mempool_dpaa2.so.25.2
+-rw-r--r-- 1 root root   21428 Jun  1 18:14 librte_mempool_octeontx.a
+-rwxr-xr-x 1 root root   22624 Jun  1 18:18 librte_mempool_octeontx.so
+-rwxr-xr-x 1 root root   22624 Jun  1 18:18 librte_mempool_octeontx.so.25
+-rwxr-xr-x 1 root root   22624 Jun  1 18:18 librte_mempool_octeontx.so.25.2
+-rw-r--r-- 1 root root   16612 Jun  1 18:14 librte_mempool_ring.a
+-rwxr-xr-x 1 root root   25296 Jun  1 18:18 librte_mempool_ring.so
+-rwxr-xr-x 1 root root   25296 Jun  1 18:18 librte_mempool_ring.so.25
+-rwxr-xr-x 1 root root   25296 Jun  1 18:18 librte_mempool_ring.so.25.2
+-rw-r--r-- 1 root root    6912 Jun  1 18:14 librte_mempool_stack.a
+-rwxr-xr-x 1 root root   16720 Jun  1 18:18 librte_mempool_stack.so
+-rwxr-xr-x 1 root root   16720 Jun  1 18:18 librte_mempool_stack.so.25
+-rwxr-xr-x 1 root root   16720 Jun  1 18:18 librte_mempool_stack.so.25.2
+-rw-r--r-- 1 root root    5024 Jun  1 18:13 librte_meter.a
+-rwxr-xr-x 1 root root   15952 Jun  1 18:18 librte_meter.so
+-rwxr-xr-x 1 root root   15952 Jun  1 18:18 librte_meter.so.25
+-rwxr-xr-x 1 root root   15952 Jun  1 18:18 librte_meter.so.25.2
+-rw-r--r-- 1 root root   30762 Jun  1 18:13 librte_metrics.a
+-rwxr-xr-x 1 root root   35480 Jun  1 18:18 librte_metrics.so
+-rwxr-xr-x 1 root root   35480 Jun  1 18:18 librte_metrics.so.25
+-rwxr-xr-x 1 root root   35480 Jun  1 18:18 librte_metrics.so.25.2
+-rw-r--r-- 1 root root  195790 Jun  1 18:17 librte_ml_cnxk.a
+-rwxr-xr-x 1 root root  139936 Jun  1 18:18 librte_ml_cnxk.so
+-rwxr-xr-x 1 root root  139936 Jun  1 18:18 librte_ml_cnxk.so.25
+-rwxr-xr-x 1 root root  139936 Jun  1 18:18 librte_ml_cnxk.so.25.2
+-rw-r--r-- 1 root root   50974 Jun  1 18:14 librte_mldev.a
+-rwxr-xr-x 1 root root   41568 Jun  1 18:18 librte_mldev.so
+-rwxr-xr-x 1 root root   41568 Jun  1 18:18 librte_mldev.so.25
+-rwxr-xr-x 1 root root   41568 Jun  1 18:18 librte_mldev.so.25.2
+-rw-r--r-- 1 root root   49188 Jun  1 18:13 librte_net.a
+-rwxr-xr-x 1 root root   40336 Jun  1 18:18 librte_net.so
+-rwxr-xr-x 1 root root   40336 Jun  1 18:18 librte_net.so.25
+-rwxr-xr-x 1 root root   40336 Jun  1 18:18 librte_net.so.25.2
+-rw-r--r-- 1 root root   36666 Jun  1 18:14 librte_net_af_packet.a
+-rwxr-xr-x 1 root root   41072 Jun  1 18:18 librte_net_af_packet.so
+-rwxr-xr-x 1 root root   41072 Jun  1 18:18 librte_net_af_packet.so.25
+-rwxr-xr-x 1 root root   41072 Jun  1 18:18 librte_net_af_packet.so.25.2
+-rw-r--r-- 1 root root  124436 Jun  1 18:14 librte_net_ark.a
+-rwxr-xr-x 1 root root   81256 Jun  1 18:18 librte_net_ark.so
+-rwxr-xr-x 1 root root   81256 Jun  1 18:18 librte_net_ark.so.25
+-rwxr-xr-x 1 root root   81256 Jun  1 18:18 librte_net_ark.so.25.2
+-rw-r--r-- 1 root root  165968 Jun  1 18:14 librte_net_atlantic.a
+-rwxr-xr-x 1 root root  112744 Jun  1 18:18 librte_net_atlantic.so
+-rwxr-xr-x 1 root root  112744 Jun  1 18:18 librte_net_atlantic.so.25
+-rwxr-xr-x 1 root root  112744 Jun  1 18:18 librte_net_atlantic.so.25.2
+-rw-r--r-- 1 root root   55584 Jun  1 18:14 librte_net_avp.a
+-rwxr-xr-x 1 root root   53568 Jun  1 18:18 librte_net_avp.so
+-rwxr-xr-x 1 root root   53568 Jun  1 18:18 librte_net_avp.so.25
+-rwxr-xr-x 1 root root   53568 Jun  1 18:18 librte_net_avp.so.25.2
+-rw-r--r-- 1 root root  169686 Jun  1 18:14 librte_net_axgbe.a
+-rwxr-xr-x 1 root root  122064 Jun  1 18:18 librte_net_axgbe.so
+-rwxr-xr-x 1 root root  122064 Jun  1 18:18 librte_net_axgbe.so.25
+-rwxr-xr-x 1 root root  122064 Jun  1 18:18 librte_net_axgbe.so.25.2
+-rw-r--r-- 1 root root 4299306 Jun  1 18:15 librte_net_bnxt.a
+-rwxr-xr-x 1 root root 3238968 Jun  1 18:18 librte_net_bnxt.so
+-rwxr-xr-x 1 root root 3238968 Jun  1 18:18 librte_net_bnxt.so.25
+-rwxr-xr-x 1 root root 3238968 Jun  1 18:18 librte_net_bnxt.so.25.2
+-rw-r--r-- 1 root root  206526 Jun  1 18:15 librte_net_bond.a
+-rwxr-xr-x 1 root root  149416 Jun  1 18:18 librte_net_bond.so
+-rwxr-xr-x 1 root root  149416 Jun  1 18:18 librte_net_bond.so.25
+-rwxr-xr-x 1 root root  149416 Jun  1 18:18 librte_net_bond.so.25.2
+-rw-r--r-- 1 root root  640570 Jun  1 18:15 librte_net_cnxk.a
+-rwxr-xr-x 1 root root  390160 Jun  1 18:18 librte_net_cnxk.so
+-rwxr-xr-x 1 root root  390160 Jun  1 18:18 librte_net_cnxk.so.25
+-rwxr-xr-x 1 root root  390160 Jun  1 18:18 librte_net_cnxk.so.25.2
+-rw-r--r-- 1 root root  273818 Jun  1 18:16 librte_net_cpfl.a
+-rwxr-xr-x 1 root root  173936 Jun  1 18:18 librte_net_cpfl.so
+-rwxr-xr-x 1 root root  173936 Jun  1 18:18 librte_net_cpfl.so.25
+-rwxr-xr-x 1 root root  173936 Jun  1 18:18 librte_net_cpfl.so.25.2
+-rw-r--r-- 1 root root  325782 Jun  1 18:15 librte_net_cxgbe.a
+-rwxr-xr-x 1 root root  226424 Jun  1 18:18 librte_net_cxgbe.so
+-rwxr-xr-x 1 root root  226424 Jun  1 18:18 librte_net_cxgbe.so.25
+-rwxr-xr-x 1 root root  226424 Jun  1 18:18 librte_net_cxgbe.so.25.2
+-rw-r--r-- 1 root root  180526 Jun  1 18:15 librte_net_dpaa.a
+-rwxr-xr-x 1 root root  136920 Jun  1 18:18 librte_net_dpaa.so
+-rwxr-xr-x 1 root root  136920 Jun  1 18:18 librte_net_dpaa.so.25
+-rwxr-xr-x 1 root root  136920 Jun  1 18:18 librte_net_dpaa.so.25.2
+-rw-r--r-- 1 root root  421976 Jun  1 18:15 librte_net_dpaa2.a
+-rwxr-xr-x 1 root root  268112 Jun  1 18:18 librte_net_dpaa2.so
+-rwxr-xr-x 1 root root  268112 Jun  1 18:18 librte_net_dpaa2.so.25
+-rwxr-xr-x 1 root root  268112 Jun  1 18:18 librte_net_dpaa2.so.25.2
+-rw-r--r-- 1 root root  907860 Jun  1 18:15 librte_net_e1000.a
+-rwxr-xr-x 1 root root  555720 Jun  1 18:18 librte_net_e1000.so
+-rwxr-xr-x 1 root root  555720 Jun  1 18:18 librte_net_e1000.so.25
+-rwxr-xr-x 1 root root  555720 Jun  1 18:18 librte_net_e1000.so.25.2
+-rw-r--r-- 1 root root  212276 Jun  1 18:15 librte_net_ena.a
+-rwxr-xr-x 1 root root  149448 Jun  1 18:18 librte_net_ena.so
+-rwxr-xr-x 1 root root  149448 Jun  1 18:18 librte_net_ena.so.25
+-rwxr-xr-x 1 root root  149448 Jun  1 18:18 librte_net_ena.so.25.2
+-rw-r--r-- 1 root root   34406 Jun  1 18:15 librte_net_enetc.a
+-rwxr-xr-x 1 root root   36328 Jun  1 18:18 librte_net_enetc.so
+-rwxr-xr-x 1 root root   36328 Jun  1 18:18 librte_net_enetc.so.25
+-rwxr-xr-x 1 root root   36328 Jun  1 18:18 librte_net_enetc.so.25.2
+-rw-r--r-- 1 root root   37736 Jun  1 18:15 librte_net_enetfec.a
+-rwxr-xr-x 1 root root   40376 Jun  1 18:18 librte_net_enetfec.so
+-rwxr-xr-x 1 root root   40376 Jun  1 18:18 librte_net_enetfec.so.25
+-rwxr-xr-x 1 root root   40376 Jun  1 18:18 librte_net_enetfec.so.25.2
+-rw-r--r-- 1 root root  361580 Jun  1 18:15 librte_net_enic.a
+-rwxr-xr-x 1 root root  228304 Jun  1 18:18 librte_net_enic.so
+-rwxr-xr-x 1 root root  228304 Jun  1 18:18 librte_net_enic.so.25
+-rwxr-xr-x 1 root root  228304 Jun  1 18:18 librte_net_enic.so.25.2
+-rw-r--r-- 1 root root  173600 Jun  1 18:15 librte_net_failsafe.a
+-rwxr-xr-x 1 root root  122272 Jun  1 18:18 librte_net_failsafe.so
+-rwxr-xr-x 1 root root  122272 Jun  1 18:18 librte_net_failsafe.so.25
+-rwxr-xr-x 1 root root  122272 Jun  1 18:18 librte_net_failsafe.so.25.2
+-rw-r--r-- 1 root root  206566 Jun  1 18:15 librte_net_fm10k.a
+-rwxr-xr-x 1 root root  146576 Jun  1 18:18 librte_net_fm10k.so
+-rwxr-xr-x 1 root root  146576 Jun  1 18:18 librte_net_fm10k.so.25
+-rwxr-xr-x 1 root root  146576 Jun  1 18:18 librte_net_fm10k.so.25.2
+-rw-r--r-- 1 root root  178424 Jun  1 18:15 librte_net_gve.a
+-rwxr-xr-x 1 root root  125472 Jun  1 18:18 librte_net_gve.so
+-rwxr-xr-x 1 root root  125472 Jun  1 18:18 librte_net_gve.so.25
+-rwxr-xr-x 1 root root  125472 Jun  1 18:18 librte_net_gve.so.25.2
+-rw-r--r-- 1 root root  410674 Jun  1 18:15 librte_net_hinic.a
+-rwxr-xr-x 1 root root  245752 Jun  1 18:18 librte_net_hinic.so
+-rwxr-xr-x 1 root root  245752 Jun  1 18:18 librte_net_hinic.so.25
+-rwxr-xr-x 1 root root  245752 Jun  1 18:18 librte_net_hinic.so.25.2
+-rw-r--r-- 1 root root  776474 Jun  1 18:15 librte_net_hns3.a
+-rwxr-xr-x 1 root root  502104 Jun  1 18:18 librte_net_hns3.so
+-rwxr-xr-x 1 root root  502104 Jun  1 18:18 librte_net_hns3.so.25
+-rwxr-xr-x 1 root root  502104 Jun  1 18:18 librte_net_hns3.so.25.2
+-rw-r--r-- 1 root root 1078360 Jun  1 18:15 librte_net_i40e.a
+-rwxr-xr-x 1 root root  721200 Jun  1 18:18 librte_net_i40e.so
+-rwxr-xr-x 1 root root  721200 Jun  1 18:18 librte_net_i40e.so.25
+-rwxr-xr-x 1 root root  721200 Jun  1 18:18 librte_net_i40e.so.25.2
+-rw-r--r-- 1 root root  875620 Jun  1 18:15 librte_net_iavf.a
+-rwxr-xr-x 1 root root  661600 Jun  1 18:18 librte_net_iavf.so
+-rwxr-xr-x 1 root root  661600 Jun  1 18:18 librte_net_iavf.so.25
+-rwxr-xr-x 1 root root  661600 Jun  1 18:18 librte_net_iavf.so.25.2
+-rw-r--r-- 1 root root 1726898 Jun  1 18:15 librte_net_ice.a
+-rwxr-xr-x 1 root root 1161496 Jun  1 18:18 librte_net_ice.so
+-rwxr-xr-x 1 root root 1161496 Jun  1 18:18 librte_net_ice.so.25
+-rwxr-xr-x 1 root root 1161496 Jun  1 18:18 librte_net_ice.so.25.2
+-rw-r--r-- 1 root root  238710 Jun  1 18:15 librte_net_idpf.a
+-rwxr-xr-x 1 root root  178248 Jun  1 18:18 librte_net_idpf.so
+-rwxr-xr-x 1 root root  178248 Jun  1 18:18 librte_net_idpf.so.25
+-rwxr-xr-x 1 root root  178248 Jun  1 18:18 librte_net_idpf.so.25.2
+-rw-r--r-- 1 root root  210320 Jun  1 18:16 librte_net_ionic.a
+-rwxr-xr-x 1 root root  135376 Jun  1 18:18 librte_net_ionic.so
+-rwxr-xr-x 1 root root  135376 Jun  1 18:18 librte_net_ionic.so.25
+-rwxr-xr-x 1 root root  135376 Jun  1 18:18 librte_net_ionic.so.25.2
+-rw-r--r-- 1 root root  903368 Jun  1 18:15 librte_net_ixgbe.a
+-rwxr-xr-x 1 root root  599944 Jun  1 18:18 librte_net_ixgbe.so
+-rwxr-xr-x 1 root root  599944 Jun  1 18:18 librte_net_ixgbe.so.25
+-rwxr-xr-x 1 root root  599944 Jun  1 18:18 librte_net_ixgbe.so.25.2
+-rw-r--r-- 1 root root  118576 Jun  1 18:16 librte_net_mana.a
+-rwxr-xr-x 1 root root   85928 Jun  1 18:18 librte_net_mana.so
+-rwxr-xr-x 1 root root   85928 Jun  1 18:18 librte_net_mana.so.25
+-rwxr-xr-x 1 root root   85928 Jun  1 18:18 librte_net_mana.so.25.2
+-rw-r--r-- 1 root root  103748 Jun  1 18:16 librte_net_memif.a
+-rwxr-xr-x 1 root root   91440 Jun  1 18:18 librte_net_memif.so
+-rwxr-xr-x 1 root root   91440 Jun  1 18:18 librte_net_memif.so.25
+-rwxr-xr-x 1 root root   91440 Jun  1 18:18 librte_net_memif.so.25.2
+-rw-r--r-- 1 root root  208872 Jun  1 18:16 librte_net_mlx4.a
+-rwxr-xr-x 1 root root  150016 Jun  1 18:18 librte_net_mlx4.so
+-rwxr-xr-x 1 root root  150016 Jun  1 18:18 librte_net_mlx4.so.25
+-rwxr-xr-x 1 root root  150016 Jun  1 18:18 librte_net_mlx4.so.25.2
+-rw-r--r-- 1 root root 3026214 Jun  1 18:16 librte_net_mlx5.a
+-rwxr-xr-x 1 root root 2134432 Jun  1 18:18 librte_net_mlx5.so
+-rwxr-xr-x 1 root root 2134432 Jun  1 18:18 librte_net_mlx5.so.25
+-rwxr-xr-x 1 root root 2134432 Jun  1 18:18 librte_net_mlx5.so.25.2
+-rw-r--r-- 1 root root  149812 Jun  1 18:16 librte_net_netvsc.a
+-rwxr-xr-x 1 root root  110048 Jun  1 18:18 librte_net_netvsc.so
+-rwxr-xr-x 1 root root  110048 Jun  1 18:18 librte_net_netvsc.so.25
+-rwxr-xr-x 1 root root  110048 Jun  1 18:18 librte_net_netvsc.so.25.2
+-rw-r--r-- 1 root root  780780 Jun  1 18:16 librte_net_nfp.a
+-rwxr-xr-x 1 root root  444880 Jun  1 18:18 librte_net_nfp.so
+-rwxr-xr-x 1 root root  444880 Jun  1 18:18 librte_net_nfp.so.25
+-rwxr-xr-x 1 root root  444880 Jun  1 18:18 librte_net_nfp.so.25.2
+-rw-r--r-- 1 root root  341102 Jun  1 18:16 librte_net_ngbe.a
+-rwxr-xr-x 1 root root  240080 Jun  1 18:18 librte_net_ngbe.so
+-rwxr-xr-x 1 root root  240080 Jun  1 18:18 librte_net_ngbe.so.25
+-rwxr-xr-x 1 root root  240080 Jun  1 18:18 librte_net_ngbe.so.25.2
+-rw-r--r-- 1 root root 1553032 Jun  1 18:16 librte_net_ntnic.a
+-rwxr-xr-x 1 root root  834968 Jun  1 18:18 librte_net_ntnic.so
+-rwxr-xr-x 1 root root  834968 Jun  1 18:18 librte_net_ntnic.so.25
+-rwxr-xr-x 1 root root  834968 Jun  1 18:18 librte_net_ntnic.so.25.2
+-rw-r--r-- 1 root root   28068 Jun  1 18:16 librte_net_null.a
+-rwxr-xr-x 1 root root   39648 Jun  1 18:18 librte_net_null.so
+-rwxr-xr-x 1 root root   39648 Jun  1 18:18 librte_net_null.so.25
+-rwxr-xr-x 1 root root   39648 Jun  1 18:18 librte_net_null.so.25.2
+-rw-r--r-- 1 root root  156848 Jun  1 18:16 librte_net_octeon_ep.a
+-rwxr-xr-x 1 root root  114240 Jun  1 18:18 librte_net_octeon_ep.so
+-rwxr-xr-x 1 root root  114240 Jun  1 18:18 librte_net_octeon_ep.so.25
+-rwxr-xr-x 1 root root  114240 Jun  1 18:18 librte_net_octeon_ep.so.25.2
+-rw-r--r-- 1 root root  119386 Jun  1 18:16 librte_net_octeontx.a
+-rwxr-xr-x 1 root root   84136 Jun  1 18:18 librte_net_octeontx.so
+-rwxr-xr-x 1 root root   84136 Jun  1 18:18 librte_net_octeontx.so.25
+-rwxr-xr-x 1 root root   84136 Jun  1 18:18 librte_net_octeontx.so.25.2
+-rw-r--r-- 1 root root   54920 Jun  1 18:16 librte_net_pcap.a
+-rwxr-xr-x 1 root root   54952 Jun  1 18:18 librte_net_pcap.so
+-rwxr-xr-x 1 root root   54952 Jun  1 18:18 librte_net_pcap.so.25
+-rwxr-xr-x 1 root root   54952 Jun  1 18:18 librte_net_pcap.so.25.2
+-rw-r--r-- 1 root root   77994 Jun  1 18:16 librte_net_pfe.a
+-rwxr-xr-x 1 root root   58192 Jun  1 18:18 librte_net_pfe.so
+-rwxr-xr-x 1 root root   58192 Jun  1 18:18 librte_net_pfe.so.25
+-rwxr-xr-x 1 root root   58192 Jun  1 18:18 librte_net_pfe.so.25.2
+-rw-r--r-- 1 root root 1132950 Jun  1 18:16 librte_net_qede.a
+-rwxr-xr-x 1 root root  709776 Jun  1 18:18 librte_net_qede.so
+-rwxr-xr-x 1 root root  709776 Jun  1 18:18 librte_net_qede.so.25
+-rwxr-xr-x 1 root root  709776 Jun  1 18:18 librte_net_qede.so.25.2
+-rw-r--r-- 1 root root  309292 Jun  1 18:16 librte_net_r8169.a
+-rwxr-xr-x 1 root root  200256 Jun  1 18:18 librte_net_r8169.so
+-rwxr-xr-x 1 root root  200256 Jun  1 18:18 librte_net_r8169.so.25
+-rwxr-xr-x 1 root root  200256 Jun  1 18:18 librte_net_r8169.so.25.2
+-rw-r--r-- 1 root root   30152 Jun  1 18:16 librte_net_ring.a
+-rwxr-xr-x 1 root root   40464 Jun  1 18:18 librte_net_ring.so
+-rwxr-xr-x 1 root root   40464 Jun  1 18:18 librte_net_ring.so.25
+-rwxr-xr-x 1 root root   40464 Jun  1 18:18 librte_net_ring.so.25.2
+-rw-r--r-- 1 root root  682620 Jun  1 18:16 librte_net_sfc.a
+-rwxr-xr-x 1 root root  442184 Jun  1 18:18 librte_net_sfc.so
+-rwxr-xr-x 1 root root  442184 Jun  1 18:18 librte_net_sfc.so.25
+-rwxr-xr-x 1 root root  442184 Jun  1 18:18 librte_net_sfc.so.25.2
+-rw-r--r-- 1 root root  103290 Jun  1 18:16 librte_net_softnic.a
+-rwxr-xr-x 1 root root   79552 Jun  1 18:18 librte_net_softnic.so
+-rwxr-xr-x 1 root root   79552 Jun  1 18:18 librte_net_softnic.so.25
+-rwxr-xr-x 1 root root   79552 Jun  1 18:18 librte_net_softnic.so.25.2
+-rw-r--r-- 1 root root  139420 Jun  1 18:16 librte_net_tap.a
+-rwxr-xr-x 1 root root  104464 Jun  1 18:18 librte_net_tap.so
+-rwxr-xr-x 1 root root  104464 Jun  1 18:18 librte_net_tap.so.25
+-rwxr-xr-x 1 root root  104464 Jun  1 18:18 librte_net_tap.so.25.2
+-rw-r--r-- 1 root root  159498 Jun  1 18:16 librte_net_thunderx.a
+-rwxr-xr-x 1 root root  115704 Jun  1 18:18 librte_net_thunderx.so
+-rwxr-xr-x 1 root root  115704 Jun  1 18:18 librte_net_thunderx.so.25
+-rwxr-xr-x 1 root root  115704 Jun  1 18:18 librte_net_thunderx.so.25.2
+-rw-r--r-- 1 root root  563502 Jun  1 18:17 librte_net_txgbe.a
+-rwxr-xr-x 1 root root  395736 Jun  1 18:18 librte_net_txgbe.so
+-rwxr-xr-x 1 root root  395736 Jun  1 18:18 librte_net_txgbe.so.25
+-rwxr-xr-x 1 root root  395736 Jun  1 18:18 librte_net_txgbe.so.25.2
+-rw-r--r-- 1 root root   25692 Jun  1 18:17 librte_net_vdev_netvsc.a
+-rwxr-xr-x 1 root root   32104 Jun  1 18:18 librte_net_vdev_netvsc.so
+-rwxr-xr-x 1 root root   32104 Jun  1 18:18 librte_net_vdev_netvsc.so.25
+-rwxr-xr-x 1 root root   32104 Jun  1 18:18 librte_net_vdev_netvsc.so.25.2
+-rw-r--r-- 1 root root   51694 Jun  1 18:17 librte_net_vhost.a
+-rwxr-xr-x 1 root root   56272 Jun  1 18:18 librte_net_vhost.so
+-rwxr-xr-x 1 root root   56272 Jun  1 18:18 librte_net_vhost.so.25
+-rwxr-xr-x 1 root root   56272 Jun  1 18:18 librte_net_vhost.so.25.2
+-rw-r--r-- 1 root root  376198 Jun  1 18:17 librte_net_virtio.a
+-rwxr-xr-x 1 root root  257720 Jun  1 18:18 librte_net_virtio.so
+-rwxr-xr-x 1 root root  257720 Jun  1 18:18 librte_net_virtio.so.25
+-rwxr-xr-x 1 root root  257720 Jun  1 18:18 librte_net_virtio.so.25.2
+-rw-r--r-- 1 root root   80824 Jun  1 18:17 librte_net_vmxnet3.a
+-rwxr-xr-x 1 root root   72616 Jun  1 18:18 librte_net_vmxnet3.so
+-rwxr-xr-x 1 root root   72616 Jun  1 18:18 librte_net_vmxnet3.so.25
+-rwxr-xr-x 1 root root   72616 Jun  1 18:18 librte_net_vmxnet3.so.25.2
+-rw-r--r-- 1 root root  126454 Jun  1 18:17 librte_net_xsc.a
+-rwxr-xr-x 1 root root   89248 Jun  1 18:18 librte_net_xsc.so
+-rwxr-xr-x 1 root root   89248 Jun  1 18:18 librte_net_xsc.so.25
+-rwxr-xr-x 1 root root   89248 Jun  1 18:18 librte_net_xsc.so.25.2
+-rw-r--r-- 1 root root  365726 Jun  1 18:17 librte_net_zxdh.a
+-rwxr-xr-x 1 root root  226272 Jun  1 18:18 librte_net_zxdh.so
+-rwxr-xr-x 1 root root  226272 Jun  1 18:18 librte_net_zxdh.so.25
+-rwxr-xr-x 1 root root  226272 Jun  1 18:18 librte_net_zxdh.so.25.2
+-rw-r--r-- 1 root root  144230 Jun  1 18:14 librte_node.a
+-rwxr-xr-x 1 root root  104760 Jun  1 18:18 librte_node.so
+-rwxr-xr-x 1 root root  104760 Jun  1 18:18 librte_node.so.25
+-rwxr-xr-x 1 root root  104760 Jun  1 18:18 librte_node.so.25.2
+-rw-r--r-- 1 root root   15150 Jun  1 18:14 librte_pcapng.a
+-rwxr-xr-x 1 root root   29984 Jun  1 18:18 librte_pcapng.so
+-rwxr-xr-x 1 root root   29984 Jun  1 18:18 librte_pcapng.so.25
+-rwxr-xr-x 1 root root   29984 Jun  1 18:18 librte_pcapng.so.25.2
+-rw-r--r-- 1 root root    4360 Jun  1 18:13 librte_pci.a
+-rwxr-xr-x 1 root root   16072 Jun  1 18:18 librte_pci.so
+-rwxr-xr-x 1 root root   16072 Jun  1 18:18 librte_pci.so.25
+-rwxr-xr-x 1 root root   16072 Jun  1 18:18 librte_pci.so.25.2
+-rw-r--r-- 1 root root   56486 Jun  1 18:14 librte_pdcp.a
+-rwxr-xr-x 1 root root   49032 Jun  1 18:18 librte_pdcp.so
+-rwxr-xr-x 1 root root   49032 Jun  1 18:18 librte_pdcp.so.25
+-rwxr-xr-x 1 root root   49032 Jun  1 18:18 librte_pdcp.so.25.2
+-rw-r--r-- 1 root root   31280 Jun  1 18:14 librte_pdump.a
+-rwxr-xr-x 1 root root   35400 Jun  1 18:18 librte_pdump.so
+-rwxr-xr-x 1 root root   35400 Jun  1 18:18 librte_pdump.so.25
+-rwxr-xr-x 1 root root   35400 Jun  1 18:18 librte_pdump.so.25.2
+-rw-r--r-- 1 root root  590018 Jun  1 18:14 librte_pipeline.a
+-rwxr-xr-x 1 root root  460296 Jun  1 18:18 librte_pipeline.so
+-rwxr-xr-x 1 root root  460296 Jun  1 18:18 librte_pipeline.so.25
+-rwxr-xr-x 1 root root  460296 Jun  1 18:18 librte_pipeline.so.25.2
+-rw-r--r-- 1 root root  205942 Jun  1 18:14 librte_port.a
+-rwxr-xr-x 1 root root  154600 Jun  1 18:18 librte_port.so
+-rwxr-xr-x 1 root root  154600 Jun  1 18:18 librte_port.so.25
+-rwxr-xr-x 1 root root  154600 Jun  1 18:18 librte_port.so.25.2
+-rw-r--r-- 1 root root   46544 Jun  1 18:14 librte_power.a
+-rwxr-xr-x 1 root root   43024 Jun  1 18:18 librte_power.so
+-rwxr-xr-x 1 root root   43024 Jun  1 18:18 librte_power.so.25
+-rwxr-xr-x 1 root root   43024 Jun  1 18:18 librte_power.so.25.2
+-rw-r--r-- 1 root root   24022 Jun  1 18:17 librte_power_acpi.a
+-rwxr-xr-x 1 root root   22888 Jun  1 18:18 librte_power_acpi.so
+-rwxr-xr-x 1 root root   22888 Jun  1 18:18 librte_power_acpi.so.25
+-rwxr-xr-x 1 root root   22888 Jun  1 18:18 librte_power_acpi.so.25.2
+-rw-r--r-- 1 root root   27164 Jun  1 18:17 librte_power_amd_pstate.a
+-rwxr-xr-x 1 root root   27192 Jun  1 18:18 librte_power_amd_pstate.so
+-rwxr-xr-x 1 root root   27192 Jun  1 18:18 librte_power_amd_pstate.so.25
+-rwxr-xr-x 1 root root   27192 Jun  1 18:18 librte_power_amd_pstate.so.25.2
+-rw-r--r-- 1 root root   27638 Jun  1 18:17 librte_power_cppc.a
+-rwxr-xr-x 1 root root   26888 Jun  1 18:18 librte_power_cppc.so
+-rwxr-xr-x 1 root root   26888 Jun  1 18:18 librte_power_cppc.so.25
+-rwxr-xr-x 1 root root   26888 Jun  1 18:18 librte_power_cppc.so.25.2
+-rw-r--r-- 1 root root   35346 Jun  1 18:17 librte_power_intel_pstate.a
+-rwxr-xr-x 1 root root   31376 Jun  1 18:18 librte_power_intel_pstate.so
+-rwxr-xr-x 1 root root   31376 Jun  1 18:18 librte_power_intel_pstate.so.25
+-rwxr-xr-x 1 root root   31376 Jun  1 18:18 librte_power_intel_pstate.so.25.2
+-rw-r--r-- 1 root root   22342 Jun  1 18:17 librte_power_intel_uncore.a
+-rwxr-xr-x 1 root root   22000 Jun  1 18:18 librte_power_intel_uncore.so
+-rwxr-xr-x 1 root root   22000 Jun  1 18:18 librte_power_intel_uncore.so.25
+-rwxr-xr-x 1 root root   22000 Jun  1 18:18 librte_power_intel_uncore.so.25.2
+-rw-r--r-- 1 root root   22780 Jun  1 18:17 librte_power_kvm_vm.a
+-rwxr-xr-x 1 root root   19032 Jun  1 18:18 librte_power_kvm_vm.so
+-rwxr-xr-x 1 root root   19032 Jun  1 18:18 librte_power_kvm_vm.so.25
+-rwxr-xr-x 1 root root   19032 Jun  1 18:18 librte_power_kvm_vm.so.25.2
+-rw-r--r-- 1 root root   40558 Jun  1 18:17 librte_raw_cnxk_bphy.a
+-rwxr-xr-x 1 root root   38288 Jun  1 18:18 librte_raw_cnxk_bphy.so
+-rwxr-xr-x 1 root root   38288 Jun  1 18:18 librte_raw_cnxk_bphy.so.25
+-rwxr-xr-x 1 root root   38288 Jun  1 18:18 librte_raw_cnxk_bphy.so.25.2
+-rw-r--r-- 1 root root   50706 Jun  1 18:17 librte_raw_cnxk_gpio.a
+-rwxr-xr-x 1 root root   41376 Jun  1 18:18 librte_raw_cnxk_gpio.so
+-rwxr-xr-x 1 root root   41376 Jun  1 18:18 librte_raw_cnxk_gpio.so.25
+-rwxr-xr-x 1 root root   41376 Jun  1 18:18 librte_raw_cnxk_gpio.so.25.2
+-rw-r--r-- 1 root root   20044 Jun  1 18:17 librte_raw_cnxk_rvu_lf.a
+-rwxr-xr-x 1 root root   27464 Jun  1 18:18 librte_raw_cnxk_rvu_lf.so
+-rwxr-xr-x 1 root root   27464 Jun  1 18:18 librte_raw_cnxk_rvu_lf.so.25
+-rwxr-xr-x 1 root root   27464 Jun  1 18:18 librte_raw_cnxk_rvu_lf.so.25.2
+-rw-r--r-- 1 root root   13246 Jun  1 18:17 librte_raw_dpaa2_cmdif.a
+-rwxr-xr-x 1 root root   22784 Jun  1 18:18 librte_raw_dpaa2_cmdif.so
+-rwxr-xr-x 1 root root   22784 Jun  1 18:18 librte_raw_dpaa2_cmdif.so.25
+-rwxr-xr-x 1 root root   22784 Jun  1 18:18 librte_raw_dpaa2_cmdif.so.25.2
+-rw-r--r-- 1 root root   24638 Jun  1 18:17 librte_raw_gdtc.a
+-rwxr-xr-x 1 root root   27656 Jun  1 18:18 librte_raw_gdtc.so
+-rwxr-xr-x 1 root root   27656 Jun  1 18:18 librte_raw_gdtc.so.25
+-rwxr-xr-x 1 root root   27656 Jun  1 18:18 librte_raw_gdtc.so.25.2
+-rw-r--r-- 1 root root   73618 Jun  1 18:17 librte_raw_ntb.a
+-rwxr-xr-x 1 root root   59416 Jun  1 18:18 librte_raw_ntb.so
+-rwxr-xr-x 1 root root   59416 Jun  1 18:18 librte_raw_ntb.so.25
+-rwxr-xr-x 1 root root   59416 Jun  1 18:18 librte_raw_ntb.so.25.2
+-rw-r--r-- 1 root root   49460 Jun  1 18:17 librte_raw_skeleton.a
+-rwxr-xr-x 1 root root   42736 Jun  1 18:18 librte_raw_skeleton.so
+-rwxr-xr-x 1 root root   42736 Jun  1 18:18 librte_raw_skeleton.so.25
+-rwxr-xr-x 1 root root   42736 Jun  1 18:18 librte_raw_skeleton.so.25.2
+-rw-r--r-- 1 root root   28152 Jun  1 18:14 librte_rawdev.a
+-rwxr-xr-x 1 root root   33120 Jun  1 18:18 librte_rawdev.so
+-rwxr-xr-x 1 root root   33120 Jun  1 18:18 librte_rawdev.so.25
+-rwxr-xr-x 1 root root   33120 Jun  1 18:18 librte_rawdev.so.25.2
+-rw-r--r-- 1 root root   22356 Jun  1 18:13 librte_rcu.a
+-rwxr-xr-x 1 root root   25840 Jun  1 18:18 librte_rcu.so
+-rwxr-xr-x 1 root root   25840 Jun  1 18:18 librte_rcu.so.25
+-rwxr-xr-x 1 root root   25840 Jun  1 18:18 librte_rcu.so.25.2
+-rw-r--r-- 1 root root   24918 Jun  1 18:17 librte_regex_cn9k.a
+-rwxr-xr-x 1 root root   32032 Jun  1 18:18 librte_regex_cn9k.so
+-rwxr-xr-x 1 root root   32032 Jun  1 18:18 librte_regex_cn9k.so.25
+-rwxr-xr-x 1 root root   32032 Jun  1 18:18 librte_regex_cn9k.so.25.2
+-rw-r--r-- 1 root root   43224 Jun  1 18:17 librte_regex_mlx5.a
+-rwxr-xr-x 1 root root   40568 Jun  1 18:18 librte_regex_mlx5.so
+-rwxr-xr-x 1 root root   40568 Jun  1 18:18 librte_regex_mlx5.so.25
+-rwxr-xr-x 1 root root   40568 Jun  1 18:18 librte_regex_mlx5.so.25.2
+-rw-r--r-- 1 root root   19208 Jun  1 18:14 librte_regexdev.a
+-rwxr-xr-x 1 root root   21568 Jun  1 18:18 librte_regexdev.so
+-rwxr-xr-x 1 root root   21568 Jun  1 18:18 librte_regexdev.so.25
+-rwxr-xr-x 1 root root   21568 Jun  1 18:18 librte_regexdev.so.25.2
+-rw-r--r-- 1 root root   15352 Jun  1 18:14 librte_reorder.a
+-rwxr-xr-x 1 root root   22088 Jun  1 18:18 librte_reorder.so
+-rwxr-xr-x 1 root root   22088 Jun  1 18:18 librte_reorder.so.25
+-rwxr-xr-x 1 root root   22088 Jun  1 18:18 librte_reorder.so.25.2
+-rw-r--r-- 1 root root   29870 Jun  1 18:14 librte_rib.a
+-rwxr-xr-x 1 root root   31472 Jun  1 18:18 librte_rib.so
+-rwxr-xr-x 1 root root   31472 Jun  1 18:18 librte_rib.so.25
+-rwxr-xr-x 1 root root   31472 Jun  1 18:18 librte_rib.so.25.2
+-rw-r--r-- 1 root root   91526 Jun  1 18:13 librte_ring.a
+-rwxr-xr-x 1 root root   89208 Jun  1 18:18 librte_ring.so
+-rwxr-xr-x 1 root root   89208 Jun  1 18:18 librte_ring.so.25
+-rwxr-xr-x 1 root root   89208 Jun  1 18:18 librte_ring.so.25.2
+-rw-r--r-- 1 root root   70434 Jun  1 18:14 librte_sched.a
+-rwxr-xr-x 1 root root   65472 Jun  1 18:18 librte_sched.so
+-rwxr-xr-x 1 root root   65472 Jun  1 18:18 librte_sched.so.25
+-rwxr-xr-x 1 root root   65472 Jun  1 18:18 librte_sched.so.25.2
+-rw-r--r-- 1 root root   15132 Jun  1 18:14 librte_security.a
+-rwxr-xr-x 1 root root   27040 Jun  1 18:18 librte_security.so
+-rwxr-xr-x 1 root root   27040 Jun  1 18:18 librte_security.so.25
+-rwxr-xr-x 1 root root   27040 Jun  1 18:18 librte_security.so.25.2
+-rw-r--r-- 1 root root   10838 Jun  1 18:14 librte_stack.a
+-rwxr-xr-x 1 root root   17432 Jun  1 18:18 librte_stack.so
+-rwxr-xr-x 1 root root   17432 Jun  1 18:18 librte_stack.so.25
+-rwxr-xr-x 1 root root   17432 Jun  1 18:18 librte_stack.so.25.2
+-rw-r--r-- 1 root root  219316 Jun  1 18:14 librte_table.a
+-rwxr-xr-x 1 root root  163824 Jun  1 18:18 librte_table.so
+-rwxr-xr-x 1 root root  163824 Jun  1 18:18 librte_table.so.25
+-rwxr-xr-x 1 root root  163824 Jun  1 18:18 librte_table.so.25.2
+-rw-r--r-- 1 root root   55538 Jun  1 18:13 librte_telemetry.a
+-rwxr-xr-x 1 root root   51000 Jun  1 18:18 librte_telemetry.so
+-rwxr-xr-x 1 root root   51000 Jun  1 18:18 librte_telemetry.so.25
+-rwxr-xr-x 1 root root   51000 Jun  1 18:18 librte_telemetry.so.25.2
+-rw-r--r-- 1 root root   15188 Jun  1 18:13 librte_timer.a
+-rwxr-xr-x 1 root root   25688 Jun  1 18:18 librte_timer.so
+-rwxr-xr-x 1 root root   25688 Jun  1 18:18 librte_timer.so.25
+-rwxr-xr-x 1 root root   25688 Jun  1 18:18 librte_timer.so.25.2
+-rw-r--r-- 1 root root   68240 Jun  1 18:17 librte_vdpa_ifc.a
+-rwxr-xr-x 1 root root   56728 Jun  1 18:18 librte_vdpa_ifc.so
+-rwxr-xr-x 1 root root   56728 Jun  1 18:18 librte_vdpa_ifc.so.25
+-rwxr-xr-x 1 root root   56728 Jun  1 18:18 librte_vdpa_ifc.so.25.2
+-rw-r--r-- 1 root root  138424 Jun  1 18:17 librte_vdpa_mlx5.a
+-rwxr-xr-x 1 root root   94304 Jun  1 18:18 librte_vdpa_mlx5.so
+-rwxr-xr-x 1 root root   94304 Jun  1 18:18 librte_vdpa_mlx5.so.25
+-rwxr-xr-x 1 root root   94304 Jun  1 18:18 librte_vdpa_mlx5.so.25.2
+-rw-r--r-- 1 root root   44674 Jun  1 18:17 librte_vdpa_nfp.a
+-rwxr-xr-x 1 root root   43736 Jun  1 18:18 librte_vdpa_nfp.so
+-rwxr-xr-x 1 root root   43736 Jun  1 18:18 librte_vdpa_nfp.so.25
+-rwxr-xr-x 1 root root   43736 Jun  1 18:18 librte_vdpa_nfp.so.25.2
+-rw-r--r-- 1 root root   63960 Jun  1 18:17 librte_vdpa_sfc.a
+-rwxr-xr-x 1 root root   48928 Jun  1 18:18 librte_vdpa_sfc.so
+-rwxr-xr-x 1 root root   48928 Jun  1 18:18 librte_vdpa_sfc.so.25
+-rwxr-xr-x 1 root root   48928 Jun  1 18:18 librte_vdpa_sfc.so.25.2
+-rw-r--r-- 1 root root  645778 Jun  1 18:14 librte_vhost.a
+-rwxr-xr-x 1 root root  481384 Jun  1 18:18 librte_vhost.so
+-rwxr-xr-x 1 root root  481384 Jun  1 18:18 librte_vhost.so.25
+-rwxr-xr-x 1 root root  481384 Jun  1 18:18 librte_vhost.so.25.2
+drwxr-xr-x 2 root root   20480 Jun  1 18:18 pmds-25.2
+---
+ldconfig -p output for librte:
+	librte_vhost.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_vhost.so.25
+	librte_vdpa_sfc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_vdpa_sfc.so.25
+	librte_vdpa_nfp.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_vdpa_nfp.so.25
+	librte_vdpa_mlx5.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_vdpa_mlx5.so.25
+	librte_vdpa_ifc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_vdpa_ifc.so.25
+	librte_timer.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_timer.so.25
+	librte_telemetry.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_telemetry.so.25
+	librte_table.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_table.so.25
+	librte_stack.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_stack.so.25
+	librte_security.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_security.so.25
+	librte_sched.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_sched.so.25
+	librte_ring.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_ring.so.25
+	librte_rib.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_rib.so.25
+	librte_reorder.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_reorder.so.25
+	librte_regexdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_regexdev.so.25
+	librte_regex_mlx5.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_regex_mlx5.so.25
+	librte_regex_cn9k.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_regex_cn9k.so.25
+	librte_rcu.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_rcu.so.25
+	librte_rawdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_rawdev.so.25
+	librte_raw_skeleton.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_raw_skeleton.so.25
+	librte_raw_ntb.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_raw_ntb.so.25
+	librte_raw_gdtc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_raw_gdtc.so.25
+	librte_raw_dpaa2_cmdif.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_raw_dpaa2_cmdif.so.25
+	librte_raw_cnxk_rvu_lf.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_raw_cnxk_rvu_lf.so.25
+	librte_raw_cnxk_gpio.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_raw_cnxk_gpio.so.25
+	librte_raw_cnxk_bphy.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_raw_cnxk_bphy.so.25
+	librte_power_kvm_vm.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_power_kvm_vm.so.25
+	librte_power_intel_uncore.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_power_intel_uncore.so.25
+	librte_power_intel_pstate.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_power_intel_pstate.so.25
+	librte_power_cppc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_power_cppc.so.25
+	librte_power_amd_pstate.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_power_amd_pstate.so.25
+	librte_power_acpi.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_power_acpi.so.25
+	librte_power.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_power.so.25
+	librte_port.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_port.so.25
+	librte_pipeline.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_pipeline.so.25
+	librte_pdump.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_pdump.so.25
+	librte_pdcp.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_pdcp.so.25
+	librte_pci.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_pci.so.25
+	librte_pcapng.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_pcapng.so.25
+	librte_node.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_node.so.25
+	librte_net_zxdh.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_zxdh.so.25
+	librte_net_xsc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_xsc.so.25
+	librte_net_vmxnet3.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_vmxnet3.so.25
+	librte_net_virtio.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_virtio.so.25
+	librte_net_vhost.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_vhost.so.25
+	librte_net_vdev_netvsc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_vdev_netvsc.so.25
+	librte_net_txgbe.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_txgbe.so.25
+	librte_net_thunderx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_thunderx.so.25
+	librte_net_tap.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_tap.so.25
+	librte_net_softnic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_softnic.so.25
+	librte_net_sfc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_sfc.so.25
+	librte_net_r8169.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_r8169.so.25
+	librte_net_ring.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ring.so.25
+	librte_net_qede.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_qede.so.25
+	librte_net_pfe.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_pfe.so.25
+	librte_net_pcap.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_pcap.so.25
+	librte_net_octeontx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_octeontx.so.25
+	librte_net_octeon_ep.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_octeon_ep.so.25
+	librte_net_null.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_null.so.25
+	librte_net_ntnic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ntnic.so.25
+	librte_net_ngbe.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ngbe.so.25
+	librte_net_nfp.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_nfp.so.25
+	librte_net_netvsc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_netvsc.so.25
+	librte_net_mlx5.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_mlx5.so.25
+	librte_net_mlx4.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_mlx4.so.25
+	librte_net_memif.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_memif.so.25
+	librte_net_mana.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_mana.so.25
+	librte_net_i40e.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_i40e.so.25
+	librte_net_ixgbe.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ixgbe.so.25
+	librte_net_ionic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ionic.so.25
+	librte_net_idpf.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_idpf.so.25
+	librte_net_ice.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ice.so.25
+	librte_net_iavf.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_iavf.so.25
+	librte_net_hns3.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_hns3.so.25
+	librte_net_hinic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_hinic.so.25
+	librte_net_gve.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_gve.so.25
+	librte_net_fm10k.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_fm10k.so.25
+	librte_net_failsafe.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_failsafe.so.25
+	librte_net_e1000.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_e1000.so.25
+	librte_net_enic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_enic.so.25
+	librte_net_enetfec.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_enetfec.so.25
+	librte_net_enetc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_enetc.so.25
+	librte_net_ena.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ena.so.25
+	librte_net_dpaa2.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_dpaa2.so.25
+	librte_net_dpaa.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_dpaa.so.25
+	librte_net_cxgbe.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_cxgbe.so.25
+	librte_net_cpfl.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_cpfl.so.25
+	librte_net_cnxk.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_cnxk.so.25
+	librte_net_bond.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_bond.so.25
+	librte_net_bnxt.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_bnxt.so.25
+	librte_net_axgbe.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_axgbe.so.25
+	librte_net_avp.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_avp.so.25
+	librte_net_atlantic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_atlantic.so.25
+	librte_net_ark.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_ark.so.25
+	librte_net_af_packet.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_af_packet.so.25
+	librte_net.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net.so.25
+	librte_mldev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mldev.so.25
+	librte_ml_cnxk.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_ml_cnxk.so.25
+	librte_metrics.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_metrics.so.25
+	librte_meter.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_meter.so.25
+	librte_mempool_stack.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool_stack.so.25
+	librte_mempool_ring.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool_ring.so.25
+	librte_mempool_octeontx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool_octeontx.so.25
+	librte_mempool_dpaa2.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool_dpaa2.so.25
+	librte_mempool_dpaa.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool_dpaa.so.25
+	librte_mempool_cnxk.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool_cnxk.so.25
+	librte_mempool_bucket.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool_bucket.so.25
+	librte_mempool.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mempool.so.25
+	librte_member.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_member.so.25
+	librte_mbuf.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_mbuf.so.25
+	librte_lpm.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_lpm.so.25
+	librte_log.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_log.so.25
+	librte_latencystats.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_latencystats.so.25
+	librte_kvargs.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_kvargs.so.25
+	librte_jobstats.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_jobstats.so.25
+	librte_ipsec.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_ipsec.so.25
+	librte_ip_frag.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_ip_frag.so.25
+	librte_hash.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_hash.so.25
+	librte_gso.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_gso.so.25
+	librte_gro.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_gro.so.25
+	librte_graph.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_graph.so.25
+	librte_gpudev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_gpudev.so.25
+	librte_fib.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_fib.so.25
+	librte_eventdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_eventdev.so.25
+	librte_event_sw.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_sw.so.25
+	librte_event_skeleton.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_skeleton.so.25
+	librte_event_opdl.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_opdl.so.25
+	librte_event_octeontx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_octeontx.so.25
+	librte_event_dsw.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_dsw.so.25
+	librte_event_dpaa2.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_dpaa2.so.25
+	librte_event_dpaa.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_dpaa.so.25
+	librte_event_dlb2.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_dlb2.so.25
+	librte_event_cnxk.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_event_cnxk.so.25
+	librte_ethdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_ethdev.so.25
+	librte_efd.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_efd.so.25
+	librte_eal.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_eal.so.25
+	librte_dmadev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dmadev.so.25
+	librte_dma_skeleton.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_skeleton.so.25
+	librte_dma_odm.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_odm.so.25
+	librte_dma_ioat.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_ioat.so.25
+	librte_dma_idxd.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_idxd.so.25
+	librte_dma_hisilicon.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_hisilicon.so.25
+	librte_dma_dpaa2.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_dpaa2.so.25
+	librte_dma_dpaa.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_dpaa.so.25
+	librte_dma_cnxk.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dma_cnxk.so.25
+	librte_distributor.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_distributor.so.25
+	librte_dispatcher.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_dispatcher.so.25
+	librte_cryptodev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_cryptodev.so.25
+	librte_crypto_virtio.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_virtio.so.25
+	librte_crypto_scheduler.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_scheduler.so.25
+	librte_crypto_openssl.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_openssl.so.25
+	librte_crypto_octeontx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_octeontx.so.25
+	librte_crypto_null.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_null.so.25
+	librte_crypto_nitrox.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_nitrox.so.25
+	librte_crypto_mlx5.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_mlx5.so.25
+	librte_crypto_ionic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_ionic.so.25
+	librte_crypto_dpaa2_sec.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_dpaa2_sec.so.25
+	librte_crypto_dpaa_sec.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_dpaa_sec.so.25
+	librte_crypto_cnxk.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_cnxk.so.25
+	librte_crypto_ccp.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_ccp.so.25
+	librte_crypto_caam_jr.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_caam_jr.so.25
+	librte_crypto_bcmfs.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_crypto_bcmfs.so.25
+	librte_compressdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_compressdev.so.25
+	librte_compress_octeontx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_compress_octeontx.so.25
+	librte_compress_nitrox.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_compress_nitrox.so.25
+	librte_compress_mlx5.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_compress_mlx5.so.25
+	librte_common_zsda.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_zsda.so.25
+	librte_common_sfc_efx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_sfc_efx.so.25
+	librte_common_qat.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_qat.so.25
+	librte_common_octeontx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_octeontx.so.25
+	librte_common_nitrox.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_nitrox.so.25
+	librte_common_nfp.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_nfp.so.25
+	librte_common_mlx5.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_mlx5.so.25
+	librte_common_ionic.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_ionic.so.25
+	librte_common_dpaax.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_dpaax.so.25
+	librte_common_cpt.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_cpt.so.25
+	librte_common_cnxk.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_common_cnxk.so.25
+	librte_cmdline.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_cmdline.so.25
+	librte_cfgfile.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_cfgfile.so.25
+	librte_bus_vmbus.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_vmbus.so.25
+	librte_bus_vdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_vdev.so.25
+	librte_bus_uacce.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_uacce.so.25
+	librte_bus_platform.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_platform.so.25
+	librte_bus_pci.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_pci.so.25
+	librte_bus_ifpga.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_ifpga.so.25
+	librte_bus_fslmc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_fslmc.so.25
+	librte_bus_dpaa.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_dpaa.so.25
+	librte_bus_cdx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_cdx.so.25
+	librte_bus_auxiliary.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_auxiliary.so.25
+	librte_bpf.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bpf.so.25
+	librte_bitratestats.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bitratestats.so.25
+	librte_bbdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bbdev.so.25
+	librte_baseband_turbo_sw.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_baseband_turbo_sw.so.25
+	librte_baseband_null.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_baseband_null.so.25
+	librte_baseband_la12xx.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_baseband_la12xx.so.25
+	librte_baseband_fpga_5gnr_fec.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_baseband_fpga_5gnr_fec.so.25
+	librte_baseband_fpga_lte_fec.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_baseband_fpga_lte_fec.so.25
+	librte_baseband_acc.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_baseband_acc.so.25
+	librte_argparse.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_argparse.so.25
+	librte_acl.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_acl.so.25
+---
+Checking for librte_net_virtio specifically:
+	librte_net_virtio.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_net_virtio.so.25
+---
+Checking for librte_bus_vdev specifically:
+	librte_bus_vdev.so.25 (libc6,x86-64) => /usr/local/lib/x86_64-linux-gnu/librte_bus_vdev.so.25
+--- [DEBUG] End of library check ---
+Running Ingress container 'dpdk-ingress-source-test'...
+INGRESS: ingress_init(): Initializing INGRESS node...
+INGRESS: ingress_init(): Config data: 0x7ffd948e33b0
+EAL: lib.eal log level changed from info to debug
+EAL: Detected lcore 0 as core 0 on socket 0
+EAL: Detected lcore 1 as core 1 on socket 0
+EAL: Detected lcore 2 as core 2 on socket 0
+EAL: Detected lcore 3 as core 3 on socket 0
+EAL: Detected lcore 4 as core 4 on socket 0
+EAL: Detected lcore 5 as core 5 on socket 0
+EAL: Maximum logical cores by configuration: 128
+EAL: Detected CPU lcores: 6
+EAL: Detected NUMA nodes: 1
+EAL: Checking presence of .so 'librte_eal.so.25.2'
+EAL: Checking presence of .so 'librte_eal.so.25'
+EAL: Detected shared linkage of DPDK
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_crypto_scheduler.so.25.2
+EAL: lib.rcu log level changed from disabled to error
+EAL: lib.cryptodev log level changed from disabled to info
+EAL: lib.reorder log level changed from disabled to info
+EAL: Registered [vdev] bus.
+EAL: bus.vdev log level changed from disabled to debug
+EAL: pmd.crypto.scheduler log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_txgbe.so.25.2
+EAL: lib.hash log level changed from disabled to info
+EAL: lib.hash.crc log level changed from disabled to info
+EAL: lib.hash.fbk log level changed from disabled to info
+EAL: lib.hash.thash log level changed from disabled to info
+EAL: lib.hash.gfni log level changed from disabled to info
+EAL: lib.hash.thash_poly log level changed from disabled to info
+EAL: Registered [pci] bus.
+EAL: bus.pci log level changed from disabled to notice
+EAL: pmd.net.txgbe.init log level changed from disabled to notice
+EAL: pmd.net.txgbe.driver log level changed from disabled to notice
+EAL: pmd.net.txgbe.bp log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_event_skeleton.so.25.2
+EAL: lib.dmadev log level changed from disabled to info
+EAL: lib.eventdev.adapter.timer log level changed from disabled to notice
+EAL: lib.eventdev.adapter.timer.svc log level changed from disabled to notice
+EAL: lib.eventdev log level changed from disabled to info
+EAL: pmd.event.skeleton log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_mlx5.so.25.2
+EAL: Registered [auxiliary] bus.
+EAL: bus.auxiliary log level changed from disabled to notice
+EAL: pmd.common.mlx5 log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_mlx4.so
+EAL: pmd.net.mlx4 log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_octeon_ep.so
+EAL: pmd.net.octeon_ep log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_bond.so
+EAL: lib.ip_frag log level changed from disabled to info
+EAL: lib.sched log level changed from disabled to info
+EAL: pmd.net.bonding log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_sfc.so
+EAL: pmd.common.sfc_efx log level changed from disabled to notice
+EAL: pmd.net.sfc.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_dpaa2.so.25.2
+EAL: pmd.common.dpaax log level changed from disabled to error
+EAL: Registered [fslmc] bus.
+EAL: bus.fslmc log level changed from disabled to notice
+EAL: mempool.dpaa2 log level changed from disabled to notice
+EAL: pmd.net.dpaa2 log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_mempool_octeontx.so.25.2
+EAL: pmd.octeontx.mbox log level changed from disabled to notice
+EAL: pmd.mempool.octeontx log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_compress_nitrox.so
+EAL: pmd.common.nitrox log level changed from disabled to notice
+EAL: lib.compressdev log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_dpaa.so
+EAL: Registered [dpaa_bus] bus.
+EAL: bus.dpaa log level changed from disabled to notice
+EAL: mempool.dpaa log level changed from disabled to notice
+EAL: pmd.net.dpaa log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_baseband_fpga_lte_fec.so.25.2
+EAL: lib.bbdev log level changed from disabled to notice
+EAL: pmd.bb.fpga_lte_fec log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_ifpga.so.25.2
+EAL: lib.rawdev log level changed from disabled to info
+EAL: Registered [ifpga] bus.
+EAL: bus.ifpga log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_e1000.so
+EAL: pmd.net.e1000.init log level changed from disabled to notice
+EAL: pmd.net.e1000.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_sfc.so.25.2
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_dma_odm.so
+EAL: pmd.dma.odm log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_crypto_ionic.so
+EAL: pmd.crypto.ionic log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_dpaax.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_cpt.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_auxiliary.so
+EAL: Registered [auxiliary] bus.
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_enetc.so
+EAL: pmd.net.enetc log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_octeontx.so.25.2
+EAL: pmd.net.octeontx.mbox log level changed from disabled to notice
+EAL: pmd.net.octeontx.init log level changed from disabled to notice
+EAL: pmd.net.octeontx.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_vdpa_nfp.so.25.2
+EAL: pmd.common.nfp.common log level changed from disabled to notice
+EAL: Registered [vdpa] device class.
+EAL: lib.vhost.fdset log level changed from disabled to info
+EAL: lib.vhost.config log level changed from disabled to info
+EAL: lib.vhost.data log level changed from disabled to warning
+EAL: lib.vhost.crypto log level changed from disabled to info
+EAL: pmd.vdpa.nfp.core log level changed from disabled to notice
+EAL: pmd.vdpa.nfp.vdpa log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_cxgbe.so.25.2
+EAL: pmd.net.cxgbe log level changed from disabled to notice
+EAL: pmd.net.cxgbe.mbox log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_ntnic.so
+EAL: pmd.net.ntnic.general log level changed from disabled to info
+EAL: pmd.net.ntnic.nthw log level changed from disabled to info
+EAL: pmd.net.ntnic.filter log level changed from disabled to info
+EAL: pmd.net.ntnic.ntnic log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_mempool_cnxk.so.25.2
+EAL: pmd.common.cnxk.base log level changed from disabled to info
+EAL: pmd.common.cnxk.mbox log level changed from disabled to notice
+EAL: pmd.common.cnxk.crypto log level changed from disabled to notice
+EAL: pmd.common.cnxk.ml log level changed from disabled to notice
+EAL: pmd.common.cnxk.mempool log level changed from disabled to notice
+EAL: pmd.common.cnxk.nix log level changed from disabled to notice
+EAL: pmd.common.cnxk.flow log level changed from disabled to notice
+EAL: pmd.common.cnxk.event log level changed from disabled to notice
+EAL: pmd.common.cnxk.timer log level changed from disabled to notice
+EAL: pmd.common.cnxk.tm log level changed from disabled to notice
+EAL: pmd.common.cnxk.dpi log level changed from disabled to notice
+EAL: pmd.common.cnxk.rep log level changed from disabled to notice
+EAL: pmd.common.cnxk.esw log level changed from disabled to notice
+EAL: pmd.common.cnxk.ree log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_dma_odm.so.25.2
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_event_dsw.so.25.2
+EAL: pmd.event.dsw log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_vhost.so.25.2
+EAL: pmd.net.vhost log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_enetfec.so.25.2
+EAL: pmd.net.enetfec log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_qat.so.25.2
+EAL: pmd.qat.general log level changed from disabled to notice
+EAL: pmd.qat.dp log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_ice.so
+EAL: pmd.net.iavf log level changed from disabled to notice
+EAL: pmd.net.iavf.init log level changed from disabled to notice
+EAL: pmd.net.iavf.driver log level changed from disabled to notice
+EAL: pmd.net.ice.init log level changed from disabled to notice
+EAL: pmd.net.ice.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_mempool_octeontx.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_event_opdl.so
+EAL: pmd.event.opdl.driver log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_cdx.so.25.2
+EAL: Registered [cdx] bus.
+EAL: bus.cdx log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_dma_ioat.so.25.2
+EAL: pmd.dma.ioat log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_nfp.so
+EAL: pmd.net.nfp.init log level changed from disabled to notice
+EAL: pmd.net.nfp.driver log level changed from disabled to notice
+EAL: pmd.net.nfp.cpp log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_event_sw.so.25.2
+EAL: pmd.event.sw log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_vmbus.so
+EAL: Registered [vmbus] bus.
+EAL: bus.vmbus log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_failsafe.so.25.2
+EAL: pmd.net.failsafe log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_dma_ioat.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_pcap.so
+EAL: pmd.net.pcap log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_baseband_fpga_5gnr_fec.so.25.2
+EAL: pmd.bb.fpga_5gnr_fec log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_raw_skeleton.so
+EAL: pmd.raw.skeleton log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_xsc.so.25.2
+EAL: pmd.net.xsc.init log level changed from disabled to notice
+EAL: pmd.net.xsc.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_dma_cnxk.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_power_amd_pstate.so.25.2
+EAL: lib.power log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_cnxk.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_power_intel_pstate.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_ionic.so
+EAL: pmd.net.ionic log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_ml_cnxk.so
+EAL: lib.mldev log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_pfe.so.25.2
+EAL: pmd.net.pfe log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_virtio.so.25.2
+EAL: pmd.net.virtio.init log level changed from disabled to notice
+EAL: pmd.net.virtio.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_crypto_nitrox.so.25.2
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_fslmc.so.25.2
+EAL: Registered [fslmc] bus.
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_vhost.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_avp.so.25.2
+EAL: pmd.net.avp.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_crypto_virtio.so.25.2
+EAL: pmd.crypto.virtio.init log level changed from disabled to notice
+EAL: pmd.crypto.virtio.session log level changed from disabled to notice
+EAL: pmd.crypto.virtio.rx log level changed from disabled to notice
+EAL: pmd.crypto.virtio.tx log level changed from disabled to notice
+EAL: pmd.crypto.virtio.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_uacce.so.25.2
+EAL: Registered [uacce] bus.
+EAL: bus.uacce log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_crypto_scheduler.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_compress_mlx5.so
+EAL: pmd.compress.mlx5 log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_raw_gdtc.so.25.2
+EAL: pmd.raw.gdtc log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_ixgbe.so
+EAL: pmd.net.ixgbe.init log level changed from disabled to notice
+EAL: pmd.net.ixgbe.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_raw_cnxk_bphy.so
+EAL: pmd.raw.cnxk_bphy.bphy log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_vdpa_sfc.so
+EAL: pmd.vdpa.sfc.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_power_kvm_vm.so.25.2
+EAL: pmd.power.kvm_vm.guest_channel log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_baseband_acc.so.25.2
+EAL: pmd.bb.acc.common log level changed from disabled to info
+EAL: pmd.bb.acc.acc100 log level changed from disabled to notice
+EAL: pmd.bb.acc.vrb log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_hinic.so
+EAL: pmd.net.hinic log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_tap.so
+EAL: pmd.net.tap log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_crypto_virtio.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_event_cnxk.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_cpfl.so
+EAL: pmd.net.idpf.common log level changed from disabled to notice
+EAL: pmd.net.idpf.init log level changed from disabled to notice
+EAL: pmd.net.idpf.driver log level changed from disabled to notice
+EAL: pmd.net.cpfl.init log level changed from disabled to notice
+EAL: pmd.net.cpfl.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_raw_gdtc.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_raw_cnxk_rvu_lf.so
+EAL: pmd.raw.cnxk_rvu_lf.rvu_lf log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_mempool_ring.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_power_cppc.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_memif.so.25.2
+EAL: pmd.net.memif log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_vdpa_mlx5.so.25.2
+EAL: pmd.vdpa.mlx5 log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_ark.so
+EAL: pmd.net.ark log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_i40e.so.25.2
+EAL: pmd.net.i40e.init log level changed from disabled to notice
+EAL: pmd.net.i40e.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_event_dlb2.so
+EAL: pmd.event.dlb2 log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_ionic.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_zxdh.so.25.2
+EAL: pmd.net.zxdh.driver log level changed from disabled to notice
+EAL: pmd.net.zxdh.rx log level changed from disabled to notice
+EAL: pmd.net.zxdh.tx log level changed from disabled to notice
+EAL: pmd.net.zxdh.msg log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_baseband_fpga_5gnr_fec.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_zsda.so.25.2
+EAL: pmd.common.zsda.gen log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_power_intel_uncore.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_nitrox.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_axgbe.so.25.2
+EAL: pmd.net.axgbe.init log level changed from disabled to notice
+EAL: pmd.net.axgbe.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_qede.so.25.2
+EAL: pmd.net.qede.init log level changed from disabled to notice
+EAL: pmd.net.qede.driver log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_mempool_stack.so
+EAL: lib.stack log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_af_packet.so
+EAL: pmd.net.af_packet log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_power_acpi.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_common_cnxk.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_dma_skeleton.so
+EAL: pmd.dma.skeleton log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_platform.so.25.2
+EAL: Registered [platform] bus.
+EAL: bus.platform log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_vdev_netvsc.so
+EAL: pmd.net.vdev_netvsc log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_enic.so
+EAL: pmd.net.enic log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_raw_cnxk_gpio.so.25.2
+EAL: pmd.raw.cnxk_gpio.gpio log level changed from disabled to info
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_zxdh.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_dpaa.so
+EAL: Registered [dpaa_bus] bus.
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_crypto_bcmfs.so
+EAL: pmd.crypto.bcmfs.config log level changed from disabled to notice
+EAL: pmd.crypto.bcmfs.fp log level changed from disabled to notice
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_net_axgbe.so
+EAL: open shared lib /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_pci.so.25.2
+EAL: Registered [pci] bus.
+EAL: UIO_RESOURCE_LIST tailq is already registered
+EAL: PANIC in tailqinitfn_rte_uio_tailq():
+Cannot initialize tailq: UIO_RESOURCE_LIST
+0: /usr/local/lib/x86_64-linux-gnu/librte_eal.so.25 (rte_dump_stack+0x42) [7d7b61adf6e2]
+1: /usr/local/lib/x86_64-linux-gnu/librte_eal.so.25 (__rte_panic+0xd0) [7d7b61ab83d7]
+2: /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_pci.so.25.2 (7d7b5fb4b000+0x479c) [7d7b5fb4f79c]
+3: /lib64/ld-linux-x86-64.so.2 (7d7b61d0b000+0x571f) [7d7b61d1071f]
+4: /lib64/ld-linux-x86-64.so.2 (7d7b61d0b000+0x5824) [7d7b61d10824]
+5: /lib64/ld-linux-x86-64.so.2 (_dl_catch_exception+0x132) [7d7b61d0c5b2]
+6: /lib64/ld-linux-x86-64.so.2 (7d7b61d0b000+0xcd7c) [7d7b61d17d7c]
+7: /lib64/ld-linux-x86-64.so.2 (_dl_catch_exception+0x9c) [7d7b61d0c51c]
+8: /lib64/ld-linux-x86-64.so.2 (7d7b61d0b000+0xd164) [7d7b61d18164]
+9: /lib/x86_64-linux-gnu/libc.so.6 (7d7b61379000+0x981a4) [7d7b614111a4]
+10: /lib64/ld-linux-x86-64.so.2 (_dl_catch_exception+0x9c) [7d7b61d0c51c]
+11: /lib64/ld-linux-x86-64.so.2 (7d7b61d0b000+0x1669) [7d7b61d0c669]
+12: /lib/x86_64-linux-gnu/libc.so.6 (7d7b61379000+0x97c83) [7d7b61410c83]
+13: /lib/x86_64-linux-gnu/libc.so.6 (dlopen+0x6f) [7d7b6141125f]
+14: /usr/local/lib/x86_64-linux-gnu/librte_eal.so.25 (7d7b61aa8000+0x11e08) [7d7b61ab9e08]
+15: /usr/local/lib/x86_64-linux-gnu/librte_eal.so.25 (rte_eal_init+0x4de) [7d7b61ae144e]
+16: /usr/local/bin/dpdk-pot (602c04110000+0xa42b) [602c0411a42b]
+17: /usr/local/bin/dpdk-pot (602c04110000+0x2709) [602c04112709]
+18: /lib/x86_64-linux-gnu/libc.so.6 (7d7b61379000+0x2a1ca) [7d7b613a31ca]
+19: /lib/x86_64-linux-gnu/libc.so.6 (__libc_start_main+0x8b) [7d7b613a328b]
+20: /usr/local/bin/dpdk-pot (602c04110000+0x25e5) [602c041125e5]
+Ingress container 'dpdk-ingress-source-test' exited.
