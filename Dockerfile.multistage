@@ -85,6 +85,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ibverbs-providers \  
     rdma-core \           
     libatomic1 \
+    iproute2 \      
+    tcpdump \       
+    net-tools \     
+    procps \        
+    gdb \           
+    ethtool \       
+    pciutils \      
+    kmod \          
+    strace \        
+    ltrace \        
+    less \          
+    vim \           
     && rm -rf /var/lib/apt/lists/*
 
 ARG DPDK_INSTALL_PREFIX=/opt/dpdk_install 
@@ -100,7 +112,7 @@ COPY --from=builder ${DPDK_INSTALL_PREFIX}/lib/x86_64-linux-gnu/* /usr/local/lib
 # Copy your compiled application binary from the builder stage
 COPY --from=builder /app_src/build/dpdk-pot /usr/local/bin/dpdk-pot
 
-# Copy dpdk-testpmd from the builder stage
+# Copy dpdk-testpmdl from the builder stage
 COPY --from=builder ${DPDK_INSTALL_PREFIX}/bin/dpdk-testpmd /usr/local/bin/dpdk-testpmd
 
 # Copy default application configuration files
@@ -111,17 +123,6 @@ RUN mkdir -p ${APP_HOME}/config/profiles
 
 # Your config files are in 'config/profiles' at the project root
 COPY config/profiles ${APP_HOME}/config/profiles/
-
-# !!! IMPORTANT CLEANUP STEP !!!
-# Remove core bus drivers from the PMD directory to prevent double loading.
-# The path /usr/local/lib/x86_64-linux-gnu/pmds-25.2/ is what you pass to -d.
-RUN rm -f /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_pci.so* \
-          /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_vdev.so* \
-          /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_auxiliary.so* \
-          /usr/local/lib/x86_64-linux-gnu/pmds-25.2/librte_bus_platform.so* 
-          # Add any other librte_bus_*.so files you see duplicated in both locations
-          # Be careful NOT to remove actual device PMDs like librte_net_virtio.so
-
 
 # Update dynamic linker cache for the newly copied DPDK libraries
 RUN ldconfig
