@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-IMAGE_NAME="dpdk-pot-app-source:latest" # Your DPDK application image
+IMAGE_NAME="dpdk-base:ubuntu24.04-24.03.1" # Your DPDK application image
 
 C1_NAME="c1-dpdk-veth"
 C1_VETH_HOST_END="veth_h_c1" # Host side name for veth end going to C1
@@ -73,6 +73,7 @@ launch_container_and_get_pid() {
         --network=none \
         --entrypoint sleep \
         -v /dev/hugepages:/dev/hugepages \
+        -v /dev/vfio:/dev/vfio \
         -v /sys/bus/pci/devices:/sys/bus/pci/devices \
         -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages \
         -v /sys/devices/system/node:/sys/devices/system/node \
@@ -149,7 +150,7 @@ echo
 info "Suggested testpmd command for Container 1 (using core $TESTPMD_C1_LCORE, interface $C1_IFACE_IN_CONTAINER):"
 echo "  # Ensure you are root inside the container"
 echo "  # Dynamically find PMD directory (or replace with hardcoded path like /usr/local/lib/x86_64-linux-gnu/pmds-25.2/)"
-echo "  PMDS_DIR=\$(ls -d /usr/local/lib/x86_64-linux-gnu/pmds-*/ | head -n 1) && \\"
+echo "  PMDS_DIR=\$(ls -d /usr/local/lib/x86_64-linux-gnu/dpdk/pmds-24.1/ | head -n 1) && \\"
 echo "  dpdk-testpmd \\"
 echo "    -l $TESTPMD_C1_LCORE \\"
 echo "    --iova-mode=va \\"
@@ -159,7 +160,7 @@ echo "    --single-file-segments \\"
 echo "    --no-pci \\"
 echo "    --log-level=8 \\"
 echo "    --vdev=\"net_af_packet0,iface=$C1_IFACE_IN_CONTAINER\" \\"
-echo "    -d \"\${PMDS_DIR%/}\" \\" # Removes trailing slash if any, though often not an issue
+echo "    -d /usr/local/lib/x86_64-linux-gnu/dpdk/pmds-24.1/  \\"
 echo "    -- \\"
 echo "    --interactive --portmask=0x1"
 echo
@@ -179,7 +180,7 @@ echo "    --single-file-segments \\"
 echo "    --no-pci \\"
 echo "    --log-level=8 \\"
 echo "    --vdev=\"net_af_packet0,iface=$C2_IFACE_IN_CONTAINER\" \\"
-echo "    -d \"\${PMDS_DIR%/}\" \\" # Removes trailing slash if any
+echo "    -d \"\${PMDS_DIR%/}\" \\" 
 echo "    -- \\"
 echo "    --interactive --portmask=0x1"
 echo

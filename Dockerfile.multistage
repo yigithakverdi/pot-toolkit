@@ -52,7 +52,8 @@ RUN git submodule update --init --recursive deps/dpdk
 ARG DPDK_INSTALL_PREFIX=/opt/dpdk_install
 WORKDIR /app_src/deps/dpdk
 RUN rm -rf build
-RUN meson setup build --prefix=${DPDK_INSTALL_PREFIX} -Ddefault_library=shared 
+RUN meson setup build --prefix=${DPDK_INSTALL_PREFIX} -Ddefault_library=shared \
+-Ddisable_drivers=common/dpaax,bus/dpaa,mempool/dpaa,mempool/dpaa2,net/dpaa,net/dpaa2
 RUN ninja -C build
 RUN ninja -C build install
 

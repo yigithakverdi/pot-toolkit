@@ -1,56 +1,146 @@
-# Dockerfile.base
+# Dockerfile for DPDK Base Image
+# Stage 1: Builder
+FROM ubuntu:24.04 AS builder
 
+ARG DPDK_VERSION=24.03
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install base build dependencies for DPDK
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    pkg-config \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    wget \
+    tar \
+    xz-utils \
+    libnuma-dev \
+    libpcap-dev \
+    libssl-dev \
+    libjansson-dev \
+    # For Mellanox PMD compilation and other RDMA-capable PMDs
+    libibverbs-dev \
+    librdmacm-dev \
+    rdma-core \
+    # Dependencies for some DPDK tools or examples
+    libelf-dev \
+    libcap-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a virtual environment for Python build tools (meson, ninja, pyelftools)
+ENV VENV_PATH=/opt/venv
+RUN python3 -m venv ${VENV_PATH}
+ENV PATH="${VENV_PATH}/bin:${PATH}"
+RUN pip install --no-cache-dir meson ninja pyelftools
+
+# Download and extract DPDK source
+WORKDIR /tmp
+
+# Using fast.dpdk.org for specific patch versions
+RUN wget https://fast.dpdk.org/rel/dpdk-${DPDK_VERSION}.tar.xz && \
+    tar -xJf dpdk-${DPDK_VERSION}.tar.xz && \
+    rm dpdk-${DPDK_VERSION}.tar.xz
+
+# Build and install DPDK
+ARG DPDK_INSTALL_PREFIX=/opt/dpdk_install
+WORKDIR /tmp/dpdk-${DPDK_VERSION}
+# Note: You can customize Ddisable_drivers further if needed.
+# The example list from your prompt is used here.
+# Consider adding -Dplatform=generic or -Dplatform=native depending on your needs,
+# though meson usually auto-detects well.
+RUN meson setup build --prefix=${DPDK_INSTALL_PREFIX} -Ddefault_library=shared \
+    -Dexamples=all \
+    -Ddisable_drivers=common/dpaax,bus/dpaa,mempool/dpaa,mempool/dpaa2,net/dpaa,net/dpaa2 && \
+    ninja -C build && \
+    ninja -C build install
+
+# ---- Final DPDK Base Image ----
 FROM ubuntu:24.04
+
+ARG DPDK_VERSION=24.03.1 # Ensure this matches the version built
+LABEL maintainer="your-email@example.com"
+LABEL description="DPDK ${DPDK_VERSION} base image with development tools and runtime."
+LABEL dpdk_version="${DPDK_VERSION}"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies.
-# IMPORTANT: Add any other system libraries that your ldd checks (from previous advice)
-# indicated were missing for your DPDK libraries. For example, libjansson4, etc.
+# Install runtime dependencies for DPDK and network troubleshooting tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnuma1 \
     libssl3 \
     libpcap0.8 \
-    # Example: libjansson4 (if ldd showed it was needed by a .so file)
+    libjansson4 \
+    libibverbs1 \
+    ibverbs-providers \
+    librdmacm1 \
+    rdma-core \
+    libelf1 \
+    libatomic1 \
+    # Network troubleshooting tools
+    iproute2 \
+    tcpdump \
+    net-tools \
+    procps \
+    ethtool \
+    pciutils \
+    kmod \
+    # Development/Debugging tools
+    gdb \
+    strace \
+    ltrace \
+    less \
+    vim \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Define the target root directory for DPDK libraries in the image.
-ARG DPDK_TARGET_ROOT_LIB_DIR=/usr/local/lib/x86_64-linux-gnu
+# Define where DPDK was installed in the builder stage
+ARG DPDK_INSTALL_PREFIX=/opt/dpdk_install
+# Define where to install DPDK artifacts in this image (standard system paths)
+ARG FINAL_DPDK_PREFIX=/usr/local
 
-# Create the necessary directory structure in the image.
-# This ensures the parent 'dpdk' directory and its 'pmds-25.2' subdirectory exist.
-RUN mkdir -p ${DPDK_TARGET_ROOT_LIB_DIR}/dpdk/pmds-25.2
-RUN mkdir -p ${DPDK_TARGET_ROOT_LIB_DIR}/pkgconfig
+# Copy DPDK artifacts (libraries, binaries, headers, pkgconfig) from the builder stage
+# This copies the entire installed structure (bin, lib, include, share) to /usr/local
+COPY --from=builder ${DPDK_INSTALL_PREFIX}/ ${FINAL_DPDK_PREFIX}/
 
-# 1. COPY main librte_*.so.25 files from your staging 'base' directory
-# Source: <build_context>/make/photon/base/librte_*.so.25
-# Target: /usr/local/lib/x86_64-linux-gnu/
-COPY make/photon/base/librte_*.so.25 ${DPDK_TARGET_ROOT_LIB_DIR}/
-
-# 2. COPY files from your 'make/photon/base/dpdk/' staging area
-#    into the image's '/usr/local/lib/x86_64-linux-gnu/dpdk/' directory.
-#    This handles any files/subdirs that should be directly under 'dpdk',
-#    as siblings to the 'pmds-25.2' directory, if you have such files.
-#    The trailing slash on the source (dpdk/*) copies the CONTENTS.
-COPY make/photon/base/dpdk/* ${DPDK_TARGET_ROOT_LIB_DIR}/dpdk/
-
-# 3. COPY PMD .so files from your staging 'pmds' directory
-#    into the image's '/usr/local/lib/x86_64-linux-gnu/dpdk/pmds-25.2/'
-#    This ensures PMDs are in their specific subdirectory.
-COPY make/photon/base/pmds/*.so ${DPDK_TARGET_ROOT_LIB_DIR}/dpdk/pmds-25.2/
-
-# 4. COPY pkgconfig files from your staging 'pkgconfig' directory (Optional for runtime)
-# Source: <build_context>/make/photon/base/pkgconfig/*
-# Target: /usr/local/lib/x86_64-linux-gnu/pkgconfig/
-COPY make/photon/base/pkgconfig/* ${DPDK_TARGET_ROOT_LIB_DIR}/pkgconfig/
-
-# Ensure the copied libraries and files have correct permissions.
-# a+rX gives read to all, and execute to all if it's a directory or already executable by owner.
-RUN chmod -R a+rX ${DPDK_TARGET_ROOT_LIB_DIR}/
-
-# Update the dynamic linker cache. This is crucial.
+# Update dynamic linker cache
 RUN ldconfig
 
-# Create a non-root user and group for the application
-RUN groupadd -r dpdk -g 2000 && \
-    useradd -r -u 2000 -g dpdk -m -s /sbin/nologin dpdk # or /bin/bash if shell needed
+# Set PKG_CONFIG_PATH to find libdpdk.pc
+# This is crucial for building applications against this DPDK installation.
+# The actual path for .pc files might be under lib/x86_64-linux-gnu/pkgconfig or lib64/pkgconfig
+# Meson install to /usr/local usually handles this correctly for standard pkg-config discovery.
+# If /usr/local/lib/pkgconfig is standard, it might be picked up automatically.
+# Explicitly setting it is safer for custom prefixes or ensuring priority.
+ENV PKG_CONFIG_PATH="${FINAL_DPDK_PREFIX}/lib/x86_64-linux-gnu/pkgconfig"
+ENV LD_LIBRARY_PATH="${FINAL_DPDK_PREFIX}/lib/x86_64-linux-gnu"
+
+# Set a working directory (optional, can be overridden by derived images)
+WORKDIR /root
+
+# Informative message about running DPDK applications
+RUN echo "DPDK version ${DPDK_VERSION} is installed in ${FINAL_DPDK_PREFIX}." && \
+    echo "Downloaded from https://core.dpdk.org/download/dpdk-${DPDK_VERSION}.tar.xz" && \
+    echo "Remember to configure HugePages and bind NICs to a DPDK-compatible driver (e.g., vfio-pci) on the host." && \
+    echo "PKG_CONFIG_PATH is set to help find libdpdk: $(printenv PKG_CONFIG_PATH)" && \
+    echo "LD_LIBRARY_PATH includes DPDK libs: $(printenv LD_LIBRARY_PATH)" && \
+    echo "Installed DPDK applications (e.g., dpdk-testpmd) should be in ${FINAL_DPDK_PREFIX}/bin/" && \
+    ls -1 ${FINAL_DPDK_PREFIX}/bin/dpdk-* | xargs -n1 basename || echo "No DPDK example binaries found (check build)."
+
+# Check for dpdk-testpmd
+RUN if [ -f "${FINAL_DPDK_PREFIX}/bin/dpdk-testpmd" ]; then \
+        echo "dpdk-testpmd is available at ${FINAL_DPDK_PREFIX}/bin/dpdk-testpmd"; \
+    else \
+        echo "dpdk-testpmd not found at ${FINAL_DPDK_PREFIX}/bin/dpdk-testpmd. Check DPDK build and installation."; \
+    fi
+
+# Add python3 scripts from dpdk-tools to path if they exist (like dpdk-devbind.py)
+# The exact location might vary slightly or if they are installed as part of 'examples'.
+# Typically, they are in bin or share/dpdk/usertools.
+# If dpdk-devbind.py is in /usr/local/bin, it's already in PATH.
+# If it's in /usr/local/share/dpdk/usertools/, add it to PATH.
+ENV PATH="${FINAL_DPDK_PREFIX}/share/dpdk/usertools:${PATH}"
+
+CMD ["bash"]
