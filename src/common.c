@@ -1,6 +1,12 @@
 #include "common.h"
 #include "crypto.h"
 
+int operation_bypass_bit = 0;
+int tsc_dynfield_offset = -1;
+
+// Prints a human-readable IPv4 address with a label for context, converting the given 32-bit 
+// address to dotted-decimal notation and displaying it alongside the provided label; if the conversion 
+// fails, an error message is printed.
 void print_ipv4_address(uint32_t ipv4_addr, const char *label) {
   struct in_addr addr;
   addr.s_addr = ipv4_addr;

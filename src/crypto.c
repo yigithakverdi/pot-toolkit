@@ -81,14 +81,15 @@ int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, u
   return plaintext_len;
 }
 
-int decrypt_pvf(uint8_t *k_pot_in, uint8_t *nonce, uint8_t pvf_out[32]) {
+int decrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t pvf_out[32]) {
   // k_pot_in is a 2d array of strings holding statically allocated keys for the
   // nodes. In this proof of concept there is only one middle node and an egress
   // node so the shape is [2][key-length]
   uint8_t plaintext[128];
   int cipher_len = 32;
   printf("\n----------Decrypting----------\n");
-  int dec_len = decrypt(pvf_out, cipher_len, k_pot_in, nonce, plaintext);
+  // Use the first key for decryption (adjust as needed)
+  int dec_len = decrypt(pvf_out, cipher_len, k_pot_in[0], nonce, plaintext);
   printf("Dec len %d\n", dec_len);
   printf("original text is:\n");
   for (int j = 0; j < 32; j++) {
@@ -98,6 +99,7 @@ int decrypt_pvf(uint8_t *k_pot_in, uint8_t *nonce, uint8_t pvf_out[32]) {
   memcpy(pvf_out, plaintext, 32);
   printf("Decrypted text is : \n");
   BIO_dump_fp(stdout, (const char *)pvf_out, dec_len);
+  return 0;
 }
 
 int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned char *iv,
@@ -132,23 +134,13 @@ void encrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t *nonce, uint
   // nodes. In this proof of concept there is only one middle node and an egress
   // node so the shape is [2][key-length]
   uint8_t ciphertext[128];
-  uint8_t plaintext[128];
   printf("\n----------Encrypting----------\n");
   for (int i = 0; i < SID_NO; i++) {
-    // printf("---Iteration: %d---\n", i);
-    // printf("original text is:\n");
     for (int j = 0; j < HMAC_MAX_LENGTH; j++) {
       printf("%02x", hmac_out[j]);
     }
-    // printf("\n");
-    // printf("PVF size : %ld\n", strnlen(hmac_out, HMAC_MAX_LENGTH));
-    int cipher_len = encrypt(hmac_out, HMAC_MAX_LENGTH, k_pot_in[i], nonce, ciphertext);
-    // printf("The cipher length is : %d\n", cipher_len);
-
-    // printf("Ciphertext is : \n");
-    // BIO_dump_fp(stdout, (const char *)ciphertext, cipher_len);
+    encrypt(hmac_out, HMAC_MAX_LENGTH, k_pot_in[i], nonce, ciphertext);
     memcpy(hmac_out, ciphertext, 32);
-    // printf("\n");
   }
 }
 
