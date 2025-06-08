@@ -1,6 +1,8 @@
-#include <include/port.h>
+#include "port.h"
+#include "common.h"
+#include "latency.h"
 
-static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
+int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
   struct rte_eth_conf port_conf;
   const uint16_t rx_rings = 1, tx_rings = 1;
   uint16_t nb_rxd = RX_RING_SIZE;
@@ -77,11 +79,11 @@ void display_mac_address(uint16_t port_id) {
          mac_addr.addr_bytes[5]);
 }
 
-
 // Checks if there are any available Ethernet ports on the system for DPDK to use.
 // If no ports are available, the function terminates the program with an error message.
-// Otherwise, it prints the total number of Ethernet ports detected (including both available and unavailable ports).
-// This function is useful for ensuring that the application does not proceed without any network interfaces to operate on.
+// Otherwise, it prints the total number of Ethernet ports detected (including both available and unavailable
+// ports). This function is useful for ensuring that the application does not proceed without any network
+// interfaces to operate on.
 void check_ports_available() {
   if (rte_eth_dev_count_avail() == 0)
     rte_exit(EXIT_FAILURE, "No Ethernet ports available\n");

@@ -1,6 +1,8 @@
 #include <include/latency.h>
 
-static uint16_t add_timestamps(uint16_t port __rte_unused, uint16_t qidx __rte_unused, struct rte_mbuf **pkts,
+struct latency_numbers_t latency_numbers = {0, 0, 0};
+
+uint16_t add_timestamps(uint16_t port __rte_unused, uint16_t qidx __rte_unused, struct rte_mbuf **pkts,
                                uint16_t nb_pkts, uint16_t max_pkts __rte_unused, void *_ __rte_unused) {
   unsigned i;
   uint64_t now = rte_rdtsc();
@@ -9,7 +11,7 @@ static uint16_t add_timestamps(uint16_t port __rte_unused, uint16_t qidx __rte_u
   return nb_pkts;
 }
 
-static uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf **pkts,
+uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf **pkts,
                              uint16_t nb_pkts, void *_ __rte_unused) {
   uint64_t cycles = 0;
   uint64_t queue_ticks = 0;
