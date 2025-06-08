@@ -30,13 +30,15 @@ info() {
 }
 
 error_exit() {
-    echo "[ERROR] <span class="math-inline">1" \>&2
-exit 1
-\}
-\# \-\-\- Main Execution \-\-\-
-main\(\) \{
-\# 1\. Check for Root Privileges
-if \[ "</span>(id -u)" -ne 0 ]; then
+    echo "[ERROR] $1" >&2
+    exit 1
+}
+
+
+# --- Main Execution ---
+main() {
+    # 1. Check for Root Privileges
+    if [ "$(id -u)" -ne 0 ]; then
         error_exit "This script must be run as root or with sudo."
     fi
 
@@ -44,20 +46,21 @@ if \[ "</span>(id -u)" -ne 0 ]; then
 
     # 2. Check for dpdk-devbind tool
     if [ ! -x "$DEV_BIND_TOOL" ]; then
-        error_exit "DPDK devbind tool not found or not executable at '<span class="math-inline">DEV\_BIND\_TOOL'"
-fi
-\# 3\. Configure HugePages
-\# Your /etc/sysctl\.conf change reserves the pages, but we need to ensure
-\# the hugetlbfs filesystem is mounted\.
-info "Configuring HugePages\.\.\."
-if \! mount \| grep \-q 'hugetlbfs on /mnt/huge'; then
-info "Mounting hugetlbfs on /mnt/huge\.\.\."
-mkdir \-p /mnt/huge
-mount \-t hugetlbfs nodev /mnt/huge
-else
-info "HugePages filesystem already mounted\."
-fi
-info "</span>(grep HugePages /proc/meminfo)"
+        error_exit "DPDK devbind tool not found or not executable at '$DEV_BIND_TOOL'"
+    fi
+
+    # 3. Configure HugePages
+    # Your /etc/sysctl.conf change reserves the pages, but we need to ensure
+    # the hugetlbfs filesystem is mounted.
+    info "Configuring HugePages..."
+    if ! mount | grep -q 'hugetlbfs on /mnt/huge'; then
+        info "Mounting hugetlbfs on /mnt/huge..."
+        mkdir -p /mnt/huge
+        mount -t hugetlbfs nodev /mnt/huge
+    else
+        info "HugePages filesystem already mounted."
+    fi
+    info "$(grep HugePages /proc/meminfo)"
     
     # ONE-TIME ACTION: To make the mount persistent across reboots, add it to /etc/fstab
     if ! grep -q '/mnt/huge' /etc/fstab; then
@@ -85,15 +88,33 @@ info "</span>(grep HugePages /proc/meminfo)"
     
     # Check if the interface exists
     if ! ip link show "$DPDK_IFACE" &>/dev/null; then
-        error_exit "Network interface '<span class="math-inline">DPDK\_IFACE' does not exist\."
-fi
-\# Get the PCI address of the interface
-PCI\_ADDR\=</span>(ethtool -i "$DPDK_IFACE" | grep 'bus-info:' | awk '{print $2}')
+        error_exit "Network interface '$DPDK_IFACE' does not exist."
+    fi
+
+    # Get the PCI address of the interface
+    PCI_ADDR=$(ethtool -i "$DPDK_IFACE" | grep 'bus-info:' | awk '{print $2}')
     if [ -z "$PCI_ADDR" ]; then
         error_exit "Could not determine PCI address for '$DPDK_IFACE'."
     fi
-    info "Found '$DPDK_IFACE' at PCI address: <span class="math-inline">PCI\_ADDR"
-\# Check if the device is already bound to the DPDK driver
-CURRENT\_DRIVER\=</span>("$DEV_BIND_TOOL" --status | grep "$PCI_ADDR" | awk '{print $3}' | sed "s/drv=//")
+    info "Found '$DPDK_IFACE' at PCI address: $PCI_ADDR"
 
-    if [ "$CURRENT_DRIVER" == "$DPDK_DRIVER" ];
+    # Check if the device is already bound to the DPDK driver
+    CURRENT_DRIVER=$("$DEV_BIND_TOOL" --status | grep "$PCI_ADDR" | awk '{print $3}' | sed "s/drv=//")
+
+    if [ "$CURRENT_DRIVER" == "$DPDK_DRIVER" ]; then
+        info "Interface '$DPDK_IFACE' ($PCI_ADDR) is already bound to '$DPDK_DRIVER'."
+    else
+        info "Interface is currently using driver '$CURRENT_DRIVER'. Binding to '$DPDK_DRIVER'..."
+        ip link set "$DPDK_IFACE" down
+        "$DEV_BIND_TOOL" --bind="$DPDK_DRIVER" "$PCI_ADDR"
+    fi
+
+    # 6. Final Status Check
+    info "Setup complete. Final status:"
+    echo "--------------------------------"
+    "$DEV_BIND_TOOL" --status
+    echo "--------------------------------"
+}
+
+# Run the main function
+main "$@"
