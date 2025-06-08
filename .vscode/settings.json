@@ -1,12 +1,12 @@
 {
     "configurations": [
         {
-            "name": "Linux",                        // You can name this configuration anything
-            "compilerPath": "/usr/bin/gcc",         // Or clang, ensure this matches what Meson uses
-            "cStandard": "c11",                     // Or c17, c99 as needed
-            "cppStandard": "c++17",                 // Adjust if you use C++ features
-            "intelliSenseMode": "linux-gcc-x64",    // Adjust for clang or architecture if needed
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "name": "Linux",                                                            // You can name this configuration anything
+            "compilerPath": "/usr/bin/gcc",                                             // Or clang, ensure this matches what Meson uses
+            "cStandard": "c11",                                                         // Or c17, c99 as needed
+            "cppStandard": "c++17",                                                     // Adjust if you use C++ features
+            "intelliSenseMode": "linux-gcc-x64",                                        // Adjust for clang or architecture if needed
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",        // Path to Meson's compile commands
             "includePath": [
                 // ...
                 "${workspaceFolder}/include/**"
@@ -16,5 +16,10 @@
             ]
         }
     ],
-    "version": 4
+    "version": 4,
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
+    "files.associations": {
+        "*.c": "c",
+        "common.h": "c"
+    }
 }

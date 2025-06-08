@@ -1,5 +1,17 @@
 # Unecessary documentations and notes
 /docs/notes/*.md
+/docs/experiment.md
+
+[submodule "deps/dpdk"]
+    path = deps/dpdk
+    ignore = all
+    
+[submodule "deps/openssl"]
+    path = deps/openssl
+    ignore = all
+
+# Ignore dependency files since they are git submodules
+/deps
 
 # Python virtual environment
 .venv/

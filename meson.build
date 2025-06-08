@@ -1,14 +1,7 @@
-project('dpdk_pot', 'c') 
+project('dpdk_pot', 'c')
 
-dep_dpdk = dependency('libdpdk', 
-  fallback: ['dpdk', 'dpdk_dep'],
-  default_options: ['default_library=static']
-)
-
-openssl_dep = dependency('openssl',
-  fallback: ['openssl', 'openssl_dep'],
-  required: true
-)
+dep_dpdk = dependency('libdpdk', required: true)
+openssl_dep = dependency('openssl', required: true)
 
 inc = include_directories('include')
 
@@ -21,8 +14,8 @@ src_files = grabber.stdout().strip().split('\n')
 
 all_sources = root_src + src_files
 
-executable('dpdk-pot', 
-  all_sources, 
-  dependencies : [dep_dpdk, openssl_dep],
-  include_directories : inc
+executable('dpdk-pot',
+  all_sources,
+  dependencies: [dep_dpdk, openssl_dep],
+  include_directories: inc
 )
