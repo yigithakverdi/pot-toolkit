@@ -1,0 +1,46 @@
+# Google C/C++ Style Guide: https://google.github.io/styleguide/cppguide.html
+# Clang-Format Style Options: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+
+BasedOnStyle: Google
+
+# The column limit for formatting.
+ColumnLimit: 110
+
+# The number of spaces to use for indentation.
+IndentWidth: 2
+
+# Whether to use tabs for indentation.
+UseTab: Never
+
+# The penalty for breaking a function call after the opening parenthesis.
+PenaltyBreakBeforeFirstCallParameter: 19
+
+# How to wrap braces.
+BreakBeforeBraces: Attach
+
+# Allow short functions to be put on a single line.
+AllowShortFunctionsOnASingleLine: All
+
+# Allow short case labels to be put on a single line.
+AllowShortCaseLabelsOnASingleLine: true
+
+# Allow short if statements to be put on a single line.
+AllowShortIfStatementsOnASingleLine: WithoutElse
+
+# Allow short loops to be put on a single line.
+AllowShortLoopsOnASingleLine: true
+
+# The alignment of pointer and reference operators.
+PointerAlignment: Left
+
+# How to align consecutive assignments.
+AlignConsecutiveAssignments: None
+
+# How to align consecutive declarations.
+AlignConsecutiveDeclarations: None
+
+# Sort includes alphabetically.
+SortIncludes: true
+
+# The maximum number of consecutive empty lines to keep.
+MaxEmptyLinesToKeep: 1

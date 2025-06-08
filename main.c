@@ -1,40 +1,17 @@
-// Testing ground for the Nodes and all the configurations of the app is
-// initialized here and then passed to the node instances
-//
-// Here the architecture of the current running POT landscape can be realized as
-// well and the nodes can be initialized and run
-//
+#include "common.h"
 
-#include "include/node/node_interface.h"
+int main(int argc, char *argv[]) {
+  init_eal(argc, argv);
+  check_ports_available();
+  // struct rte_mempool *mbuf_pool = create_mempool();
+  // register_tsc_dynfield();
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-extern node_operations_t ingress_ops;
-
-typedef struct {
-  uint16_t port_id;
-  uint16_t tap_port_id;
-  char *role;
-} ingress_config_t;
-
-int main(int argc, char **argv) {
-
-  // Temporarly harcoding custom arguments and leaving the arugment parsing
-  // related to EAL and DPDK.
-  ingress_config_t config = {
-      .port_id = 0,
-      .tap_port_id = 1,
-      .role = "ingress",
-  };
-
-  void *ingress_data = NULL;
-  if (ingress_ops.init(argc, argv, (const struct node_config *)&config,
-                       &ingress_data) != 0) {
-    fprintf(stderr, "Failed to initialize ingress node\n");
-    return EXIT_FAILURE;
-  }
+  //   uint16_t port_id = 0, tx_port_id = 1;
+  //   setup_port(port_id, mbuf_pool, 1);     // RX
+  //   setup_port(tx_port_id, mbuf_pool, 0);  // TX
+  //   printf("TSC frequency: %" PRIu64 " Hz\n", rte_get_tsc_hz());
+  //   uint16_t ports[2] = {port_id, tx_port_id};
+  //   launch_lcore_forwarding(ports);
 
   return 0;
 }
