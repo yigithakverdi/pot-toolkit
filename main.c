@@ -1,10 +1,13 @@
 #include "common.h"
 
 int main(int argc, char *argv[]) {
+
+  const char *role = "ingress";
+  
   init_eal(argc, argv);
   check_ports_available();
-  // struct rte_mempool *mbuf_pool = create_mempool();
-  // register_tsc_dynfield();
+  struct rte_mempool *mbuf_pool = create_mempool();
+  register_tsc_dynfield();
 
   //   uint16_t port_id = 0, tx_port_id = 1;
   //   setup_port(port_id, mbuf_pool, 1);     // RX
