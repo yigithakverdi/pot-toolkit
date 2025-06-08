@@ -21,7 +21,7 @@ DPDK_DRIVER="vfio-pci"
 
 # The full path to the dpdk-devbind tool.
 # This should be correct if you installed DPDK to /usr/local.
-DEV_BIND_TOOL="/usr/local/bin/dpdk-devbind"
+DEV_BIND_TOOL="/usr/local/bin/dpdk-devbind.py"
 
 
 # --- Helper Functions ---
