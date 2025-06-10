@@ -1,5 +1,7 @@
+#include <sys/types.h>
 #include "common.h"
 #include "port.h"
+#include "pprocess.h"
 
 int main(int argc, char *argv[]) {
   const char *role = "ingress";
@@ -17,6 +19,9 @@ int main(int argc, char *argv[]) {
   printf("TSC frequency: %" PRIu64 " Hz\n", rte_get_tsc_hz());
   
   // uint16_t ports[2] = {port_id, tx_port_id};
+  uint16_t ports[1] = {port_id};
+  printf("Starting %s role on port %u\n", role, port_id);
+
   // launch_lcore_forwarding(ports);
 
   return 0;

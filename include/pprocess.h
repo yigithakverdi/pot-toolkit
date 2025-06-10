@@ -20,7 +20,8 @@ void remove_headers(struct rte_mbuf *pkt);
 void remove_headers_only(struct rte_mbuf *pkt);
 void process_ip4(struct rte_mbuf *mbuf, uint16_t nb_rx, struct rte_ether_hdr *eth_hdr, int i);
 int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf);
-void lcore_main_forward(void *arg);
+int lcore_main_forward(void *arg);
+void launch_lcore_forwarding(uint16_t *ports);
 
 static inline enum role determine_role(uint16_t rx_port_id, uint16_t tx_port_id);
 static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx);

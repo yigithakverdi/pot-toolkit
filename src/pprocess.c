@@ -88,7 +88,7 @@ static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
   }
 }
 
-void lcore_main_forward(void *arg) {
+int lcore_main_forward(void *arg) {
   // Parse arguments (ports) from input.
   uint16_t *ports = (uint16_t *)arg;
   uint16_t rx_port_id = ports[0];
@@ -121,4 +121,11 @@ void lcore_main_forward(void *arg) {
     //   for (i = nb_tx; i < nb_rx; i++) rte_pktmbuf_free(pkts[i]);
     // }
   }
+  return 0; 
+}
+
+void launch_lcore_forwarding(uint16_t *ports) {
+  unsigned lcore_id = rte_get_next_lcore(-1, 1, 0);
+  rte_eal_remote_launch(lcore_main_forward, (void *)ports, lcore_id);
+  rte_eal_mp_wait_lcore();  // Wait for all lcores to finish (optional, for clean shutdown)
 }

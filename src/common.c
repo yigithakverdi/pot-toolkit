@@ -1,11 +1,14 @@
 #include "common.h"
+
 #include <rte_log.h>
+
+#include "pprocess.h"
 
 int operation_bypass_bit = 0;
 int tsc_dynfield_offset = -1;
 
-// Prints a human-readable IPv4 address with a label for context, converting the given 32-bit 
-// address to dotted-decimal notation and displaying it alongside the provided label; if the conversion 
+// Prints a human-readable IPv4 address with a label for context, converting the given 32-bit
+// address to dotted-decimal notation and displaying it alongside the provided label; if the conversion
 // fails, an error message is printed.
 void print_ipv4_address(uint32_t ipv4_addr, const char *label) {
   struct in_addr addr;
@@ -31,19 +34,11 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
     rte_pktmbuf_free(mbuf);
   } else {
     RTE_LOG(INFO, USER1, "IPV6 packet sent to: %02X:%02X:%02X:%02X:%02X:%02X\n",
-           eth_hdr->dst_addr.addr_bytes[0],
-           eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2],
-           eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
-           eth_hdr->dst_addr.addr_bytes[5]);
+            eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2],
+            eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
+            eth_hdr->dst_addr.addr_bytes[5]);
   }
   rte_pktmbuf_free(mbuf);
-}
-
-void launch_lcore_forwarding(uint16_t *ports) {
-  unsigned lcore_id = rte_get_next_lcore(-1, 1, 0);
-  // Example: launch your forwarding function on the next lcore
-  // rte_eal_remote_launch(lcore_main_forward, (void *)ports, lcore_id);
-  // lcore_main_forward((void *)ports);
 }
 
 // DPDK mbufs are used to represent network packets. Sometimes, you need to attach extra
