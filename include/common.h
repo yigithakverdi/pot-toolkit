@@ -70,6 +70,5 @@ int main(int argc, char *argv[]);
 struct rte_mempool *create_mempool();
 void init_eal(int argc, char *argv[]);
 void register_tsc_dynfield();
-void launch_lcore_forwarding(uint16_t *ports);
 
 #endif  // COMMON_H
