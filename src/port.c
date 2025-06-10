@@ -72,11 +72,11 @@ int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
     return retval;
   }
 
-  retval = enable_promiscuous(port);
-  if (retval != 0) {
-    printf("Failed at enable_promiscuous\n");
-    return retval;
-  }
+  // retval = enable_promiscuous(port);
+  // if (retval != 0) {
+  //   printf("Failed at enable_promiscuous\n");
+  //   return retval;
+  // }
 
   return 0;
 }
