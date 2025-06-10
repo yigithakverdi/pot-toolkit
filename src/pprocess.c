@@ -1,4 +1,5 @@
 #include "pprocess.h"
+
 #include "common.h"
 
 // Function to add a custom header to the packet
@@ -102,7 +103,16 @@ int lcore_main_forward(void *arg) {
     uint16_t nb_rx = rte_eth_rx_burst(rx_port_id, 0, pkts, BURST_SIZE);
 
     if (nb_rx == 0) continue;
-    printf("Received %u packets on port %u\n", nb_rx, rx_port_id); 
+
+    if (nb_rx > 0) {
+      struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkts[0], struct rte_ether_hdr *);
+      printf("Received %u packets on port %u, EtherType: 0x%04x\n", nb_rx, rx_port_id,
+             rte_be_to_cpu_16(eth_hdr->ether_type));
+      // Optionally print first few bytes:
+      uint8_t *data = rte_pktmbuf_mtod(pkts[0], uint8_t *);
+      printf("First 8 bytes: %02x %02x %02x %02x %02x %02x %02x %02x\n", data[0], data[1], data[2], data[3],
+             data[4], data[5], data[6], data[7]);
+    }
 
     // enum role cur_role = determine_role(rx_port_id, tx_port_id);
 
@@ -123,7 +133,7 @@ int lcore_main_forward(void *arg) {
     //   for (i = nb_tx; i < nb_rx; i++) rte_pktmbuf_free(pkts[i]);
     // }
   }
-  return 0; 
+  return 0;
 }
 
 void launch_lcore_forwarding(uint16_t *ports) {
