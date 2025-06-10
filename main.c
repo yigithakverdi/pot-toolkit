@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   uint16_t ports[1] = {port_id};
   printf("Starting %s role on port %u\n", role, port_id);
 
-  // launch_lcore_forwarding(ports);
+  launch_lcore_forwarding(ports);
 
   return 0;
 }

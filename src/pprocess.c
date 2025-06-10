@@ -89,6 +89,8 @@ static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
 }
 
 int lcore_main_forward(void *arg) {
+  printf("Starting lcore_main_forward\n");
+
   // Parse arguments (ports) from input.
   uint16_t *ports = (uint16_t *)arg;
   uint16_t rx_port_id = ports[0];
