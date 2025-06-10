@@ -1,5 +1,5 @@
 #include "common.h"
-#include "crypto.h"
+#include <rte_log.h>
 
 int operation_bypass_bit = 0;
 int tsc_dynfield_offset = -1;
@@ -12,9 +12,9 @@ void print_ipv4_address(uint32_t ipv4_addr, const char *label) {
   addr.s_addr = ipv4_addr;
   char buf[INET_ADDRSTRLEN];
   if (inet_ntop(AF_INET, &addr, buf, sizeof(buf)) != NULL) {
-    printf("%s: %s\n", label, buf);
+    RTE_LOG(INFO, USER1, "%s: %s\n", label, buf);
   } else {
-    perror("inet_ntop");
+    RTE_LOG(ERR, USER1, "inet_ntop failed: %s\n", strerror(errno));
   }
 }
 
@@ -27,12 +27,14 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
   }
 
   if (rte_eth_tx_burst(tx_port_id, 0, &mbuf, 1) == 0) {
-    printf("Error sending packet\n");
+    RTE_LOG(ERR, USER1, "Error sending packet\n");
     rte_pktmbuf_free(mbuf);
   } else {
-    printf("IPV6 packet sent to: %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->dst_addr.addr_bytes[0],
-           eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
-           eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+    RTE_LOG(INFO, USER1, "IPV6 packet sent to: %02X:%02X:%02X:%02X:%02X:%02X\n",
+           eth_hdr->dst_addr.addr_bytes[0],
+           eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2],
+           eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
+           eth_hdr->dst_addr.addr_bytes[5]);
   }
   rte_pktmbuf_free(mbuf);
 }
