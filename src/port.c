@@ -31,28 +31,52 @@ int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
   memset(&port_conf, 0, sizeof(struct rte_eth_conf));
 
   retval = get_and_configure_dev_info(port, &port_conf, &dev_info);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at get_and_configure_dev_info\n");
+    return retval;
+  }
 
   retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at rte_eth_dev_configure: %d\n", retval);
+    return retval;
+  }
 
   retval = rte_eth_dev_adjust_nb_rx_tx_desc(port, &nb_rxd, &nb_txd);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at rte_eth_dev_adjust_nb_rx_tx_desc\n");
+    return retval;
+  }
 
   retval = setup_rx_queues(port, rx_rings, nb_rxd, mbuf_pool);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at setup_rx_queues\n");
+    return retval;
+  }
 
   retval = setup_tx_queues(port, tx_rings, nb_txd, &dev_info, &port_conf);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at setup_tx_queues\n");
+    return retval;
+  }
 
   retval = start_port(port);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at start_port\n");
+    return retval;
+  }
 
   retval = display_port_mac(port);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at display_port_mac\n");
+    return retval;
+  }
 
   retval = enable_promiscuous(port);
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    printf("Failed at enable_promiscuous\n");
+    return retval;
+  }
 
   return 0;
 }
