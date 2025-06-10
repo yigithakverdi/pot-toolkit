@@ -57,8 +57,8 @@ int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
   return 0;
 }
 
-static int get_and_configure_dev_info(uint16_t port, struct rte_eth_conf *port_conf,
-                                      struct rte_eth_dev_info *dev_info) {
+int get_and_configure_dev_info(uint16_t port, struct rte_eth_conf *port_conf,
+                               struct rte_eth_dev_info *dev_info) {
   int retval = rte_eth_dev_info_get(port, dev_info);
   if (retval != 0) {
     printf("Error during getting device (port %u) info: %s\n", port, strerror(-retval));
@@ -69,7 +69,7 @@ static int get_and_configure_dev_info(uint16_t port, struct rte_eth_conf *port_c
   return 0;
 }
 
-static int setup_rx_queues(uint16_t port, uint16_t rx_rings, uint16_t nb_rxd, struct rte_mempool *mbuf_pool) {
+int setup_rx_queues(uint16_t port, uint16_t rx_rings, uint16_t nb_rxd, struct rte_mempool *mbuf_pool) {
   for (uint16_t q = 0; q < rx_rings; q++) {
     int retval = rte_eth_rx_queue_setup(port, q, nb_rxd, rte_eth_dev_socket_id(port), NULL, mbuf_pool);
     if (retval < 0) return retval;
@@ -77,8 +77,8 @@ static int setup_rx_queues(uint16_t port, uint16_t rx_rings, uint16_t nb_rxd, st
   return 0;
 }
 
-static int setup_tx_queues(uint16_t port, uint16_t tx_rings, uint16_t nb_txd,
-                           struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf) {
+int setup_tx_queues(uint16_t port, uint16_t tx_rings, uint16_t nb_txd, struct rte_eth_dev_info *dev_info,
+                    struct rte_eth_conf *port_conf) {
   struct rte_eth_txconf txconf = dev_info->default_txconf;
   txconf.offloads = port_conf->txmode.offloads;
   for (uint16_t q = 0; q < tx_rings; q++) {
@@ -88,13 +88,13 @@ static int setup_tx_queues(uint16_t port, uint16_t tx_rings, uint16_t nb_txd,
   return 0;
 }
 
-static int start_port(uint16_t port) {
+int start_port(uint16_t port) {
   int retval = rte_eth_dev_start(port);
   if (retval < 0) return retval;
   return 0;
 }
 
-static int display_port_mac(uint16_t port) {
+int display_port_mac(uint16_t port) {
   struct rte_ether_addr addr;
   int retval = rte_eth_macaddr_get(port, &addr);
   if (retval != 0) return retval;
@@ -103,7 +103,7 @@ static int display_port_mac(uint16_t port) {
   return 0;
 }
 
-static int enable_promiscuous(uint16_t port) {
+int enable_promiscuous(uint16_t port) {
   int retval = rte_eth_promiscuous_enable(port);
   if (retval != 0) return retval;
   return 0;

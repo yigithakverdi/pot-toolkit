@@ -20,9 +20,6 @@
 #include <rte_mbuf_dyn.h>
 #include <stdalign.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define RX_RING_SIZE 2048
 #define TX_RING_SIZE 2048
