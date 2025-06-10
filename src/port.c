@@ -165,4 +165,8 @@ void setup_port(uint16_t port_id, struct rte_mempool *mbuf_pool, int is_rx) {
     rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
   }
   display_mac_address(port_id);
+
+  struct rte_eth_link link;
+  (void)rte_eth_link_get_nowait(port_id, &link);
+  printf("Port %u link status: %s\n", port_id, link.link_status ? "UP" : "DOWN");
 }
