@@ -32,8 +32,8 @@
 #define HMAC_MAX_LENGTH 32
 #define SID_NO 4
 extern int operation_bypass_bit;
-typedef uint64_t tsc_t;
 extern int tsc_dynfield_offset;
+typedef uint64_t tsc_t;
 
 struct ipv6_srh {
   uint8_t next_header;   // Next header type
@@ -45,6 +45,7 @@ struct ipv6_srh {
   uint8_t reserved[2];          // Reserved for future use
   struct in6_addr segments[2];  // Array of IPv6 segments max 10 nodes
 };
+
 struct hmac_tlv {
   uint8_t type;            // 1 byte for TLV type
   uint8_t length;          // 1 byte for TLV length
@@ -54,6 +55,7 @@ struct hmac_tlv {
   uint8_t hmac_value[32];  // 8 Octets HMAC value must be multiples of 8 octetx
                            // and ma is 32 octets
 };
+
 struct pot_tlv {
   uint8_t type;                // Type field (1 byte)
   uint8_t length;              // Length field (1 byte)
