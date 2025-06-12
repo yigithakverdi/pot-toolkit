@@ -72,5 +72,6 @@ int main(int argc, char *argv[]);
 struct rte_mempool *create_mempool();
 void init_eal(int argc, char *argv[]);
 void register_tsc_dynfield();
+static void hex_dump(const void *data, size_t size);
 
 #endif  // COMMON_H

@@ -21,6 +21,15 @@ void print_ipv4_address(uint32_t ipv4_addr, const char *label) {
   }
 }
 
+static void hex_dump(const void *data, size_t size) {
+  const unsigned char *p = data;
+  for (size_t i = 0; i < size; i++) {
+    printf("%02x ", p[i]);
+    if ((i + 1) % 16 == 0) printf("\n");
+  }
+  if (size % 16 != 0) printf("\n");
+}
+
 void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint16_t tx_port_id) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
 
