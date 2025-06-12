@@ -101,6 +101,12 @@ void add_custom_header(struct rte_mbuf *pkt) {
                                              0x00, 0x00, 0x00, 0x00, 0x01}}};
   memcpy(srh_hdr->segments, segments, sizeof(segments));
   RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
+
+  // Dump the first 128 bytes (or the whole packet if smaller)
+  size_t dump_len = rte_pktmbuf_pkt_len(pkt);
+  if (dump_len > 128) dump_len = 128;
+  printf("Packet hex dump after custom header addition (first %zu bytes):\n", dump_len);
+  hex_dump(rte_pktmbuf_mtod(pkt, void *), dump_len);
 }
 
 void add_custom_header_only(struct rte_mbuf *pkt) {
