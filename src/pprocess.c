@@ -170,12 +170,14 @@ static inline enum role determine_role(uint16_t rx_port_id, uint16_t tx_port_id)
 
 // Helper: process a single packet for ingress
 static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
+  printf("Processing ingress packet on lcore %u\n", rte_lcore_id());
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
       switch (operation_bypass_bit) {
         case 0:
+          printf("Processing IPv6 packet with operation_bypass_bit = 0\n");
           add_custom_header(mbuf);
 
           // Realign pointers after header addition
@@ -211,7 +213,8 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
 
           // Compute HMAC
           // uint8_t hmac_out[HMAC_MAX_LENGTH];
-          // if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
+          // if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0)
+          // {
           //   printf("HMAC Computation Successful\nHMAC: ");
           //   for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
           //   printf("\n");
@@ -235,7 +238,6 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
           // rte_memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
           // rte_memcpy(pot->nonce, nonce, NONCE_LENGTH);
           // printf("Encrypted PVF and nonce values inserted to pot header\n");
-          
 
           // Forward the packet using the `send_packet_to` function
 
@@ -252,7 +254,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
 }
 
 static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx) {
-  RTE_LOG(INFO, USER1, "Processing %u ingress packets\n", nb_rx);
+  printf("Starting process on ingress role with %u packets\n", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
     process_ingress_packet(pkts[i]);
   }
@@ -260,23 +262,23 @@ static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx) {
 
 // Helper: process a single packet for transit
 static inline void process_transit_packet(struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
-  uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
-  switch (ether_type) {
-    case RTE_ETHER_TYPE_IPV6:
-      switch (operation_bypass_bit) {
-        case 0:
-          process_ip4(mbuf, 1, eth_hdr, 0);  // 1 as nb_rx, 0 as index placeholder
-          break;
-        case 1:
-          // Bypass all operations
-          break;
-        case 2: remove_headers_only(mbuf); break;
-        default: break;
-      }
-      break;
-    default: break;
-  }
+  // struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  // uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+  // switch (ether_type) {
+  //   case RTE_ETHER_TYPE_IPV6:
+  //     switch (operation_bypass_bit) {
+  //       case 0:
+  //         process_ip4(mbuf, 1, eth_hdr, 0);  // 1 as nb_rx, 0 as index placeholder
+  //         break;
+  //       case 1:
+  //         // Bypass all operations
+  //         break;
+  //       case 2: remove_headers_only(mbuf); break;
+  //       default: break;
+  //     }
+  //     break;
+  //   default: break;
+  // }
 }
 
 static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
@@ -287,21 +289,21 @@ static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
 
 // Helper: process a single packet for egress
 static inline void process_egress_packet(struct rte_mbuf *mbuf) {
-  struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
-  uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
-  switch (ether_type) {
-    case RTE_ETHER_TYPE_IPV6:
-      switch (operation_bypass_bit) {
-        case 0: remove_headers(mbuf); break;
-        case 1:
-          // Bypass all operations
-          break;
-        case 2: remove_headers_only(mbuf); break;
-        default: break;
-      }
-      break;
-    default: break;
-  }
+  // struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  // uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+  // switch (ether_type) {
+  //   case RTE_ETHER_TYPE_IPV6:
+  //     switch (operation_bypass_bit) {
+  //       case 0: remove_headers(mbuf); break;
+  //       case 1:
+  //         // Bypass all operations
+  //         break;
+  //       case 2: remove_headers_only(mbuf); break;
+  //       default: break;
+  //     }
+  //     break;
+  //   default: break;
+  // }
 }
 
 static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
@@ -317,26 +319,28 @@ int lcore_main_forward(void *arg) {
   uint16_t *ports = (uint16_t *)arg;
   uint16_t rx_port_id = ports[0];
   uint16_t tx_port_id = ports[1];
+  printf("RX Port ID: %u, TX Port ID: %u\n", rx_port_id, tx_port_id);
+
+  enum role cur_role = determine_role(rx_port_id, tx_port_id);
+  printf("Current role: %s\n",
+         cur_role == ROLE_INGRESS ? "INGRESS" : (cur_role == ROLE_TRANSIT ? "TRANSIT" : "EGRESS"));
 
   // Main processing loop.
+  printf("Entering main forwarding loop on lcore %u\n", rte_lcore_id());
   while (1) {
     struct rte_mbuf *pkts[BURST_SIZE];
     uint16_t nb_rx = rte_eth_rx_burst(rx_port_id, 0, pkts, BURST_SIZE);
 
     if (nb_rx == 0) continue;
 
-    // if (nb_rx > 0) {
-    //   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkts[0], struct rte_ether_hdr *);
-    //   printf("Received %u packets on port %u, EtherType: 0x%04x\n", nb_rx, rx_port_id,
-    //          rte_be_to_cpu_16(eth_hdr->ether_type));
-    //   // Optionally print first few bytes:
-    //   uint8_t *data = rte_pktmbuf_mtod(pkts[0], uint8_t *);
-    //   printf("First 8 bytes: %02x %02x %02x %02x %02x %02x %02x %02x\n", data[0], data[1], data[2],
-    //   data[3],
-    //          data[4], data[5], data[6], data[7]);
-    // }
-
-    enum role cur_role = determine_role(rx_port_id, tx_port_id);
+    if (nb_rx > 0) {
+      struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkts[0], struct rte_ether_hdr *);
+      printf("Received %u packets on port %u, EtherType: 0x%04x\n", nb_rx, rx_port_id,
+             rte_be_to_cpu_16(eth_hdr->ether_type));
+      uint8_t *data = rte_pktmbuf_mtod(pkts[0], uint8_t *);
+      printf("First 8 bytes: %02x %02x %02x %02x %02x %02x %02x %02x\n", data[0], data[1], data[2], data[3],
+             data[4], data[5], data[6], data[7]);
+    }
 
     // Route packet batch to the appropriate processing logic.
     switch (cur_role) {
