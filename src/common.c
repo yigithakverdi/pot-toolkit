@@ -21,7 +21,7 @@ void print_ipv4_address(uint32_t ipv4_addr, const char *label) {
   }
 }
 
-static void hex_dump(const void *data, size_t size) {
+void hex_dump(const void *data, size_t size) {
   const unsigned char *p = data;
   for (size_t i = 0; i < size; i++) {
     printf("%02x ", p[i]);
