@@ -156,3 +156,105 @@ int generate_nonce(uint8_t nonce[NONCE_LENGTH]) {
   // printf("\n");
   return 0;
 }
+
+/**
+ * Converts a single hex character to its integer value.
+ * Returns -1 if the character is not a valid hex digit.
+ */
+static int hex_char_to_int(char c) {
+  if ('0' <= c && c <= '9')
+    return c - '0';
+  else if ('a' <= c && c <= 'f')
+    return c - 'a' + 10;
+  else if ('A' <= c && c <= 'F')
+    return c - 'A' + 10;
+  return -1;
+}
+
+/**
+ * Parses a hex string into a byte array.
+ *
+ * @param hex_str   The string containing hex digits.
+ * @param buf       The output buffer to store bytes.
+ * @param buf_len   Length of the output buffer.
+ *
+ * @return Number of bytes written if successful, -1 on error.
+ */
+static int hex_string_to_bytes(const char *hex_str, uint8_t *buf, size_t buf_len) {
+  size_t hex_len = strlen(hex_str);
+
+  // Hex string must have even number of characters
+  if (hex_len % 2 != 0) return -1;
+  size_t bytes_needed = hex_len / 2;
+
+  if (bytes_needed > buf_len) return -1;
+
+  for (size_t i = 0; i < bytes_needed; i++) {
+    int high = hex_char_to_int(hex_str[2 * i]);
+    int low = hex_char_to_int(hex_str[2 * i + 1]);
+    if (high < 0 || low < 0) return -1;
+    buf[i] = (high << 4) | low;
+  }
+  return (int)bytes_needed;
+}
+
+/**
+ * Reads an encryption key corresponding to a given IPv6 address from a key-value store file.
+ *
+ * The key file is expected to be structured as follows:
+ *
+ *   # Optional comments start with #
+ *   <IPv6_address> <encryption_key_in_hex>
+ *
+ * For example:
+ *   2001:db8:1::1 00112233445566778899aabbccddeeff
+ *
+ * @param file_path  Path to the key-value store file.
+ * @param ipv6_addr  IPv6 address (in string format) used as the key in the store.
+ * @param key_out    Buffer to store the retrieved encryption key.
+ * @param key_out_len Length of the key_out buffer.
+ *
+ * @return 0 on success, non-zero on error.
+ */
+int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *key_out, size_t key_out_len) {
+  FILE *f = fopen(file_path, "r");
+  if (!f) {
+    perror("Failed to open key file");
+    return -1;
+  }
+
+  char line[256];
+  int ret = -1;
+  while (fgets(line, sizeof(line), f) != NULL) {
+    // Skip lines that are empty or comments.
+    char *p = line;
+    while (*p && isspace((unsigned char)*p)) {
+      p++;
+    }
+    if (*p == '#' || *p == '\0' || *p == '\n') continue;
+
+    // Remove any newline character.
+    line[strcspn(line, "\n")] = '\0';
+
+    // Tokenize the line: first token is IPv6 address, second token is hex key.
+    char *token = strtok(line, " \t");
+    if (!token) continue;
+    if (strcmp(token, ipv6_addr) != 0) continue;
+
+    char *key_str = strtok(NULL, " \t");
+    if (!key_str) {
+      ret = -1;
+      break;
+    }
+    // Convert the hex representation to raw bytes.
+    if (hex_string_to_bytes(key_str, key_out, key_out_len) < 0) {
+      ret = -1;
+    } else {
+      ret = 0;
+    }
+    break;
+  }
+
+  fclose(f);
+  return ret;
+}
