@@ -164,6 +164,17 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
                                 {.s6_addr = {0x20, 0x01, 0x0d, 0xb8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
                                              0x00, 0x00, 0x00, 0x00, 0x01}}};
   memcpy(srh_hdr->segments, segments, sizeof(segments));
+
+  // Log als the segments 
+  printf("SRH segments:\n");
+  for (int i = 0; i < srh_hdr->segments_left; i++) {
+    char segment_str[INET6_ADDRSTRLEN];
+    if (inet_ntop(AF_INET6, &srh_hdr->segments[i], segment_str, sizeof(segment_str)) == NULL) {
+      perror("inet_ntop failed");
+    } else {
+      printf("Segment %d: %s\n", i, segment_str);
+    }
+  }                                  
   RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
 }
 
@@ -256,6 +267,48 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
           // Forward the packet using the `send_packet_to` function
           printf("Forwarding packet to next hop\n");
 
+          // Instead of sending the packet to the transit node here do a dry-run to see if it can be processed
+          // what it will output, where it will be sent etc.
+          printf("Dry-run: Forwarding packet to next hop\n");
+          if (srh->segments_left == 0) {
+            printf("No segments left in SRH, would not forward.\n");
+          } else {
+            int next_sid_index = srh->segments_left - 1;
+            char next_sid_str[INET6_ADDRSTRLEN];
+            if (inet_ntop(AF_INET6, &srh->segments[next_sid_index], next_sid_str, sizeof(next_sid_str)) ==
+                NULL) {
+              perror("inet_ntop failed for next segment");
+            } else {
+              printf("Next segment IPv6 (from SRH): %s\n", next_sid_str);
+            }
+
+            // Lookup MAC for next segment
+            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
+            if (next_mac) {
+              printf("Resolved next-hop MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", next_mac->addr_bytes[0],
+                     next_mac->addr_bytes[1], next_mac->addr_bytes[2], next_mac->addr_bytes[3],
+                     next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
+            } else {
+              printf("No MAC mapping found for next segment IPv6!\n");
+            }
+
+            // Print what the packet's destination/source MAC and IPv6 would be
+            printf("Packet would be sent with:\n");
+            printf("  Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->src_addr.addr_bytes[0],
+                   eth_hdr->src_addr.addr_bytes[1], eth_hdr->src_addr.addr_bytes[2],
+                   eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4],
+                   eth_hdr->src_addr.addr_bytes[5]);
+            if (next_mac) {
+              printf("  Dst MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", next_mac->addr_bytes[0],
+                     next_mac->addr_bytes[1], next_mac->addr_bytes[2], next_mac->addr_bytes[3],
+                     next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
+            }
+            printf("  Src IPv6: ");
+            print_ipv6_address((struct in6_addr *)&ipv6_hdr->src_addr, "");
+            printf("  Dst IPv6: ");
+            print_ipv6_address((struct in6_addr *)&ipv6_hdr->dst_addr, "");
+          }
+
           break;
         case 1:
           // Bypass all operations
@@ -312,11 +365,11 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             printf("The size of srh is %lu\n", sizeof(*srh));
             printf("The size of hmac is %lu\n", sizeof(*hmac));
             printf("The size of pot is %lu\n", sizeof(*pot));
-        
+
             printf("HMAC type: %u\n", hmac->type);
             printf("HMAC length: %u\n", hmac->length);
             printf("HMAC key ID: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
-            printf("HMAC size: %ld\n", sizeof(hmac->hmac_value));        
+            printf("HMAC size: %ld\n", sizeof(hmac->hmac_value));
 
             // Decrypt the POT field (PVF) if needed
             char dst_ip_str[INET6_ADDRSTRLEN];
