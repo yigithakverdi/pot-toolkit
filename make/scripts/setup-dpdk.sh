@@ -23,6 +23,16 @@ error_exit() {
 # --- Main Execution ---
 info "--- DPDK Setup Script Starting ---"
 
+# 0. Download prerequisites
+if ! command -v meson &> /dev/null || ! command -v ninja &> /dev/null; then
+    info "Installing Meson and Ninja build tools ..."
+    sudo apt-get update
+    sudo apt install -y build-essential git gcc clang make meson ninja-build python3 python3-pip libnuma-dev pkg-config libelf-dev pciutils net-tools linux-headers-$(uname -r)    
+    sudo apt install python3-pyelftools
+else
+    info "Meson and Ninja are already installed."
+fi
+
 # 1. Download DPDK tarball if not present
 if [ ! -f "$DPDK_TARBALL" ]; then
     info "Downloading DPDK $DPDK_VERSION from $DPDK_URL ..."
