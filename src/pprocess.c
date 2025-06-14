@@ -13,22 +13,6 @@
 #include "common.h"
 #include "crypto.h"
 
-// Core variable to control and track state in this module.
-//
-// Where it's utilized:
-//   - Initialization: Set to a default value for a predictable state.
-//   - Processing: Updated and referenced during main computations and conditional branches.
-//   - Cleanup/Error Handling: Checked to ensure resources are correctly allocated and tasks complete.
-//
-// How it's utilized:
-//   - Updated in a controlled manner to maintain program state.
-//   - Used in conditional checks to guide loops and early exits, aiding in debugging.
-//   - Accessed safely in multithreaded contexts.
-//
-// Notes for developers:
-//   - Document any changes to its purpose to avoid impacting performance or stability.
-//   - Test modifications carefully to prevent regressions.
-enum role global_role = ROLE_INGRESS; 
 
 // Functions appends an SRH structure immidiately after the IPv6 header in the packet.
 // This header contains fields such as:
@@ -182,7 +166,7 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
                                              0x00, 0x00, 0x00, 0x00, 0x01}}};
   memcpy(srh_hdr->segments, segments, sizeof(segments));
 
-  // Log als the segments 
+  // Log als the segments
   printf("SRH segments:\n");
   for (int i = 0; i < srh_hdr->segments_left; i++) {
     char segment_str[INET6_ADDRSTRLEN];
@@ -191,7 +175,7 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
     } else {
       printf("Segment %d: %s\n", i, segment_str);
     }
-  }                                  
+  }
   RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
 }
 
@@ -348,9 +332,9 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
           // Only process packets with your SRH
           if (srh->next_header != 61 || srh->routing_type != 4) {
-              printf("Packet %d: Not a valid SRH packet, skipping\n", i + 1);
-              rte_pktmbuf_free(mbuf);
-              return;
+            printf("Packet %d: Not a valid SRH packet, skipping\n", i + 1);
+            rte_pktmbuf_free(mbuf);
+            return;
           }
 
           if (srh->next_header == 61) {
@@ -484,7 +468,7 @@ int lcore_main_forward(void *arg) {
   uint16_t tx_port_id = ports[1];
   printf("RX Port ID: %u, TX Port ID: %u\n", rx_port_id, tx_port_id);
 
-  enum role cur_role = global_role; // Use global_role set from main.c
+  enum role cur_role = global_role;  // Use global_role set from main.c
   printf("Current role: %s\n",
          cur_role == ROLE_INGRESS ? "INGRESS" : (cur_role == ROLE_TRANSIT ? "TRANSIT" : "EGRESS"));
 
