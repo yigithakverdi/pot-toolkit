@@ -31,9 +31,18 @@
 #define NONCE_LENGTH 16
 #define HMAC_MAX_LENGTH 32
 #define SID_NO 4
+#define MAX_NEXT_HOPS 8
 extern int operation_bypass_bit;
 extern int tsc_dynfield_offset;
 typedef uint64_t tsc_t;
+
+struct next_hop_entry {
+  struct in6_addr ipv6;
+  struct rte_ether_addr mac;
+};
+
+static struct next_hop_entry next_hops[MAX_NEXT_HOPS];
+static int next_hop_count = 0;
 
 struct ipv6_srh {
   uint8_t next_header;   // Next header type
@@ -73,5 +82,8 @@ struct rte_mempool *create_mempool();
 void init_eal(int argc, char *argv[]);
 void register_tsc_dynfield();
 void hex_dump(const void *data, size_t size);
+void add_next_hop(const char *ipv6_str, const char *mac_str);
+struct rte_ether_addr *lookup_mac_for_ipv6(struct in6_addr *ipv6);
+void print_ipv6_address(const struct in6_addr *ipv6_addr, const char *label);
 
 #endif  // COMMON_H
