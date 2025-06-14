@@ -1,11 +1,14 @@
 #include "pprocess.h"
 
+#include <arpa/inet.h>
 #include <rte_common.h>
 #include <rte_ether.h>
+#include <rte_ip.h>
 #include <rte_malloc.h>
 #include <rte_mbuf.h>
 #include <rte_memcpy.h>
 #include <stdint.h>
+#include <sys/socket.h>
 
 #include "common.h"
 #include "crypto.h"
@@ -187,65 +190,71 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
           add_custom_header(mbuf);
 
           // Realign pointers after header addition
-          // struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
-          // struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr6 + 1);
-          // struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
-          // struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
-          // struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+          printf("Realigning pointers after adding custom headers\n");
+          struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+          struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr6 + 1);
+          struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
+          struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
+          struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
 
           // Extract destination IPv6 address as string
-          // char dst_ip_str[INET6_ADDRSTRLEN];
-          // if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
-          //   perror("inet_ntop failed");
-          //   break;
-          // }
+          printf("Extracting destination IPv6 address\n");
+          char dst_ip_str[INET6_ADDRSTRLEN];
+          if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
+            perror("inet_ntop failed");
+            break;
+          }
 
           // Prepare k_pot_in array using the loaded key for all SIDs
-          // uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH] = {0};
-          // for (int sid = 0; sid < SID_NO; sid++) {
-          //   if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in[sid], HMAC_MAX_LENGTH) != 0) {
-          //     printf("Failed to read key for %s\n", dst_ip_str);
-          //     break;
-          //   }
-          // }
+          printf("Preparing k_pot_in array for all SIDs\n");
+          uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH] = {0};
+          for (int sid = 0; sid < SID_NO; sid++) {
+            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in[sid], HMAC_MAX_LENGTH) != 0) {
+              printf("Failed to read key for %s\n", dst_ip_str);
+              break;
+            }
+          }
 
           // Prepare HMAC key (use same as encryption key for demo)
-          // uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
-          // if (read_encryption_key("keys.txt", dst_ip_str, k_hmac_ie, HMAC_MAX_LENGTH) != 0) {
-          //   printf("Failed to read HMAC key for %s\n", dst_ip_str);
-          //   break;
-          // }
-          // size_t key_len = HMAC_MAX_LENGTH;
+          printf("Preparing HMAC key for HMAC computation\n");
+          uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
+          if (read_encryption_key("keys.txt", dst_ip_str, k_hmac_ie, HMAC_MAX_LENGTH) != 0) {
+            printf("Failed to read HMAC key for %s\n", dst_ip_str);
+            break;
+          }
+          size_t key_len = HMAC_MAX_LENGTH;
 
           // Compute HMAC
-          // uint8_t hmac_out[HMAC_MAX_LENGTH];
-          // if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0)
-          // {
-          //   printf("HMAC Computation Successful\nHMAC: ");
-          //   for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
-          //   printf("\n");
-          //   rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
-          //   printf("HMAC value inserted to srh_hmac header\n");
-          // } else {
-          //   printf("HMAC Computation Failed\n");
-          //   break;
-          // }
+          printf("Computing HMAC for the packet\n");
+          uint8_t hmac_out[HMAC_MAX_LENGTH];
+          if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
+            printf("HMAC Computation Successful\nHMAC: ");
+            for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
+            printf("\n");
+            rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
+            printf("HMAC value inserted to srh_hmac header\n");
+          } else {
+            printf("HMAC Computation Failed\n");
+            break;
+          }
 
           // Nonce Generation and Encryption (PVF Computation)
-          // uint8_t nonce[NONCE_LENGTH];
-          // if (generate_nonce(nonce) != 0) {
-          //   printf("Nonce generation failed, returning\n");
-          //   break;
-          // }
-          // encrypt_pvf(k_pot_in, nonce, hmac_out);
-          // printf("Encrypted PVF before writing to the header: ");
-          // for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
-          // printf("\n");
-          // rte_memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
-          // rte_memcpy(pot->nonce, nonce, NONCE_LENGTH);
-          // printf("Encrypted PVF and nonce values inserted to pot header\n");
+          printf("Generating nonce and encrypting PVF\n");
+          uint8_t nonce[NONCE_LENGTH];
+          if (generate_nonce(nonce) != 0) {
+            printf("Nonce generation failed, returning\n");
+            break;
+          }
+          encrypt_pvf(k_pot_in, nonce, hmac_out);
+          printf("Encrypted PVF before writing to the header: ");
+          for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
+          printf("\n");
+          rte_memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
+          rte_memcpy(pot->nonce, nonce, NONCE_LENGTH);
+          printf("Encrypted PVF and nonce values inserted to pot header\n");
 
           // Forward the packet using the `send_packet_to` function
+          printf("Forwarding packet to next hop\n");
 
           break;
         case 1:
@@ -267,29 +276,110 @@ static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx) {
 }
 
 // Helper: process a single packet for transit
-static inline void process_transit_packet(struct rte_mbuf *mbuf) {
-  // struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
-  // uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
-  // switch (ether_type) {
-  //   case RTE_ETHER_TYPE_IPV6:
-  //     switch (operation_bypass_bit) {
-  //       case 0:
-  //         process_ip4(mbuf, 1, eth_hdr, 0);  // 1 as nb_rx, 0 as index placeholder
-  //         break;
-  //       case 1:
-  //         // Bypass all operations
-  //         break;
-  //       case 2: remove_headers_only(mbuf); break;
-  //       default: break;
-  //     }
-  //     break;
-  //   default: break;
-  // }
+static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
+  struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+  switch (ether_type) {
+    case RTE_ETHER_TYPE_IPV6:
+      switch (operation_bypass_bit) {
+        case 0:
+          struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+          struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
+
+          if (srh->next_header == 61) {
+            printf("SRH detected at transit node \n");
+
+            struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
+            struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+
+            // Display source and destination MAC addresses
+            printf("Packet %d:\n", i + 1);
+            printf("  Src MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
+                   "\n",
+                   eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+                   eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3],
+                   eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5]);
+            printf("  Dst MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
+                   "\n",
+                   eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+                   eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+                   eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+            printf("  EtherType: 0x%04x\n", rte_be_to_cpu_16(eth_hdr->ether_type));
+
+            print_ipv6_address((struct in6_addr *)&ipv6_hdr->src_addr, "source");
+            print_ipv6_address((struct in6_addr *)&ipv6_hdr->dst_addr, "destination");
+
+            printf("The size of srh is %lu\n", sizeof(*srh));
+            printf("The size of hmac is %lu\n", sizeof(*hmac));
+            printf("The size of pot is %lu\n", sizeof(*pot));
+        
+            printf("HMAC type: %u\n", hmac->type);
+            printf("HMAC length: %u\n", hmac->length);
+            printf("HMAC key ID: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
+            printf("HMAC size: %ld\n", sizeof(hmac->hmac_value));        
+
+            // Decrypt the POT field (PVF) if needed
+            char dst_ip_str[INET6_ADDRSTRLEN];
+            if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
+              perror("inet_ntop failed");
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+
+            uint8_t k_pot_in[HMAC_MAX_LENGTH] = {0};
+            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in, HMAC_MAX_LENGTH) != 0) {
+              printf("Failed to read key for %s\n", dst_ip_str);
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+
+            printf("Decrypting PVF for %s\n", dst_ip_str);
+            uint8_t pvf_out[HMAC_MAX_LENGTH];
+            memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
+            decrypt_pvf(k_pot_in, pot->nonce, pvf_out);
+            memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
+
+            // SRH forwarding logic
+            if (srh->segments_left == 0) {
+              printf("Transit: No more segments left, dropping or processing as egress\n");
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+
+            printf("Transit: Forwarding to next segment, segments left: %d\n", srh->segments_left);
+            srh->segments_left--;
+            memcpy(&ipv6_hdr->dst_addr, &srh->segments[srh->segments_left], sizeof(ipv6_hdr->dst_addr));
+
+            // Lookup MAC for new IPv6 destination
+            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&ipv6_hdr->dst_addr);
+            printf("Transit: Next segment IPv6: %s\n",
+                   inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+            if (next_mac) {
+              printf("Transit: Found MAC for next segment: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                     next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
+                     next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
+              send_packet_to(*next_mac, mbuf, /*tx_port_id*/ 0);
+            } else {
+              printf("Transit: No MAC mapping for next segment!\n");
+              rte_pktmbuf_free(mbuf);
+            }
+          }
+
+          break;
+        case 1:
+          // Bypass all operations
+          break;
+        // case 2: remove_headers_only(mbuf); break;
+        default: break;
+      }
+      break;
+    default: break;
+  }
 }
 
 static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
   for (uint16_t i = 0; i < nb_rx; i++) {
-    process_transit_packet(pkts[i]);
+    process_transit_packet(pkts[i], i);
   }
 }
 
