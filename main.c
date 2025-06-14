@@ -7,7 +7,8 @@
 
 int main(int argc, char *argv[]) {
   printf("Initializing next-hop table at startup\n");
-  add_next_hop("2600:1f18:abcd:1234::1", "02:f5:27:51:bc:1d");
+  // add_next_hop("2600:1f18:abcd:1234::1", "02:f5:27:51:bc:1d");
+  add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:0c:b4:7a:8c:6e");
 
   // Find "--" to locate app-specific args
   int app_arg_start = 1;
@@ -50,10 +51,7 @@ int main(int argc, char *argv[]) {
       "\n==== DPDK Port Information ===="
       "\n");
   printf("DPDK detected %u available port(s):\n", nb_ports);
-  // If you know the IPs, you can hardcode or load from config here:
-  // Example for one port (expand as needed):
-  const char *port_ipv4s[] = {"10.0.0.46"};
-  const char *port_ipv6s[] = {"2600:1f18:abcd:1234::1"};
+
   for (uint16_t port_id_iter = 0; port_id_iter < nb_ports; port_id_iter++) {
     struct rte_eth_dev_info dev_info;
     struct rte_ether_addr mac_addr;
@@ -69,8 +67,6 @@ int main(int argc, char *argv[]) {
     printf("  MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac_addr.addr_bytes[0], mac_addr.addr_bytes[1],
            mac_addr.addr_bytes[2], mac_addr.addr_bytes[3], mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);
     // Print known IPs if available
-    printf("  IPv6: %s\n", port_ipv6s[port_id_iter]);
-    printf("  IPv4: %s\n", port_ipv4s[port_id_iter]);
     printf("  Link status: %s, Speed: %u Mbps, Duplex: %s\n", link.link_status ? "UP" : "DOWN",
            link.link_speed, link.link_duplex == RTE_ETH_LINK_FULL_DUPLEX ? "full" : "half");
   }
