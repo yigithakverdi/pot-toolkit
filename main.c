@@ -29,6 +29,10 @@ int main(int argc, char *argv[]) {
   uint16_t nb_ports = rte_eth_dev_count_avail();
   printf("\n==== DPDK Port Information ====" "\n");
   printf("DPDK detected %u available port(s):\n", nb_ports);
+  // If you know the IPs, you can hardcode or load from config here:
+  // Example for one port (expand as needed):
+  const char *port_ipv4s[] = {"10.0.0.46"};
+  const char *port_ipv6s[] = {"2600:1f18:abcd:1234::1"};
   for (uint16_t port_id_iter = 0; port_id_iter < nb_ports; port_id_iter++) {
     struct rte_eth_dev_info dev_info;
     struct rte_ether_addr mac_addr;
@@ -44,6 +48,11 @@ int main(int argc, char *argv[]) {
     printf("  MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
            mac_addr.addr_bytes[0], mac_addr.addr_bytes[1], mac_addr.addr_bytes[2],
            mac_addr.addr_bytes[3], mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);
+    // Print known IPs if available
+    if (port_id_iter < sizeof(port_ipv4s)/sizeof(port_ipv4s[0]))
+      printf("  IPv4: %s\n", port_ipv4s[port_id_iter]);
+    if (port_id_iter < sizeof(port_ipv6s)/sizeof(port_ipv6s[0]))
+      printf("  IPv6: %s\n", port_ipv6s[port_id_iter]);
     printf("  Link status: %s, Speed: %u Mbps, Duplex: %s\n",
            link.link_status ? "UP" : "DOWN",
            link.link_speed,
