@@ -185,6 +185,12 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
   printf("Processing ingress packet on lcore %u\n", rte_lcore_id());
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+// Skipping mechanism: only process IPv6 packets
+if (ether_type != RTE_ETHER_TYPE_IPV6) {
+  printf("Ingress: Not an IPv6 packet, skipping and freeing mbuf\n");
+  rte_pktmbuf_free(mbuf);
+  return;
+}
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
       switch (operation_bypass_bit) {
@@ -199,6 +205,13 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
           struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
           struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+
+          // Skipping mechanism: only process packets with expected SRH
+          if (srh->next_header != 61 || srh->routing_type != 4) {
+            printf("Ingress: Not a valid SRH packet, skipping and freeing mbuf\n");
+            rte_pktmbuf_free(mbuf);
+            return;
+          }
 
           // Extract destination IPv6 address as string
           printf("Extracting destination IPv6 address\n");
