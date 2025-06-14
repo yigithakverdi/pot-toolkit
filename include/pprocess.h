@@ -24,7 +24,6 @@
 
 #include "common.h"
 
-
 enum role {
   ROLE_INGRESS,
   ROLE_TRANSIT,
@@ -46,7 +45,7 @@ enum role {
 // Notes for developers:
 //   - Document any changes to its purpose to avoid impacting performance or stability.
 //   - Test modifications carefully to prevent regressions.
-enum role global_role = ROLE_INGRESS;
+extern enum role global_role;
 
 void add_custom_header(struct rte_mbuf *pkt);
 void add_custom_header_only(struct rte_mbuf *pkt);

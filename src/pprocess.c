@@ -13,6 +13,7 @@
 #include "common.h"
 #include "crypto.h"
 
+enum role global_role = ROLE_INGRESS;
 
 // Functions appends an SRH structure immidiately after the IPv6 header in the packet.
 // This header contains fields such as:
