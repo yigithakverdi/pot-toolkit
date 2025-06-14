@@ -339,6 +339,13 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
 
+          // Only process packets with your SRH
+          if (srh->next_header != 61 || srh->routing_type != 4) {
+              printf("Packet %d: Not a valid SRH packet, skipping\n", i + 1);
+              rte_pktmbuf_free(mbuf);
+              return;
+          }
+
           if (srh->next_header == 61) {
             printf("SRH detected at transit node \n");
 
