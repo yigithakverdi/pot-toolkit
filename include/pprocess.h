@@ -38,7 +38,7 @@ void add_custom_header_only(struct rte_mbuf *pkt);
 int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf);
 int lcore_main_forward(void *arg);
 void launch_lcore_forwarding(uint16_t *ports);
-static inline enum role determine_role(uint16_t rx_port_id, uint16_t tx_port_id);
+extern enum role global_role;
 static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx);
 static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx);
 static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx);

@@ -5,13 +5,9 @@
 #include "port.h"
 #include "pprocess.h"
 
-
 int main(int argc, char *argv[]) {
   printf("Initializing next-hop table at startup\n");
   add_next_hop("2600:1f18:abcd:1234::1", "02:f5:27:51:bc:1d");
-
-  // Default role
-  const char *role = "ingress";
 
   // Find "--" to locate app-specific args
   int app_arg_start = 1;
@@ -21,10 +17,16 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
+
   // Parse app-specific args
   for (int i = app_arg_start; i < argc; ++i) {
     if (strcmp(argv[i], "--role") == 0 && i + 1 < argc) {
-      role = argv[i + 1];
+      if (strcmp(argv[i + 1], "ingress") == 0)
+        global_role = ROLE_INGRESS;
+      else if (strcmp(argv[i + 1], "transit") == 0)
+        global_role = ROLE_TRANSIT;
+      else if (strcmp(argv[i + 1], "egress") == 0)
+        global_role = ROLE_EGRESS;
       i++;  // skip value
     }
   }
@@ -78,8 +80,7 @@ int main(int argc, char *argv[]) {
 
   // uint16_t ports[2] = {port_id, tx_port_id};
   uint16_t ports[1] = {port_id};
-  printf("Starting %s role on port %u\n", role, port_id);
-
+  printf("Starting %u role on port %u\n", global_role, port_id);
   launch_lcore_forwarding(ports);
 
   return 0;
