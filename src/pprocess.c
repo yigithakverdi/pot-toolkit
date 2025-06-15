@@ -378,6 +378,32 @@ static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint1
 static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+
+  // Skip non-unicast (multicast/broadcast) destination MAC
+  if ((eth_hdr->dst_addr.addr_bytes[0] & 0x01) != 0) {
+    printf("Transit: Multicast/Broadcast MAC, skipping and freeing mbuf\n");
+    // Print more info for debugging
+    printf("  MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->dst_addr.addr_bytes[0],
+           eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+           eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+    struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+    printf("  IPv6 src: ");
+    print_ipv6_address((struct in6_addr *)&ipv6_hdr->src_addr, "");
+    printf("  IPv6 dst: ");
+    print_ipv6_address((struct in6_addr *)&ipv6_hdr->dst_addr, "");
+    printf("  EtherType: 0x%04x\n", ether_type);
+    printf("  Next header: %u\n", ipv6_hdr->proto);
+    if (ipv6_hdr->proto == IPPROTO_UDP) {
+      struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)(ipv6_hdr + 1);
+      printf("  UDP src port: %u, dst port: %u\n", ntohs(udp_hdr->src_port), ntohs(udp_hdr->dst_port));
+    } else if (ipv6_hdr->proto == IPPROTO_TCP) {
+      struct rte_tcp_hdr *tcp_hdr = (struct rte_tcp_hdr *)(ipv6_hdr + 1);
+      printf("  TCP src port: %u, dst port: %u\n", ntohs(tcp_hdr->src_port), ntohs(tcp_hdr->dst_port));
+    }
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
       switch (operation_bypass_bit) {
