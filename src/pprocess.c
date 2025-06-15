@@ -15,6 +15,40 @@
 
 enum role global_role = ROLE_INGRESS;
 
+void remove_headers(struct rte_mbuf *pkt) {
+  struct rte_ether_hdr *eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
+  struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
+  struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
+  struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
+  struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+  uint8_t *payload = (uint8_t *)(pot + 1);
+
+  // Restore the original next header (e.g., UDP for iperf)
+  ipv6_hdr->proto = 17;  // UDP
+
+  printf("packet length: %u\n", rte_pktmbuf_pkt_len(pkt));
+  size_t payload_size = rte_pktmbuf_pkt_len(pkt) -
+                        (54 + sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv) + sizeof(struct pot_tlv));
+  printf("Payload size: %lu\n", payload_size);
+
+  uint8_t *tmp_payload = (uint8_t *)malloc(payload_size);
+  if (tmp_payload == NULL) {
+    printf("malloc failed\n");
+    return;
+  }
+  memcpy(tmp_payload, payload, payload_size);
+
+  // Remove headers from the tail
+  rte_pktmbuf_trim(pkt, payload_size);
+  rte_pktmbuf_trim(pkt, sizeof(struct pot_tlv));
+  rte_pktmbuf_trim(pkt, sizeof(struct hmac_tlv));
+  rte_pktmbuf_trim(pkt, sizeof(struct ipv6_srh));
+
+  payload = (uint8_t *)rte_pktmbuf_append(pkt, payload_size);
+  memcpy(payload, tmp_payload, payload_size);
+  free(tmp_payload);
+}
+
 // Functions appends an SRH structure immidiately after the IPv6 header in the packet.
 // This header contains fields such as:
 //
@@ -117,7 +151,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
 
 void add_custom_header_only(struct rte_mbuf *pkt) {
   // Packet must be large enough to hold the new headers
-  if (rte_pktmbuf_tailroom(pkt) < sizeof(struct ipv6_srh)) { // Adjusted tailroom check
+  if (rte_pktmbuf_tailroom(pkt) < sizeof(struct ipv6_srh)) {  // Adjusted tailroom check
     rte_pktmbuf_free(pkt);
     RTE_LOG(ERR, USER1, "Packet too small for custom headers\\n");
     return;
@@ -407,7 +441,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
       switch (operation_bypass_bit) {
-        case 0: { // Added braces for case block
+        case 0: {  // Added braces for case block
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
 
@@ -458,8 +492,9 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               return;
             }
 
-            uint8_t k_pot_in_transit[1][HMAC_MAX_LENGTH] = {{0}}; // Changed declaration
-            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_transit[0], HMAC_MAX_LENGTH) != 0) { // Read into k_pot_in_transit[0]
+            uint8_t k_pot_in_transit[1][HMAC_MAX_LENGTH] = {{0}};  // Changed declaration
+            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_transit[0], HMAC_MAX_LENGTH) !=
+                0) {  // Read into k_pot_in_transit[0]
               printf("Failed to read key for %s\n", dst_ip_str);
               rte_pktmbuf_free(mbuf);
               return;
@@ -468,7 +503,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             printf("Decrypting PVF for %s\n", dst_ip_str);
             uint8_t pvf_out[HMAC_MAX_LENGTH];
             memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
-            decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out); // Use k_pot_in_transit
+            decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);  // Use k_pot_in_transit
             memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
 
             // SRH forwarding logic
@@ -483,7 +518,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[srh->segments_left], sizeof(ipv6_hdr->dst_addr));
 
             // Lookup MAC for new IPv6 destination
-            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6((struct in6_addr *)&ipv6_hdr->dst_addr); // Added cast
+            struct rte_ether_addr *next_mac =
+                lookup_mac_for_ipv6((struct in6_addr *)&ipv6_hdr->dst_addr);  // Added cast
             printf("Transit: Next segment IPv6: %s\n",
                    inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
             if (next_mac) {
@@ -497,7 +533,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             }
           }
           break;
-        } // Added braces for case block
+        }  // Added braces for case block
         case 1:
           // Bypass all operations
           break;
@@ -515,23 +551,113 @@ static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
   }
 }
 
+int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf) {
+  if (strncmp(hmac->hmac_value, hmac_out, 32) != 0) {
+    printf("The decrypted hmac is not the same as the computed hmac\n");
+    printf("dropping the packet\n");
+    rte_pktmbuf_free(mbuf);
+    return 0;
+  } else {
+    printf("The transit of the packet is verified\n");
+    // forward it to the tap interface so iperf can catch it
+    return 1;
+  }
+}
+
 // Helper: process a single packet for egress
 static inline void process_egress_packet(struct rte_mbuf *mbuf) {
-  // struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
-  // uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
-  // switch (ether_type) {
-  //   case RTE_ETHER_TYPE_IPV6:
-  //     switch (operation_bypass_bit) {
-  //       case 0: remove_headers(mbuf); break;
-  //       case 1:
-  //         // Bypass all operations
-  //         break;
-  //       case 2: remove_headers_only(mbuf); break;
-  //       default: break;
-  //     }
-  //     break;
-  //   default: break;
-  // }
+  struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+
+  switch (ether_type) {
+    case RTE_ETHER_TYPE_IPV6:
+      switch (operation_bypass_bit) {
+        case 0: {
+          struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+          struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
+
+          if (srh->next_header == 61) {
+            printf("Egress: SRH detected, processing packet\n");
+
+            struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
+            struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+
+            // Print debug info
+            printf("  Src MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
+                   "\n",
+                   eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+                   eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3],
+                   eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5]);
+            printf("  Dst MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
+                   "\n",
+                   eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+                   eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+                   eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+            printf("  EtherType: 0x%04x\n", rte_be_to_cpu_16(eth_hdr->ether_type));
+            print_ipv6_address((struct in6_addr *)&ipv6_hdr->src_addr, "source");
+            print_ipv6_address((struct in6_addr *)&ipv6_hdr->dst_addr, "destination");
+
+            // Read key for this egress node from keys.txt
+            char dst_ip_str[INET6_ADDRSTRLEN];
+            if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
+              perror("inet_ntop failed");
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+
+            uint8_t k_pot_in_egress[1][HMAC_MAX_LENGTH] = {{0}};
+            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_egress[0], HMAC_MAX_LENGTH) != 0) {
+              printf("Egress: Failed to read key for %s\n", dst_ip_str);
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+
+            // Decrypt PVF
+            uint8_t hmac_out[HMAC_MAX_LENGTH];
+            memcpy(hmac_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
+            decrypt_pvf(k_pot_in_egress, pot->nonce, hmac_out);
+            memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
+
+            // Prepare HMAC key (use same as encryption key for demo)
+            uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
+            if (read_encryption_key("keys.txt", dst_ip_str, k_hmac_ie, HMAC_MAX_LENGTH) != 0) {
+              printf("Egress: Failed to read HMAC key for %s\n", dst_ip_str);
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+            uint8_t expected_hmac[HMAC_MAX_LENGTH];
+            if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
+                               expected_hmac) != 0) {
+              printf("Egress: HMAC calculation failed\n");
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+
+            // Compare decrypted PVF with expected HMAC
+            if (memcmp(hmac_out, expected_hmac, HMAC_MAX_LENGTH) != 0) {
+              printf("Egress: HMAC verification failed, dropping packet\n");
+              rte_pktmbuf_free(mbuf);
+              return;
+            } else {
+              printf("Egress: HMAC verified successfully, forwarding packet\n");
+            }
+
+            // Remove headers and forward to iperf server (replace MAC/port as needed)
+            remove_headers(mbuf);
+            struct rte_ether_addr iperf_mac = {{0x08, 0x00, 0x27, 0x7D, 0xDD, 0x01}};
+            send_packet_to(iperf_mac, mbuf, /*tx_port_id*/ 1);
+          }
+          break;
+        }
+        case 1:
+          // Bypass all operations
+          break;
+        // case 2: remove_headers_only(mbuf); break;
+        default: break;
+      }
+      break;
+    default: break;
+  }
 }
 
 static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {

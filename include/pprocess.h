@@ -60,5 +60,6 @@ static inline enum role determine_role(uint16_t rx_port_id, uint16_t tx_port_id)
 static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx);
 static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx);
 static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id);
+int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf);
 
 #endif  // PPROCESS_H
