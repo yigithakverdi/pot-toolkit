@@ -117,16 +117,16 @@ void add_custom_header(struct rte_mbuf *pkt) {
 
 void add_custom_header_only(struct rte_mbuf *pkt) {
   // Packet must be large enough to hold the new headers
-  if (rte_pktmbuf_tailroom(pkt) < sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv)) {
+  if (rte_pktmbuf_tailroom(pkt) < sizeof(struct ipv6_srh)) { // Adjusted tailroom check
     rte_pktmbuf_free(pkt);
-    RTE_LOG(ERR, USER1, "Packet too small for custom headers\n");
+    RTE_LOG(ERR, USER1, "Packet too small for custom headers\\n");
     return;
   }
 
   // Packet headers and payload pointers
   struct ipv6_srh *srh_hdr;
-  struct hmac_tlv *hmac_hdr;
-  struct pot_tlv *pot_hdr;
+  // struct hmac_tlv *hmac_hdr; // Removed unused variable
+  // struct pot_tlv *pot_hdr;   // Removed unused variable
   struct rte_ether_hdr *eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
   struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
   uint8_t *payload = (uint8_t *)(ipv6_hdr + 1);
@@ -407,7 +407,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
       switch (operation_bypass_bit) {
-        case 0:
+        case 0: { // Added braces for case block
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
 
@@ -458,8 +458,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               return;
             }
 
-            uint8_t k_pot_in[HMAC_MAX_LENGTH] = {0};
-            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in, HMAC_MAX_LENGTH) != 0) {
+            uint8_t k_pot_in_transit[1][HMAC_MAX_LENGTH] = {{0}}; // Changed declaration
+            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_transit[0], HMAC_MAX_LENGTH) != 0) { // Read into k_pot_in_transit[0]
               printf("Failed to read key for %s\n", dst_ip_str);
               rte_pktmbuf_free(mbuf);
               return;
@@ -468,7 +468,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             printf("Decrypting PVF for %s\n", dst_ip_str);
             uint8_t pvf_out[HMAC_MAX_LENGTH];
             memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
-            decrypt_pvf(k_pot_in, pot->nonce, pvf_out);
+            decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out); // Use k_pot_in_transit
             memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
 
             // SRH forwarding logic
@@ -483,7 +483,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[srh->segments_left], sizeof(ipv6_hdr->dst_addr));
 
             // Lookup MAC for new IPv6 destination
-            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&ipv6_hdr->dst_addr);
+            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6((struct in6_addr *)&ipv6_hdr->dst_addr); // Added cast
             printf("Transit: Next segment IPv6: %s\n",
                    inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
             if (next_mac) {
@@ -496,8 +496,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               rte_pktmbuf_free(mbuf);
             }
           }
-
           break;
+        } // Added braces for case block
         case 1:
           // Bypass all operations
           break;
