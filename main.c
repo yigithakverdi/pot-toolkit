@@ -8,7 +8,7 @@
 int main(int argc, char *argv[]) {
   printf("Initializing next-hop table at startup\n");
   // add_next_hop("2600:1f18:abcd:1234::1", "02:f5:27:51:bc:1d");
-  add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:0c:b4:7a:8c:6e");
+  add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
 
   // Find "--" to locate app-specific args
   int app_arg_start = 1;
