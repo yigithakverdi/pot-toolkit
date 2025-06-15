@@ -99,11 +99,12 @@ void add_custom_header(struct rte_mbuf *pkt) {
   srh_hdr->segments_left = 1;
   memset(srh_hdr->reserved, 0, 2);
 
-  struct in6_addr segments[] = {{.s6_addr = {0x20, 0x01, 0x0d, 0xb8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                             0x00, 0x00, 0x00, 0x00, 0x01}},
+  struct in6_addr segments[] = {
+      {.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96, 0x48, 0x6b, 0xf3, 0xe1, 0x82, 0xc7,
+                   0xb4}},  // Transit Node IP
 
-                                {.s6_addr = {0x20, 0x01, 0x0d, 0xb8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                             0x00, 0x00, 0x00, 0x00, 0x01}}};
+      {.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96, 0x48, 0x6b, 0xf3, 0xe1, 0x82, 0xc7,
+                   0xb4}}};  // Example next hop or placeholder
   memcpy(srh_hdr->segments, segments, sizeof(segments));
   RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
 
@@ -160,11 +161,12 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
   srh_hdr->segments_left = 1;
   memset(srh_hdr->reserved, 0, 2);
 
-  struct in6_addr segments[] = {{.s6_addr = {0x20, 0x01, 0x0d, 0xb8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                             0x00, 0x00, 0x00, 0x00, 0x01}},
+  struct in6_addr segments[] = {
+      {.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96, 0x48, 0x6b, 0xf3, 0xe1, 0x82, 0xc7,
+                   0xb4}},  // Transit Node IP
 
-                                {.s6_addr = {0x20, 0x01, 0x0d, 0xb8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                             0x00, 0x00, 0x00, 0x00, 0x01}}};
+      {.s6_addr = {0x20, 0x01, 0x0d, 0xb8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                   0x01}}};  // Example next hop or placeholder
   memcpy(srh_hdr->segments, segments, sizeof(segments));
 
   // Log als the segments
@@ -181,7 +183,7 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
 }
 
 // Helper: process a single packet for ingress
-static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
+static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_port_id) {
   printf("Processing ingress packet on lcore %u\n", rte_lcore_id());
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
@@ -196,6 +198,24 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
   // 2. Skip non-unicast (multicast/broadcast) destination MAC
   if ((eth_hdr->dst_addr.addr_bytes[0] & 0x01) != 0) {
     printf("Ingress: Multicast/Broadcast MAC, skipping and freeing mbuf\n");
+    // Print more info for debugging
+    printf("  MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->dst_addr.addr_bytes[0],
+           eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+           eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+    struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+    printf("  IPv6 src: ");
+    print_ipv6_address((struct in6_addr *)&ipv6_hdr->src_addr, "");
+    printf("  IPv6 dst: ");
+    print_ipv6_address((struct in6_addr *)&ipv6_hdr->dst_addr, "");
+    printf("  EtherType: 0x%04x\n", ether_type);
+    printf("  Next header: %u\n", ipv6_hdr->proto);
+    if (ipv6_hdr->proto == IPPROTO_UDP) {
+      struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)(ipv6_hdr + 1);
+      printf("  UDP src port: %u, dst port: %u\n", ntohs(udp_hdr->src_port), ntohs(udp_hdr->dst_port));
+    } else if (ipv6_hdr->proto == IPPROTO_TCP) {
+      struct rte_tcp_hdr *tcp_hdr = (struct rte_tcp_hdr *)(ipv6_hdr + 1);
+      printf("  TCP src port: %u, dst port: %u\n", ntohs(tcp_hdr->src_port), ntohs(tcp_hdr->dst_port));
+    }
     rte_pktmbuf_free(mbuf);
     return;
   }
@@ -274,9 +294,6 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
           // Forward the packet using the `send_packet_to` function
           printf("Forwarding packet to next hop\n");
 
-          // Instead of sending the packet to the transit node here do a dry-run to see if it can be processed
-          // what it will output, where it will be sent etc.
-          printf("Dry-run: Forwarding packet to next hop\n");
           if (srh->segments_left == 0) {
             printf("No segments left in SRH, would not forward.\n");
           } else {
@@ -299,12 +316,26 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
               printf("No MAC mapping found for next segment IPv6!\n");
             }
 
+            // Store original DstIP (ingress's own IP for this interface) to use as SrcIP later
+            struct in6_addr ingress_own_ip_as_src;
+            memcpy(&ingress_own_ip_as_src, &ipv6_hdr->dst_addr, sizeof(struct in6_addr));
+
+            // Update the main IPv6 header's Destination Address to the next segment.
+            memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
+
+            // Update the main IPv6 header's Source Address to the ingress node's own IP.
+            memcpy(&ipv6_hdr->src_addr, &ingress_own_ip_as_src, sizeof(struct in6_addr));
+
+            // Get the MAC address of the ingress DPDK port (which will be the source MAC)
+            struct rte_ether_addr ingress_port_mac;
+            rte_eth_macaddr_get(rx_port_id, &ingress_port_mac);
+
             // Print what the packet's destination/source MAC and IPv6 would be
             printf("Packet would be sent with:\n");
-            printf("  Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->src_addr.addr_bytes[0],
-                   eth_hdr->src_addr.addr_bytes[1], eth_hdr->src_addr.addr_bytes[2],
-                   eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4],
-                   eth_hdr->src_addr.addr_bytes[5]);
+            printf("  Src MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", ingress_port_mac.addr_bytes[0],
+                   ingress_port_mac.addr_bytes[1], ingress_port_mac.addr_bytes[2],
+                   ingress_port_mac.addr_bytes[3], ingress_port_mac.addr_bytes[4],
+                   ingress_port_mac.addr_bytes[5]);
             if (next_mac) {
               printf("  Dst MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", next_mac->addr_bytes[0],
                      next_mac->addr_bytes[1], next_mac->addr_bytes[2], next_mac->addr_bytes[3],
@@ -314,6 +345,14 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
             print_ipv6_address((struct in6_addr *)&ipv6_hdr->src_addr, "");
             printf("  Dst IPv6: ");
             print_ipv6_address((struct in6_addr *)&ipv6_hdr->dst_addr, "");
+
+            // Actually send the packet
+            if (next_mac) {
+              send_packet_to(*next_mac, mbuf, rx_port_id);
+            } else {
+              printf("No MAC address found for next segment, dropping packet\n");
+              rte_pktmbuf_free(mbuf);
+            }
           }
 
           break;
@@ -328,10 +367,10 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf) {
   }
 }
 
-static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx) {
+static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id) {
   printf("Starting process on ingress role with %u packets\n", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
-    process_ingress_packet(pkts[i]);
+    process_ingress_packet(pkts[i], rx_port_id);
   }
 }
 
@@ -481,8 +520,9 @@ int lcore_main_forward(void *arg) {
   // Parse arguments (ports) from input.
   uint16_t *ports = (uint16_t *)arg;
   uint16_t rx_port_id = ports[0];
-  uint16_t tx_port_id = ports[1];
-  printf("RX Port ID: %u, TX Port ID: %u\n", rx_port_id, tx_port_id);
+  // uint16_t tx_port_id = ports[1]; // Assuming tx_port_id might be needed later
+  printf("RX Port ID: %u\n",
+         rx_port_id);  // Removed TX Port ID from this line as it's not used yet in this context
 
   enum role cur_role = global_role;  // Use global_role set from main.c
   printf("Current role: %s\n",
@@ -507,7 +547,7 @@ int lcore_main_forward(void *arg) {
 
     // Route packet batch to the appropriate processing logic.
     switch (cur_role) {
-      case ROLE_INGRESS: process_ingress(pkts, nb_rx); break;
+      case ROLE_INGRESS: process_ingress(pkts, nb_rx, rx_port_id); break;
       case ROLE_TRANSIT: process_transit(pkts, nb_rx); break;
       case ROLE_EGRESS: process_egress(pkts, nb_rx); break;
       default: break;
