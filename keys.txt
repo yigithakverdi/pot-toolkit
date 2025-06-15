@@ -1,5 +1,2 @@
 # Each line: <IPv6_address> <encryption_key_in_hex_format>
-2001:db8:1::1 00112233445566778899aabbccddeeff
-2001:db8:1::2 aabbccddeeff00112233445566778899
-2001:db8:1::3 1234567890abcdef1234567890abcdef
-ff02::1 00112233445566778899aabbccddeeff
+2a05:d014:dc7:1291:11ed:eb6b:b01a:9452 00112233445566778899aabbccddeeff
