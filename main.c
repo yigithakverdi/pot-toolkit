@@ -42,10 +42,10 @@ int main(int argc, char *argv[]) {
   register_tsc_dynfield();
 
   uint16_t port_id = 0;
-  uint16_t tx_port_id = 1;
+  // uint16_t tx_port_id = 1;
 
   setup_port(port_id, mbuf_pool, 1);
-  setup_port(tx_port_id, mbuf_pool, 0); 
+  // setup_port(tx_port_id, mbuf_pool, 0);  // TX
   printf("TSC frequency: %" PRIu64 " Hz\n", rte_get_tsc_hz());
 
   // Print DPDK port info after EAL and before main logic
