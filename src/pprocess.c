@@ -569,6 +569,7 @@ int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf
 // Helper: process a single packet for egress
 static inline void process_egress_packet(struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  printf("EGRESS DEBUG: First 32 bytes: ");
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
   switch (ether_type) {
