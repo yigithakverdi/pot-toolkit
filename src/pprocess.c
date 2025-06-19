@@ -456,7 +456,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
       switch (operation_bypass_bit) {
-        case 0: {  // Added braces for case block
+        case 0: {
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
 
@@ -472,6 +472,10 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
             struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
             struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+            printf("[TRANSIT] Pointer debug: srh=%p, hmac=%p, pot=%p\n", (void*)srh, (void*)hmac, (void*)pot);
+            printf("[TRANSIT] Raw HMAC TLV bytes: ");
+            hex_dump((void*)hmac, sizeof(struct hmac_tlv));
+            printf("[TRANSIT] hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
 
             // Display source and destination MAC addresses
             printf("Packet %d:\n", i + 1);
