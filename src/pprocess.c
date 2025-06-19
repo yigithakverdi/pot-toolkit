@@ -511,8 +511,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               return;
             }
 
-            printf("Transit: Forwarding to next segment, segments left: %d\n", srh->segments_left);
             srh->segments_left--;
+            printf("Transit: Forwarding to next segment, segments left: %d\n", srh->segments_left);
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[srh->segments_left], sizeof(ipv6_hdr->dst_addr));
 
             // Lookup MAC for new IPv6 destination
