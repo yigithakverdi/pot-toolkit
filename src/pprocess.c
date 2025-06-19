@@ -312,6 +312,11 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             else perror("inet_ntop segment");
           }
           printf("\n");
+          // Dump the first 128 bytes (or the whole packet if smaller) after all headers and before send
+          size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
+          if (dump_len > 128) dump_len = 128;
+          printf("[INGRESS] Packet hex dump before send (first %zu bytes):\n", dump_len);
+          hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
           uint8_t hmac_out[HMAC_MAX_LENGTH];
           if (calculate_hmac((uint8_t *)&ingress_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
             printf("HMAC Computation Successful\nHMAC: ");
