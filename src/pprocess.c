@@ -130,7 +130,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
   srh_hdr->routing_type = 4;
   srh_hdr->last_entry = 1;
   srh_hdr->flags = 0;
-  srh_hdr->segments_left = 1;
+  srh_hdr->segments_left = 2;
   memset(srh_hdr->reserved, 0, 2);
 
   struct in6_addr segments[] = {{.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96, 0x48, 0x6b,
