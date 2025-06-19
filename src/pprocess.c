@@ -122,7 +122,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
   hmac_hdr->length = 16;
   hmac_hdr->d_flag = 0;
   hmac_hdr->reserved = 0;
-  hmac_hdr->hmac_key_id = rte_cpu_to_be_32(1234);
+  hmac_hdr->hmac_key_id = rte_cpu_to_be_32(1234); // Always set to 1234
   memset(hmac_hdr->hmac_value, 0, sizeof(hmac_hdr->hmac_value));
 
   srh_hdr->next_header = 61;
