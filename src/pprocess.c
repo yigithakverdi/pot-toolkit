@@ -329,7 +329,8 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           if (srh->segments_left == 0) {
             printf("No segments left in SRH, would not forward.\n");
           } else {
-            int next_sid_index = srh->segments_left - 1;
+            // Compute next-hop index such that ingress picks first segment and transit picks second
+            int next_sid_index = srh->last_entry - srh->segments_left + 1;
             char next_sid_str[INET6_ADDRSTRLEN];
             if (inet_ntop(AF_INET6, &srh->segments[next_sid_index], next_sid_str, sizeof(next_sid_str)) ==
                 NULL) {
@@ -511,15 +512,18 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               return;
             }
 
+            // Decrement segments_left before computing next hop
             srh->segments_left--;
-            printf("Transit: Forwarding to next segment, segments left: %d\n", srh->segments_left);
-            memcpy(&ipv6_hdr->dst_addr, &srh->segments[srh->segments_left], sizeof(ipv6_hdr->dst_addr));
-
+            // Compute next-hop index: = last_entry - segments_left + 1
+            int next_sid_index = srh->last_entry - srh->segments_left + 1;
+            printf("Transit: Forwarding to next segment, segments left: %d, next index: %d\n", srh->segments_left, next_sid_index);
+            // Update IPv6 dst to selected segment
+            memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
             // Lookup MAC for new IPv6 destination
-            struct rte_ether_addr *next_mac =
-                lookup_mac_for_ipv6((struct in6_addr *)&ipv6_hdr->dst_addr);  // Added cast
+            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
+            char next_ip_str[INET6_ADDRSTRLEN];
             printf("Transit: Next segment IPv6: %s\n",
-                   inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+                   inet_ntop(AF_INET6, &srh->segments[next_sid_index], next_ip_str, sizeof(next_ip_str)));
             if (next_mac) {
               printf("Transit: Found MAC for next segment: %02X:%02X:%02X:%02X:%02X:%02X\n",
                      next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
