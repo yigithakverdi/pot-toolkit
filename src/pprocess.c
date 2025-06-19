@@ -296,6 +296,24 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
 
           // Compute HMAC
           printf("Computing HMAC for the packet\n");
+          // Log HMAC input values for debugging
+          printf("[INGRESS] HMAC input values:\n");
+          printf("  src_addr: ");
+          char src_addr_str[INET6_ADDRSTRLEN];
+          if (inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_addr_str, sizeof(src_addr_str)))
+            printf("%s\n", src_addr_str);
+          else perror("inet_ntop src_addr");
+          printf("  srh->last_entry: %u\n", srh->last_entry);
+          printf("  srh->flags: %u\n", srh->flags);
+          printf("  hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
+          printf("  srh->segments: ");
+          for (int i = 0; i <= srh->last_entry; i++) {
+            char seg_str[INET6_ADDRSTRLEN];
+            if (inet_ntop(AF_INET6, &srh->segments[i], seg_str, sizeof(seg_str)))
+              printf("%s ", seg_str);
+            else perror("inet_ntop segment");
+          }
+          printf("\n");
           uint8_t hmac_out[HMAC_MAX_LENGTH];
           if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
             printf("HMAC Computation Successful\nHMAC: ");
@@ -628,6 +646,24 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
               rte_pktmbuf_free(mbuf);
               return;
             }
+            // Log HMAC input values for debugging
+            printf("[EGRESS] HMAC input values:\n");
+            printf("  src_addr: ");
+            char src_addr_str[INET6_ADDRSTRLEN];
+            if (inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_addr_str, sizeof(src_addr_str)))
+              printf("%s\n", src_addr_str);
+            else perror("inet_ntop src_addr");
+            printf("  srh->last_entry: %u\n", srh->last_entry);
+            printf("  srh->flags: %u\n", srh->flags);
+            printf("  hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
+            printf("  srh->segments: ");
+            for (int i = 0; i <= srh->last_entry; i++) {
+              char seg_str[INET6_ADDRSTRLEN];
+              if (inet_ntop(AF_INET6, &srh->segments[i], seg_str, sizeof(seg_str)))
+                printf("%s ", seg_str);
+              else perror("inet_ntop segment");
+            }
+            printf("\n");
             uint8_t expected_hmac[HMAC_MAX_LENGTH];
             if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
                                expected_hmac) != 0) {
