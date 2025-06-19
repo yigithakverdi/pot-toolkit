@@ -58,28 +58,34 @@ void hex_dump(const void *data, size_t size) {
   if (size % 16 != 0) printf("\n");
 }
 
-void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint16_t tx_port_id) {
-  printf("Sending packet to %02X:%02X:%02X:%02X:%02X:%02X\n", mac_addr.addr_bytes[0], mac_addr.addr_bytes[1],
-         mac_addr.addr_bytes[2], mac_addr.addr_bytes[3], mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);
+void send_packet_to(struct rte_ether_addr dst_mac, struct rte_mbuf *mbuf, uint16_t tx_port_id) {
+  printf("Sending packet to %02X:%02X:%02X:%02X:%02X:%02X\n",
+         dst_mac.addr_bytes[0], dst_mac.addr_bytes[1], dst_mac.addr_bytes[2],
+         dst_mac.addr_bytes[3], dst_mac.addr_bytes[4], dst_mac.addr_bytes[5]);
+
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
 
-  if (rte_is_broadcast_ether_addr(&eth_hdr->dst_addr) != 1) {
-    printf("Not a broadcast address, replacing destination MAC address\n");
-    rte_ether_addr_copy(&eth_hdr->dst_addr, &eth_hdr->src_addr);
-    rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);
-  }
+  // Always set the destination MAC address
+  rte_ether_addr_copy(&dst_mac, &eth_hdr->dst_addr);
 
-  if (rte_eth_tx_burst(tx_port_id, 0, &mbuf, 1) == 0) {
-    printf("Failed to send packet to %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->dst_addr.addr_bytes[0],
-           eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
-           eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
-    rte_pktmbuf_free(mbuf);
+  // Optionally, set the source MAC to the port's MAC (uncomment if needed)
+  // struct rte_ether_addr src_mac;
+  // rte_eth_macaddr_get(tx_port_id, &src_mac);
+  // rte_ether_addr_copy(&src_mac, &eth_hdr->src_addr);
+
+  // Transmit the packet
+  uint16_t nb_tx = rte_eth_tx_burst(tx_port_id, 0, &mbuf, 1);
+  if (nb_tx == 0) {
+      printf("Failed to send packet to %02X:%02X:%02X:%02X:%02X:%02X\n",
+             dst_mac.addr_bytes[0], dst_mac.addr_bytes[1], dst_mac.addr_bytes[2],
+             dst_mac.addr_bytes[3], dst_mac.addr_bytes[4], dst_mac.addr_bytes[5]);
+      rte_pktmbuf_free(mbuf);
   } else {
-    printf("Packet sent successfully to %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->dst_addr.addr_bytes[0],
-           eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
-           eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+      printf("Packet sent successfully to %02X:%02X:%02X:%02X:%02X:%02X\n",
+             dst_mac.addr_bytes[0], dst_mac.addr_bytes[1], dst_mac.addr_bytes[2],
+             dst_mac.addr_bytes[3], dst_mac.addr_bytes[4], dst_mac.addr_bytes[5]);
+      // Do not free mbuf here; DPDK takes ownership on successful TX
   }
-  rte_pktmbuf_free(mbuf);
 }
 
 // DPDK mbufs are used to represent network packets. Sometimes, you need to attach extra
