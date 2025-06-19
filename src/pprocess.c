@@ -297,12 +297,10 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           // Compute HMAC
           printf("Computing HMAC for the packet\n");
           // Log HMAC input values for debugging
-          printf("[INGRESS] HMAC input values:\n");
-          printf("  src_addr: ");
-          char src_addr_str[INET6_ADDRSTRLEN];
-          if (inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_addr_str, sizeof(src_addr_str)))
-            printf("%s\n", src_addr_str);
-          else perror("inet_ntop src_addr");
+          struct in6_addr ingress_addr;
+          inet_pton(AF_INET6, "2a05:d014:dc7:1291:11ed:eb6b:b01a:9452", &ingress_addr);
+          printf("[INGRESS] HMAC input values (FORCED ingress IP):\n");
+          printf("  src_addr: 2a05:d014:dc7:1291:11ed:eb6b:b01a:9452\n");
           printf("  srh->last_entry: %u\n", srh->last_entry);
           printf("  srh->flags: %u\n", srh->flags);
           printf("  hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
@@ -315,7 +313,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           }
           printf("\n");
           uint8_t hmac_out[HMAC_MAX_LENGTH];
-          if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
+          if (calculate_hmac((uint8_t *)&ingress_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
             printf("HMAC Computation Successful\nHMAC: ");
             for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
             printf("\n");
