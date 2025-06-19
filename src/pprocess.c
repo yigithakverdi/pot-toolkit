@@ -190,7 +190,7 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
   srh_hdr->next_header = 61;
   srh_hdr->hdr_ext_len = 2;
   srh_hdr->routing_type = 4;
-  srh_hdr->last_entry = 0;
+  srh_hdr->last_entry = 1;
   srh_hdr->flags = 0;
   srh_hdr->segments_left = 1;
   memset(srh_hdr->reserved, 0, 2);
