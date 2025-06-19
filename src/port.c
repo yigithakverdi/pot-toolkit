@@ -66,17 +66,21 @@ int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
     return retval;
   }
 
+  // <<< add this so the NIC will pass every unicast frame into DPDK
+  rte_eth_promiscuous_enable(port);
+  printf("Promiscuous mode enabled on port %u\n", port);
+
   retval = display_port_mac(port);
   if (retval != 0) {
     printf("Failed at display_port_mac\n");
     return retval;
   }
 
-  // retval = enable_promiscuous(port);
-  // if (retval != 0) {
-  //   printf("Failed at enable_promiscuous\n");
-  //   return retval;
-  // }
+  retval = display_port_mac(port);
+  if (retval != 0) {
+    printf("Failed at display_port_mac\n");
+    return retval;
+  }
 
   return 0;
 }
