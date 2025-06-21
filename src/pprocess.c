@@ -1,6 +1,7 @@
 #include "pprocess.h"
 
 #include <arpa/inet.h>
+#include <inttypes.h>
 #include <rte_common.h>
 #include <rte_ether.h>
 #include <rte_ip.h>
@@ -271,6 +272,11 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
           struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
 
+          // Print offsets and hex dumps for debugging
+          print_offset_and_hex("[INGRESS] SRH", eth_hdr6, srh, sizeof(struct ipv6_srh));
+          print_offset_and_hex("[INGRESS] HMAC TLV", eth_hdr6, hmac, sizeof(struct hmac_tlv));
+          print_offset_and_hex("[INGRESS] POT TLV", eth_hdr6, pot, sizeof(struct pot_tlv));
+
           // Extract destination IPv6 address as string
           printf("Extracting destination IPv6 address\n");
           char dst_ip_str[INET6_ADDRSTRLEN];
@@ -506,12 +512,12 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             // pot TLV follows right after the HMAC TLV
             uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
             struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
-            printf("[TRANSIT] HMAC TLV (raw):\n");
-            hex_dump((void *)hmac, sizeof(struct hmac_tlv));
-            printf("[TRANSIT] POT TLV (raw):\n");
-            hex_dump((void *)pot, sizeof(struct pot_tlv));
-            printf("[TRANSIT] Pointer debug: srh=%p, hmac=%p, pot=%p\n", (void *)srh, (void *)hmac,
-                   (void *)pot);
+
+            // Print offsets and hex dumps for debugging
+            print_offset_and_hex("[TRANSIT] SRH", eth_hdr, srh, sizeof(struct ipv6_srh));
+            print_offset_and_hex("[TRANSIT] HMAC TLV", eth_hdr, hmac, sizeof(struct hmac_tlv));
+            print_offset_and_hex("[TRANSIT] POT TLV", eth_hdr, pot, sizeof(struct pot_tlv));
+
             printf("[TRANSIT] Raw HMAC TLV bytes: ");
             hex_dump((void *)hmac, sizeof(struct hmac_tlv));
             printf("[TRANSIT] hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
@@ -626,7 +632,7 @@ static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
 }
 
 int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf) {
-  if (strncmp(hmac->hmac_value, hmac_out, 32) != 0) {
+  if (memcmp(hmac->hmac_value, hmac_out, 32) != 0) {
     printf("The decrypted hmac is not the same as the computed hmac\n");
     printf("dropping the packet\n");
     rte_pktmbuf_free(mbuf);
@@ -667,25 +673,11 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             struct hmac_tlv *hmac = (struct hmac_tlv *)hmac_ptr;
             uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
             struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
-            printf("[EGRESS] HMAC TLV (raw):\n");
-            hex_dump((void *)hmac, sizeof(struct hmac_tlv));
-            printf("[EGRESS] POT TLV (raw):\n");
-            hex_dump((void *)pot, sizeof(struct pot_tlv));
 
-            // Print debug info
-            printf("  Src MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
-                   "\n",
-                   eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
-                   eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3],
-                   eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5]);
-            printf("  Dst MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
-                   "\n",
-                   eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
-                   eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
-                   eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
-            printf("  EtherType: 0x%04x\n", rte_be_to_cpu_16(eth_hdr->ether_type));
-            print_ipv6_address((struct in6_addr *)&ipv6_hdr->src_addr, "source");
-            print_ipv6_address((struct in6_addr *)&ipv6_hdr->dst_addr, "destination");
+            // Print offsets and hex dumps for debugging
+            print_offset_and_hex("[EGRESS] SRH", eth_hdr, srh, sizeof(struct ipv6_srh));
+            print_offset_and_hex("[EGRESS] HMAC TLV", eth_hdr, hmac, sizeof(struct hmac_tlv));
+            print_offset_and_hex("[EGRESS] POT TLV", eth_hdr, pot, sizeof(struct pot_tlv));
 
             // Read key for this egress node from keys.txt
             char dst_ip_str[INET6_ADDRSTRLEN];
@@ -844,4 +836,21 @@ void launch_lcore_forwarding(uint16_t *ports) {
   unsigned lcore_id = rte_get_next_lcore(-1, 1, 0);
   rte_eal_remote_launch(lcore_main_forward, (void *)ports, lcore_id);
   rte_eal_mp_wait_lcore();  // Wait for all lcores to finish (optional, for clean shutdown)
+}
+
+// Utility: Hex dump for debugging
+void hex_dump(const void *data, size_t size) {
+  const unsigned char *byte = (const unsigned char *)data;
+  for (size_t i = 0; i < size; i++) {
+    printf("%02x ", byte[i]);
+    if ((i + 1) % 16 == 0) printf("\n");
+  }
+  if (size % 16 != 0) printf("\n");
+}
+
+// Utility: Print offset and hex for a structure
+void print_offset_and_hex(const char *label, const void *base, const void *ptr, size_t len) {
+  printf("%s offset: %ld\n", label, (const uint8_t *)ptr - (const uint8_t *)base);
+  printf("%s hex dump:\n", label);
+  hex_dump(ptr, len);
 }
