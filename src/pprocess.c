@@ -16,6 +16,14 @@
 
 enum role global_role = ROLE_INGRESS;
 
+uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH] = {
+    // egress key (16 bytes), pad with zeros if HMAC_MAX_LENGTH > 16
+    {0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0x07, 0x18, 0x29, 0x30, 0x4b, 0x6c, 0x7d, 0x8e, 0x9f, 0xa0,
+     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0},
+    // transit key (16 bytes), pad with zeros if needed
+    {0xd8, 0xf9, 0xcd, 0xe1, 0xab, 0x34, 0x5c, 0xd0, 0xef, 0x67, 0x89, 0xab, 0x12, 0xcd, 0xef, 0x34,
+     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}};
+
 void remove_headers(struct rte_mbuf *pkt) {
   struct rte_ether_hdr *eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
   struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
@@ -298,12 +306,6 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             break;
           }
 
-          // Replace the key loading code with:
-          const char *sid_ipv6[SID_NO] = {
-              "2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3",  // Egress key (encrypt first)
-              "2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4"   // Transit key (encrypt second)
-          };
-
           // Prepare k_pot_in array using the loaded key for all SIDs
           // printf("Preparing k_pot_in array for all SIDs\n");
           // uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH] = {0};
@@ -314,23 +316,23 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           //   }
           // }
 
-          printf("Loading keys for POT nodes in path\n");
-          uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH] = {0};
-          for (int sid = 0; sid < SID_NO; sid++) {
-            if (read_encryption_key("keys.txt", sid_ipv6[sid], k_pot_in[sid], HMAC_MAX_LENGTH) != 0) {
-              printf("Failed to read key for %s\n", sid_ipv6[sid]);
-              break;
+          printf("Debug: k_pot_in array contents:\n");
+          for (int i = 0; i < SID_NO; i++) {
+            printf("SID %d: ", i);
+            for (int j = 0; j < HMAC_MAX_LENGTH; j++) {
+              printf("%02x", k_pot_in[i][j]);
             }
-            printf("Successfully loaded key for %s\n", sid_ipv6[sid]);
+            printf("\n");
           }
 
           // Prepare HMAC key (use same as encryption key for demo)
-          printf("Preparing HMAC key for HMAC computation\n");
-          uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
-          if (read_encryption_key("keys.txt", dst_ip_str, k_hmac_ie, HMAC_MAX_LENGTH) != 0) {
-            printf("Failed to read HMAC key for %s\n", dst_ip_str);
-            break;
-          }
+          // printf("Preparing HMAC key for HMAC computation\n");
+          // uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
+          // if (read_encryption_key("keys.txt", dst_ip_str, k_hmac_ie, HMAC_MAX_LENGTH) != 0) {
+          //   printf("Failed to read HMAC key for %s\n", dst_ip_str);
+          //   break;
+          // }
+          uint8_t *k_hmac_ie = k_pot_in[0]; // egress key
           size_t key_len = HMAC_MAX_LENGTH;
 
           // Compute HMAC
@@ -592,13 +594,13 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               return;
             }
 
-            uint8_t k_pot_in_transit[1][HMAC_MAX_LENGTH] = {{0}};  // Changed declaration
-            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_transit[0], HMAC_MAX_LENGTH) !=
-                0) {  // Read into k_pot_in_transit[0]
-              printf("Failed to read key for %s\n", dst_ip_str);
-              rte_pktmbuf_free(mbuf);
-              return;
-            }
+            // uint8_t k_pot_in_transit[1][HMAC_MAX_LENGTH] = {{0}};  // Changed declaration
+            // if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_transit[0], HMAC_MAX_LENGTH) !=
+            //     0) {  // Read into k_pot_in_transit[0]
+            //   printf("Failed to read key for %s\n", dst_ip_str);
+            //   rte_pktmbuf_free(mbuf);
+            //   return;
+            // }
 
             printf("Decrypting PVF for %s\n", dst_ip_str);
             uint8_t pvf_out[HMAC_MAX_LENGTH];
@@ -606,7 +608,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             // decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);  // Use k_pot_in_transit
             // memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
             memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
-            decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);
+            // decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);
+            decrypt_pvf(&k_pot_in[1], pot->nonce, pvf_out);
 
             memcpy(hmac->hmac_value, pvf_out, HMAC_MAX_LENGTH);
             printf("Transit: Updated HMAC field with decrypted PVF\n");
@@ -732,17 +735,18 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
               return;
             }
 
-            uint8_t k_pot_in_egress[1][HMAC_MAX_LENGTH] = {{0}};
-            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_egress[0], HMAC_MAX_LENGTH) != 0) {
-              printf("Egress: Failed to read key for %s\n", dst_ip_str);
-              rte_pktmbuf_free(mbuf);
-              return;
-            }
+            // uint8_t k_pot_in_egress[1][HMAC_MAX_LENGTH] = {{0}};
+            // if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in_egress[0], HMAC_MAX_LENGTH) != 0) {
+            //   printf("Egress: Failed to read key for %s\n", dst_ip_str);
+            //   rte_pktmbuf_free(mbuf);
+            //   return;
+            // }
 
             // Decrypt PVF
             uint8_t hmac_out[HMAC_MAX_LENGTH];
             memcpy(hmac_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
-            decrypt_pvf(k_pot_in_egress, pot->nonce, hmac_out);
+            // decrypt_pvf(k_pot_in_egress, pot->nonce, hmac_out);
+            decrypt_pvf(&k_pot_in[0], pot->nonce, hmac_out);
             memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
             printf("[EGRESS] Decrypted PVF:\n");
             for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", hmac_out[j]);
@@ -751,12 +755,14 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             printf("\n");
 
             // Prepare HMAC key (use same as encryption key for demo)
-            uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
-            if (read_encryption_key("keys.txt", dst_ip_str, k_hmac_ie, HMAC_MAX_LENGTH) != 0) {
-              printf("Egress: Failed to read HMAC key for %s\n", dst_ip_str);
-              rte_pktmbuf_free(mbuf);
-              return;
-            }
+            // uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
+            // if (read_encryption_key("keys.txt", dst_ip_str, k_hmac_ie, HMAC_MAX_LENGTH) != 0) {
+            //   printf("Egress: Failed to read HMAC key for %s\n", dst_ip_str);
+            //   rte_pktmbuf_free(mbuf);
+            //   return;
+            // }
+            uint8_t *k_hmac_ie = k_pot_in[0]; // egress key
+
             // Log HMAC input values for debugging
             printf("[EGRESS] HMAC input values:\n");
             printf("  src_addr: ");
