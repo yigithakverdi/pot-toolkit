@@ -806,7 +806,8 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
 
             // Remove headers and forward to iperf server (replace MAC/port as needed)
             remove_headers(mbuf);
-            struct rte_ether_addr iperf_mac = {{0x08, 0x00, 0x27, 0x7D, 0xDD, 0x01}};
+            // struct rte_ether_addr iperf_mac = {{0x08, 0x00, 0x27, 0x7D, 0xDD, 0x01}};
+            struct rte_ether_addr iperf_mac = {{0x02, 0x38, 0x81, 0xe2, 0xf9, 0xa7}}; // Updated to your iperf server MAC
             // send_packet_to(iperf_mac, mbuf, /*tx_port_id*/ 1);
             send_packet_to(iperf_mac, mbuf, 0);
             printf("[EGRESS] Packet hex dump AFTER send (first 64 bytes):\n");
