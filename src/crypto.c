@@ -81,14 +81,32 @@ int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, u
   return plaintext_len;
 }
 
-int decrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t pvf_out[32]) {
-  // k_pot_in is a 2d array of strings holding statically allocated keys for the
-  // nodes. In this proof of concept there is only one middle node and an egress
-  // node so the shape is [2][key-length]
+// int decrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t pvf_out[32]) {
+//   // k_pot_in is a 2d array of strings holding statically allocated keys for the
+//   // nodes. In this proof of concept there is only one middle node and an egress
+//   // node so the shape is [2][key-length]
+//   uint8_t plaintext[128];
+//   int cipher_len = 32;
+//   printf("\n----------Decrypting----------\n");
+//   // Use the first key for decryption (adjust as needed)
+//   int dec_len = decrypt(pvf_out, cipher_len, k_pot_in[0], nonce, plaintext);
+//   printf("Dec len %d\n", dec_len);
+//   printf("original text is:\n");
+//   for (int j = 0; j < 32; j++) {
+//     printf("%02x", pvf_out[j]);
+//   }
+//   printf("\n");
+//   memcpy(pvf_out, plaintext, 32);
+//   printf("Decrypted text is : \n");
+//   BIO_dump_fp(stdout, (const char *)pvf_out, dec_len);
+//   return 0;
+// }
+
+int decrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t pvf_out[32]) {
   uint8_t plaintext[128];
   int cipher_len = 32;
   printf("\n----------Decrypting----------\n");
-  // Use the first key for decryption (adjust as needed)
+  // Use the key that was passed in
   int dec_len = decrypt(pvf_out, cipher_len, k_pot_in[0], nonce, plaintext);
   printf("Dec len %d\n", dec_len);
   printf("original text is:\n");
@@ -144,13 +162,29 @@ int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, uns
 //   }
 // }
 
-void encrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hmac_out[32]) {
+// void encrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hmac_out[32]) {
+//   uint8_t buffer[HMAC_MAX_LENGTH];
+//   memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+
+//   printf("\n----------Encrypting (Onion)----------\n");
+//   // Encrypt from innermost (egress) to outermost (transit)
+//   for (int i = SID_NO - 1; i >= 0; i--) {
+//     printf("Encrypting with key %d: ", i);
+//     for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", buffer[j]);
+//     printf("\n");
+//     encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out);
+//     memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+//   }
+//   // Final ciphertext is in hmac_out
+// }
+
+void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hmac_out[32]) {
   uint8_t buffer[HMAC_MAX_LENGTH];
   memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
 
   printf("\n----------Encrypting (Onion)----------\n");
-  // Encrypt from innermost (egress) to outermost (transit)
-  for (int i = SID_NO - 1; i >= 0; i--) {
+  // Only encrypt with transit (1) and egress (0) keys - the only two you have defined
+  for (int i = 1; i >= 0; i--) {
     printf("Encrypting with key %d: ", i);
     for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", buffer[j]);
     printf("\n");
