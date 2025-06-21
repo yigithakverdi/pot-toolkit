@@ -142,6 +142,12 @@ void add_custom_header(struct rte_mbuf *pkt) {
   memcpy(srh_hdr->segments, segments, sizeof(segments));
   RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
 
+  // Update IPv6 payload_len to include all custom headers and payload
+  ipv6_hdr->payload_len = rte_cpu_to_be_16(
+      rte_pktmbuf_pkt_len(pkt) - sizeof(struct rte_ether_hdr) - sizeof(struct rte_ipv6_hdr));
+  printf("[INGRESS] Updated IPv6 payload_len to %u\n",
+      rte_be_to_cpu_16(ipv6_hdr->payload_len));
+
   // Dump the first 128 bytes (or the whole packet if smaller)
   size_t dump_len = rte_pktmbuf_pkt_len(pkt);
   if (dump_len > 128) dump_len = 128;
