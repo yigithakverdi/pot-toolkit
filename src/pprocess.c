@@ -53,6 +53,19 @@ void remove_headers(struct rte_mbuf *pkt) {
   rte_pktmbuf_trim(pkt, sizeof(struct hmac_tlv));
   rte_pktmbuf_trim(pkt, sizeof(struct ipv6_srh));
 
+  // Set the destination IPv6 address to the iperf server's address
+  struct in6_addr iperf_server_ipv6;
+  if (inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_ipv6) != 1) {
+    printf("Error converting IPv6 address\n");
+    free(tmp_payload);
+    return;
+  }
+  // Get the IPv6 header again since we've modified the packet
+  eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
+  ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
+  memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
+
+  // Continue with appending the payload
   payload = (uint8_t *)rte_pktmbuf_append(pkt, payload_size);
   memcpy(payload, tmp_payload, payload_size);
   free(tmp_payload);
