@@ -221,6 +221,9 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
   size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
   if (dump_len > 64) dump_len = 64;
   hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+  printf("[INGRESS] Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+  printf("[INGRESS] mbuf nb_segs: %u\n", mbuf->nb_segs);
+  printf("[INGRESS] tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
 
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
@@ -263,6 +266,10 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
         case 0:
           printf("Processing IPv6 packet with operation_bypass_bit = 0\n");
           add_custom_header(mbuf);
+          // Print after header addition
+          printf("[INGRESS] After header addition: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+          printf("[INGRESS] After header addition: mbuf nb_segs: %u\n", mbuf->nb_segs);
+          printf("[INGRESS] After header addition: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
 
           // Realign pointers after header addition
           printf("Realigning pointers after adding custom headers\n");
@@ -425,6 +432,9 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
               dump_len = rte_pktmbuf_pkt_len(mbuf);
               if (dump_len > 64) dump_len = 64;
               hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+              printf("[INGRESS] After send: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+              printf("[INGRESS] After send: mbuf nb_segs: %u\n", mbuf->nb_segs);
+              printf("[INGRESS] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
             } else {
               printf("No MAC address found for next segment, dropping packet\n");
               rte_pktmbuf_free(mbuf);
@@ -456,6 +466,9 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
   if (dump_len > 64) dump_len = 64;
   hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+  printf("[TRANSIT] Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+  printf("[TRANSIT] mbuf nb_segs: %u\n", mbuf->nb_segs);
+  printf("[TRANSIT] tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
 
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
@@ -607,6 +620,9 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               dump_len = rte_pktmbuf_pkt_len(mbuf);
               if (dump_len > 64) dump_len = 64;
               hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+              printf("[TRANSIT] After send: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+              printf("[TRANSIT] After send: mbuf nb_segs: %u\n", mbuf->nb_segs);
+              printf("[TRANSIT] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
             } else {
               printf("Transit: No MAC mapping for next segment!\n");
               rte_pktmbuf_free(mbuf);
@@ -650,6 +666,9 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
   size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
   if (dump_len > 64) dump_len = 64;
   hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+  printf("[EGRESS] Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+  printf("[EGRESS] mbuf nb_segs: %u\n", mbuf->nb_segs);
+  printf("[EGRESS] tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
 
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   printf("EGRESS DEBUG: First 32 bytes: ");
@@ -761,6 +780,9 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             dump_len = rte_pktmbuf_pkt_len(mbuf);
             if (dump_len > 64) dump_len = 64;
             hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+            printf("[EGRESS] After send: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+            printf("[EGRESS] After send: mbuf nb_segs: %u\n", mbuf->nb_segs);
+            printf("[EGRESS] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
           }
           break;
         }
