@@ -274,7 +274,8 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           // Print after header addition
           printf("[INGRESS] After header addition: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
           printf("[INGRESS] After header addition: mbuf nb_segs: %u\n", mbuf->nb_segs);
-          printf("[INGRESS] After header addition: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
+          printf("[INGRESS] After header addition: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf),
+                 mbuf->data_len);
 
           // Realign pointers after header addition
           printf("Realigning pointers after adding custom headers\n");
@@ -439,7 +440,8 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
               hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
               printf("[INGRESS] After send: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
               printf("[INGRESS] After send: mbuf nb_segs: %u\n", mbuf->nb_segs);
-              printf("[INGRESS] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
+              printf("[INGRESS] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf),
+                     mbuf->data_len);
             } else {
               printf("No MAC address found for next segment, dropping packet\n");
               rte_pktmbuf_free(mbuf);
@@ -584,9 +586,11 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
             printf("Decrypting PVF for %s\n", dst_ip_str);
             uint8_t pvf_out[HMAC_MAX_LENGTH];
+            // memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
+            // decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);  // Use k_pot_in_transit
+            // memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
             memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
-            decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);  // Use k_pot_in_transit
-            memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
+            decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);
 
             memcpy(hmac->hmac_value, pvf_out, HMAC_MAX_LENGTH);
             printf("Transit: Updated HMAC field with decrypted PVF\n");
@@ -627,7 +631,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
               printf("[TRANSIT] After send: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
               printf("[TRANSIT] After send: mbuf nb_segs: %u\n", mbuf->nb_segs);
-              printf("[TRANSIT] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
+              printf("[TRANSIT] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf),
+                     mbuf->data_len);
             } else {
               printf("Transit: No MAC mapping for next segment!\n");
               rte_pktmbuf_free(mbuf);
@@ -787,7 +792,8 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
             printf("[EGRESS] After send: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
             printf("[EGRESS] After send: mbuf nb_segs: %u\n", mbuf->nb_segs);
-            printf("[EGRESS] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf), mbuf->data_len);
+            printf("[EGRESS] After send: tailroom: %u, data_len: %u\n", rte_pktmbuf_tailroom(mbuf),
+                   mbuf->data_len);
           }
           break;
         }
