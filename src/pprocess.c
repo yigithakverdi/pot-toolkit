@@ -611,7 +611,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             // decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);
             decrypt_pvf(&k_pot_in[1], pot->nonce, pvf_out);
 
-            memcpy(hmac->hmac_value, pvf_out, HMAC_MAX_LENGTH);
+            // memcpy(hmac->hmac_value, pvf_out, HMAC_MAX_LENGTH);
+            memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
             printf("Transit: Updated HMAC field with decrypted PVF\n");
             printf("[TRANSIT] Decrypted PVF:\n");
             for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", pvf_out[j]);
@@ -744,8 +745,7 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
 
             // Decrypt PVF
             uint8_t hmac_out[HMAC_MAX_LENGTH];
-            // memcpy(hmac_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
-            memcpy(hmac_out, hmac->hmac_value, HMAC_MAX_LENGTH);
+            memcpy(hmac_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
             // decrypt_pvf(k_pot_in_egress, pot->nonce, hmac_out);
             decrypt_pvf(&k_pot_in[0], pot->nonce, hmac_out);
             memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
