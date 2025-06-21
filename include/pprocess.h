@@ -61,5 +61,7 @@ static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx);
 static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx);
 static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id);
 int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf);
+void hex_dump(const void *data, size_t size);
+void print_offset_and_hex(const char *label, const void *base, const void *ptr, size_t len);
 
 #endif  // PPROCESS_H
