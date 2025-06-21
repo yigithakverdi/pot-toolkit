@@ -493,6 +493,10 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             // pot TLV follows right after the HMAC TLV
             uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
             struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
+            printf("[TRANSIT] HMAC TLV (raw):\n");
+            hex_dump((void *)hmac, sizeof(struct hmac_tlv));
+            printf("[TRANSIT] POT TLV (raw):\n");
+            hex_dump((void *)pot, sizeof(struct pot_tlv));
             printf("[TRANSIT] Pointer debug: srh=%p, hmac=%p, pot=%p\n", (void *)srh, (void *)hmac,
                    (void *)pot);
             printf("[TRANSIT] Raw HMAC TLV bytes: ");
@@ -549,6 +553,11 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
             memcpy(hmac->hmac_value, pvf_out, HMAC_MAX_LENGTH);
             printf("Transit: Updated HMAC field with decrypted PVF\n");
+            printf("[TRANSIT] Decrypted PVF:\n");
+            for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", pvf_out[j]);
+            printf("\n[TRANSIT] HMAC field after update:\n");
+            for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", hmac->hmac_value[j]);
+            printf("\n");
 
             // SRH forwarding logic
             if (srh->segments_left == 0) {
@@ -633,6 +642,10 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             struct hmac_tlv *hmac = (struct hmac_tlv *)hmac_ptr;
             uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
             struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
+            printf("[EGRESS] HMAC TLV (raw):\n");
+            hex_dump((void *)hmac, sizeof(struct hmac_tlv));
+            printf("[EGRESS] POT TLV (raw):\n");
+            hex_dump((void *)pot, sizeof(struct pot_tlv));
 
             // Print debug info
             printf("  Src MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
@@ -669,6 +682,11 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             memcpy(hmac_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
             decrypt_pvf(k_pot_in_egress, pot->nonce, hmac_out);
             memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
+            printf("[EGRESS] Decrypted PVF:\n");
+            for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", hmac_out[j]);
+            printf("\n[EGRESS] HMAC field in header:\n");
+            for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", hmac->hmac_value[j]);
+            printf("\n");
 
             // Prepare HMAC key (use same as encryption key for demo)
             uint8_t k_hmac_ie[HMAC_MAX_LENGTH] = {0};
@@ -700,6 +718,9 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             uint8_t expected_hmac[HMAC_MAX_LENGTH];
             if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
                                expected_hmac) != 0) {
+              printf("[EGRESS] Expected HMAC:\n");
+              for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", expected_hmac[j]);
+              printf("\n");
               printf("Egress: HMAC calculation failed\n");
               rte_pktmbuf_free(mbuf);
               return;
