@@ -122,7 +122,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
   hmac_hdr->length = 16;
   hmac_hdr->d_flag = 0;
   hmac_hdr->reserved = 0;
-  hmac_hdr->hmac_key_id = rte_cpu_to_be_32(1234); // Always set to 1234
+  hmac_hdr->hmac_key_id = rte_cpu_to_be_32(0);  // Set to 0 for HMAC test
   memset(hmac_hdr->hmac_value, 0, sizeof(hmac_hdr->hmac_value));
 
   srh_hdr->next_header = 61;
@@ -309,7 +309,8 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             char seg_str[INET6_ADDRSTRLEN];
             if (inet_ntop(AF_INET6, &srh->segments[i], seg_str, sizeof(seg_str)))
               printf("%s ", seg_str);
-            else perror("inet_ntop segment");
+            else
+              perror("inet_ntop segment");
           }
           printf("\n");
           // Dump the first 128 bytes (or the whole packet if smaller) after all headers and before send
@@ -323,6 +324,13 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
             printf("\n");
             rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
+            printf("HMAC value inserted to srh_hmac header\n");
+
+            // Dump the first 128 bytes (or the whole packet if smaller) after HMAC is written
+            size_t dump_len_after_hmac = rte_pktmbuf_pkt_len(mbuf);
+            if (dump_len_after_hmac > 128) dump_len_after_hmac = 128;
+            printf("[INGRESS] Packet hex dump AFTER HMAC write (first %zu bytes):\n", dump_len_after_hmac);
+            hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len_after_hmac);
             printf("HMAC value inserted to srh_hmac header\n");
           } else {
             printf("HMAC Computation Failed\n");
@@ -475,11 +483,20 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
           if (srh->next_header == 61) {
             printf("SRH detected at transit node \n");
 
-            struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
-            struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
-            printf("[TRANSIT] Pointer debug: srh=%p, hmac=%p, pot=%p\n", (void*)srh, (void*)hmac, (void*)pot);
+            // struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
+            // struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+            // compute SRH total size in bytes
+            size_t srh_bytes = sizeof(struct ipv6_srh);
+            // hmac TLV follows immediately
+            uint8_t *hmac_ptr = (uint8_t *)srh + srh_bytes;
+            struct hmac_tlv *hmac = (struct hmac_tlv *)hmac_ptr;
+            // pot TLV follows right after the HMAC TLV
+            uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
+            struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
+            printf("[TRANSIT] Pointer debug: srh=%p, hmac=%p, pot=%p\n", (void *)srh, (void *)hmac,
+                   (void *)pot);
             printf("[TRANSIT] Raw HMAC TLV bytes: ");
-            hex_dump((void*)hmac, sizeof(struct hmac_tlv));
+            hex_dump((void *)hmac, sizeof(struct hmac_tlv));
             printf("[TRANSIT] hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
 
             // Display source and destination MAC addresses
@@ -541,7 +558,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             srh->segments_left--;
             // Compute next-hop index: = last_entry - segments_left + 1
             int next_sid_index = srh->last_entry - srh->segments_left + 1;
-            printf("Transit: Forwarding to next segment, segments left: %d, next index: %d\n", srh->segments_left, next_sid_index);
+            printf("Transit: Forwarding to next segment, segments left: %d, next index: %d\n",
+                   srh->segments_left, next_sid_index);
             // Update IPv6 dst to selected segment
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
             // Lookup MAC for new IPv6 destination
@@ -607,8 +625,11 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
           if (srh->next_header == 61) {
             printf("Egress: SRH detected, processing packet\n");
 
-            struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
-            struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+            size_t srh_bytes = sizeof(struct ipv6_srh);
+            uint8_t *hmac_ptr = (uint8_t *)srh + srh_bytes;
+            struct hmac_tlv *hmac = (struct hmac_tlv *)hmac_ptr;
+            uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
+            struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
 
             // Print debug info
             printf("  Src MAC: %02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
@@ -659,7 +680,8 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             char src_addr_str[INET6_ADDRSTRLEN];
             if (inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_addr_str, sizeof(src_addr_str)))
               printf("%s\n", src_addr_str);
-            else perror("inet_ntop src_addr");
+            else
+              perror("inet_ntop src_addr");
             printf("  srh->last_entry: %u\n", srh->last_entry);
             printf("  srh->flags: %u\n", srh->flags);
             printf("  hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
@@ -668,7 +690,8 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
               char seg_str[INET6_ADDRSTRLEN];
               if (inet_ntop(AF_INET6, &srh->segments[i], seg_str, sizeof(seg_str)))
                 printf("%s ", seg_str);
-              else perror("inet_ntop segment");
+              else
+                perror("inet_ntop segment");
             }
             printf("\n");
             uint8_t expected_hmac[HMAC_MAX_LENGTH];
