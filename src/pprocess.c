@@ -838,16 +838,6 @@ void launch_lcore_forwarding(uint16_t *ports) {
   rte_eal_mp_wait_lcore();  // Wait for all lcores to finish (optional, for clean shutdown)
 }
 
-// Utility: Hex dump for debugging
-void hex_dump(const void *data, size_t size) {
-  const unsigned char *byte = (const unsigned char *)data;
-  for (size_t i = 0; i < size; i++) {
-    printf("%02x ", byte[i]);
-    if ((i + 1) % 16 == 0) printf("\n");
-  }
-  if (size % 16 != 0) printf("\n");
-}
-
 // Utility: Print offset and hex for a structure
 void print_offset_and_hex(const char *label, const void *base, const void *ptr, size_t len) {
   printf("%s offset: %ld\n", label, (const uint8_t *)ptr - (const uint8_t *)base);
