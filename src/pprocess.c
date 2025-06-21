@@ -547,6 +547,9 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             decrypt_pvf(k_pot_in_transit, pot->nonce, pvf_out);  // Use k_pot_in_transit
             memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
 
+            memcpy(hmac->hmac_value, pvf_out, HMAC_MAX_LENGTH);
+            printf("Transit: Updated HMAC field with decrypted PVF\n");
+
             // SRH forwarding logic
             if (srh->segments_left == 0) {
               printf("Transit: No more segments left, dropping or processing as egress\n");
