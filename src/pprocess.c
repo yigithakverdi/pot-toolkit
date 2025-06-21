@@ -298,14 +298,30 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             break;
           }
 
+          // Replace the key loading code with:
+          const char *sid_ipv6[SID_NO] = {
+              "2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3",  // Egress key (encrypt first)
+              "2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4"   // Transit key (encrypt second)
+          };
+
           // Prepare k_pot_in array using the loaded key for all SIDs
-          printf("Preparing k_pot_in array for all SIDs\n");
+          // printf("Preparing k_pot_in array for all SIDs\n");
+          // uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH] = {0};
+          // for (int sid = 0; sid < SID_NO; sid++) {
+          //   if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in[sid], HMAC_MAX_LENGTH) != 0) {
+          //     printf("Failed to read key for %s\n", dst_ip_str);
+          //     break;
+          //   }
+          // }
+
+          printf("Loading keys for POT nodes in path\n");
           uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH] = {0};
           for (int sid = 0; sid < SID_NO; sid++) {
-            if (read_encryption_key("keys.txt", dst_ip_str, k_pot_in[sid], HMAC_MAX_LENGTH) != 0) {
-              printf("Failed to read key for %s\n", dst_ip_str);
+            if (read_encryption_key("keys.txt", sid_ipv6[sid], k_pot_in[sid], HMAC_MAX_LENGTH) != 0) {
+              printf("Failed to read key for %s\n", sid_ipv6[sid]);
               break;
             }
+            printf("Successfully loaded key for %s\n", sid_ipv6[sid]);
           }
 
           // Prepare HMAC key (use same as encryption key for demo)
