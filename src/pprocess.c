@@ -216,7 +216,11 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
 
 // Helper: process a single packet for ingress
 static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_port_id) {
-  printf("Processing ingress packet on lcore %u\n", rte_lcore_id());
+  printf("[INGRESS] Packet hex dump BEFORE processing (first 64 bytes):\n");
+  size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
+  if (dump_len > 64) dump_len = 64;
+  hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
@@ -411,6 +415,10 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             // Actually send the packet
             if (next_mac) {
               send_packet_to(*next_mac, mbuf, rx_port_id);
+              printf("[INGRESS] Packet hex dump AFTER send (first 64 bytes):\n");
+              dump_len = rte_pktmbuf_pkt_len(mbuf);
+              if (dump_len > 64) dump_len = 64;
+              hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
             } else {
               printf("No MAC address found for next segment, dropping packet\n");
               rte_pktmbuf_free(mbuf);
@@ -438,6 +446,11 @@ static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint1
 
 // Helper: process a single packet for transit
 static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
+  printf("[TRANSIT] Packet hex dump BEFORE processing (first 64 bytes):\n");
+  size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
+  if (dump_len > 64) dump_len = 64;
+  hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
@@ -584,6 +597,10 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
                      next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                      next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
               send_packet_to(*next_mac, mbuf, /*tx_port_id*/ 0);
+              printf("[TRANSIT] Packet hex dump AFTER send (first 64 bytes):\n");
+              dump_len = rte_pktmbuf_pkt_len(mbuf);
+              if (dump_len > 64) dump_len = 64;
+              hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
             } else {
               printf("Transit: No MAC mapping for next segment!\n");
               rte_pktmbuf_free(mbuf);
@@ -623,8 +640,16 @@ int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf
 
 // Helper: process a single packet for egress
 static inline void process_egress_packet(struct rte_mbuf *mbuf) {
+  printf("[EGRESS] Packet hex dump BEFORE processing (first 64 bytes):\n");
+  size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
+  if (dump_len > 64) dump_len = 64;
+  hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
+
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   printf("EGRESS DEBUG: First 32 bytes: ");
+  hex_dump(rte_pktmbuf_mtod(mbuf, void *), 32);
+  printf("EGRESS DEBUG: Packet length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+  printf("EGRESS DEBUG: EtherType: 0x%04x\n", rte_be_to_cpu_16(eth_hdr->ether_type));
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
   switch (ether_type) {
@@ -740,6 +765,10 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             struct rte_ether_addr iperf_mac = {{0x08, 0x00, 0x27, 0x7D, 0xDD, 0x01}};
             // send_packet_to(iperf_mac, mbuf, /*tx_port_id*/ 1);
             send_packet_to(iperf_mac, mbuf, 0);
+            printf("[EGRESS] Packet hex dump AFTER send (first 64 bytes):\n");
+            dump_len = rte_pktmbuf_pkt_len(mbuf);
+            if (dump_len > 64) dump_len = 64;
+            hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
           }
           break;
         }
