@@ -5,6 +5,8 @@
 #include <rte_common.h>
 #include <rte_ether.h>
 #include <rte_ip.h>
+#include <rte_udp.h>  // Added for UDP header processing
+#include <rte_tcp.h>  // Added for completeness
 #include <rte_malloc.h>
 #include <rte_mbuf.h>
 #include <rte_memcpy.h>
@@ -139,6 +141,31 @@ void remove_headers(struct rte_mbuf *pkt) {
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
   printf("[DEBUG-REMOVE] Updated IPv6 payload length: %u bytes\n",
          rte_be_to_cpu_16(ipv6_hdr->payload_len));
+
+  // Fix the UDP header
+  struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)(ipv6_hdr + 1);
+  
+  // Print original UDP header values for debugging
+  printf("[DEBUG-REMOVE] Original UDP header - src_port: %u, dst_port: %u, dgram_len: %u, cksum: 0x%04x\n",
+         rte_be_to_cpu_16(udp_hdr->src_port),
+         rte_be_to_cpu_16(udp_hdr->dst_port),
+         rte_be_to_cpu_16(udp_hdr->dgram_len),
+         rte_be_to_cpu_16(udp_hdr->dgram_cksum));
+  
+  // Set the correct UDP length
+  udp_hdr->dgram_len = rte_cpu_to_be_16(payload_size);  // Total UDP datagram length (header + data)
+  
+  // Zero out the checksum field before calculating new checksum
+  udp_hdr->dgram_cksum = 0;
+  
+  // Calculate the new UDP checksum using DPDK's function
+  udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, udp_hdr);
+  
+  printf("[DEBUG-REMOVE] Fixed UDP header - src_port: %u, dst_port: %u, dgram_len: %u, cksum: 0x%04x\n",
+         rte_be_to_cpu_16(udp_hdr->src_port),
+         rte_be_to_cpu_16(udp_hdr->dst_port),
+         rte_be_to_cpu_16(udp_hdr->dgram_len),
+         rte_be_to_cpu_16(udp_hdr->dgram_cksum));
 
   // Print new destination IPv6 for verification
   char new_dst_str[INET6_ADDRSTRLEN];
