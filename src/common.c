@@ -63,13 +63,39 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
          mac_addr.addr_bytes[2], mac_addr.addr_bytes[3], mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
 
+  // Print IPv6 header details if it's an IPv6 packet
+  if (rte_be_to_cpu_16(eth_hdr->ether_type) == RTE_ETHER_TYPE_IPV6) {
+    struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+    char src_str[INET6_ADDRSTRLEN];
+    char dst_str[INET6_ADDRSTRLEN];
+    
+    inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_str, sizeof(src_str));
+    inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_str, sizeof(dst_str));
+    
+    printf("[SEND] IPv6 src: %s\n", src_str);
+    printf("[SEND] IPv6 dst: %s\n", dst_str);
+    printf("[SEND] IPv6 next header: %u\n", ipv6_hdr->proto);
+    printf("[SEND] IPv6 payload length: %u\n", rte_be_to_cpu_16(ipv6_hdr->payload_len));
+  }
+
   if (rte_is_broadcast_ether_addr(&eth_hdr->dst_addr) != 1) {
     printf("Not a broadcast address, replacing destination MAC address\n");
     rte_ether_addr_copy(&eth_hdr->dst_addr, &eth_hdr->src_addr);
     rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);
   }
 
-  if (rte_eth_tx_burst(tx_port_id, 0, &mbuf, 1) == 0) {
+  // Print packet size before sending
+  printf("[SEND] Packet length before sending: %u bytes\n", rte_pktmbuf_pkt_len(mbuf));
+  
+  // Check if the packet is properly formatted
+  if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr)) {
+    printf("[ERROR-SEND] Packet too small to contain Ethernet header\n");
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
+  uint16_t sent = rte_eth_tx_burst(tx_port_id, 0, &mbuf, 1);
+  if (sent == 0) {
     printf("Failed to send packet to %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->dst_addr.addr_bytes[0],
            eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
            eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
@@ -78,8 +104,10 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
     printf("Packet sent successfully to %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hdr->dst_addr.addr_bytes[0],
            eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
            eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+    // Don't free the mbuf here - rte_eth_tx_burst takes ownership of it when successful
+    return;
   }
-  rte_pktmbuf_free(mbuf);
+  // Note: We don't double-free the mbuf here
 }
 
 // DPDK mbufs are used to represent network packets. Sometimes, you need to attach extra
