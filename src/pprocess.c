@@ -301,14 +301,34 @@ static inline void process_ingress_return_packet(struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
 
-  printf("[INGRESS-RETURN] Processing iperf server response\n");
-
+  printf("**** [INGRESS-RETURN] DEBUG: Function called with packet length %u ****\n", rte_pktmbuf_pkt_len(mbuf));
+  printf("[INGRESS-RETURN] MAC src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+         eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+         eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3],
+         eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5]);
+  printf("[INGRESS-RETURN] MAC dst: %02X:%02X:%02X:%02X:%02X:%02X\n",
+         eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+         eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+         eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+  
+  char src_ip[INET6_ADDRSTRLEN], dst_ip[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_ip, INET6_ADDRSTRLEN);
+  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip, INET6_ADDRSTRLEN);
+  
+  printf("[INGRESS-RETURN] IPv6 src: %s\n", src_ip);
+  printf("[INGRESS-RETURN] IPv6 dst: %s\n", dst_ip);
+  printf("[INGRESS-RETURN] Next Header: %u\n", ipv6_hdr->proto);
+  
   // Forward directly to client
   struct in6_addr client_addr;
   inet_pton(AF_INET6, "2a05:d014:dc7:12ff:f611:cc26:cf0d:5c92", &client_addr);
   struct rte_ether_addr *client_mac = lookup_mac_for_ipv6(&client_addr);
 
   if (client_mac) {
+    printf("[INGRESS-RETURN] Found client MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
+           client_mac->addr_bytes[0], client_mac->addr_bytes[1],
+           client_mac->addr_bytes[2], client_mac->addr_bytes[3],
+           client_mac->addr_bytes[4], client_mac->addr_bytes[5]);
     send_packet_to(*client_mac, mbuf, 0);
     printf("[INGRESS-RETURN] Forwarded server response to client\n");
   } else {
@@ -580,12 +600,18 @@ static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint1
       // Check if from iperf server (return traffic)
       struct in6_addr iperf_server_addr;
       inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
+      
+      char src_ip[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_ip, INET6_ADDRSTRLEN);
+      printf("[INGRESS-CHECK] Checking if packet from %s is return traffic\n", src_ip);
 
       if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
         // This is return traffic
+        printf("[INGRESS-CHECK] MATCH! Detected return traffic from iperf server\n");
         process_ingress_return_packet(pkts[i]);
       } else {
         // This is client->server traffic
+        printf("[INGRESS-CHECK] Not a match, processing as normal client->server traffic\n");
         process_ingress_packet(pkts[i], rx_port_id);
       }
     } else {
@@ -598,10 +624,31 @@ static inline void process_transit_return_packet(struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
 
-  printf("[TRANSIT-RETURN] Processing iperf server response\n");
+  printf("**** [TRANSIT-RETURN] DEBUG: Function called with packet length %u ****\n", rte_pktmbuf_pkt_len(mbuf));
+  printf("[TRANSIT-RETURN] MAC src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+         eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+         eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3],
+         eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5]);
+  printf("[TRANSIT-RETURN] MAC dst: %02X:%02X:%02X:%02X:%02X:%02X\n",
+         eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+         eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+         eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+  
+  char src_ip[INET6_ADDRSTRLEN], dst_ip[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_ip, INET6_ADDRSTRLEN);
+  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip, INET6_ADDRSTRLEN);
+  
+  printf("[TRANSIT-RETURN] IPv6 src: %s\n", src_ip);
+  printf("[TRANSIT-RETURN] IPv6 dst: %s\n", dst_ip);
+  printf("[TRANSIT-RETURN] Next Header: %u\n", ipv6_hdr->proto);
+  
+  // Dump the first 64 bytes of the packet
+  printf("[TRANSIT-RETURN] Packet hex dump (first 64 bytes):\n");
+  size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
+  if (dump_len > 64) dump_len = 64;
+  hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
 
   // Forward to ingress node
- // 02:0c:b4:7a:8c:6d
   struct rte_ether_addr ingress_mac = {
       {0x02, 0x0c, 0xb4, 0x7a, 0x8c, 0x6d}};  // Replace with actual ingress MAC address
 
@@ -797,10 +844,13 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
 // Modify process_transit function to first check if packet is return traffic
 static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
+  printf("**** [TRANSIT] Starting transit processing with %u packets ****\n", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
     struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkts[i], struct rte_ether_hdr *);
     uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
+    printf("[TRANSIT] Processing packet %u, EtherType: 0x%04x\n", i, ether_type);
+    
     if (ether_type == RTE_ETHER_TYPE_IPV6) {
       struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
 
@@ -808,11 +858,17 @@ static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
       struct in6_addr iperf_server_addr;
       inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
 
+      char src_ip[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_ip, INET6_ADDRSTRLEN);
+      printf("[TRANSIT-CHECK] Checking if packet from %s is return traffic\n", src_ip);
+
       if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
         // This is return traffic
+        printf("[TRANSIT-CHECK] MATCH! Detected return traffic from iperf server\n");
         process_transit_return_packet(pkts[i]);
       } else {
         // This is client->server traffic
+        printf("[TRANSIT-CHECK] Not a match, processing as normal client->server traffic\n");
         process_transit_packet(pkts[i], i);
       }
     } else {
@@ -839,12 +895,50 @@ static inline void process_return_traffic(struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
 
+  printf("**** [EGRESS-RETURN] DEBUG: Function called with packet length %u ****\n", rte_pktmbuf_pkt_len(mbuf));
+  printf("[EGRESS-RETURN] MAC src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+         eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+         eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3],
+         eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5]);
+  printf("[EGRESS-RETURN] MAC dst: %02X:%02X:%02X:%02X:%02X:%02X\n",
+         eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+         eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+         eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+
+  // Get source and destination IP addresses
+  char src_ip[INET6_ADDRSTRLEN], dst_ip[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_ip, INET6_ADDRSTRLEN);
+  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip, INET6_ADDRSTRLEN);
+  
+  printf("[EGRESS-RETURN] IPv6 src: %s\n", src_ip);
+  printf("[EGRESS-RETURN] IPv6 dst: %s\n", dst_ip);
+  printf("[EGRESS-RETURN] Next Header: %u\n", ipv6_hdr->proto);
+
   // Check if this is from the iperf server
   struct in6_addr iperf_server_addr;
   inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
 
+  // Print additional UPD/TCP header info if applicable
+  if (ipv6_hdr->proto == IPPROTO_UDP) {
+    struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)(ipv6_hdr + 1);
+    printf("[EGRESS-RETURN] UDP src port: %u, dst port: %u, dgram_len: %u\n", 
+           ntohs(udp_hdr->src_port), ntohs(udp_hdr->dst_port), ntohs(udp_hdr->dgram_len));
+  } else if (ipv6_hdr->proto == IPPROTO_TCP) {
+    struct rte_tcp_hdr *tcp_hdr = (struct rte_tcp_hdr *)(ipv6_hdr + 1);
+    printf("[EGRESS-RETURN] TCP src port: %u, dst port: %u\n",
+           ntohs(tcp_hdr->src_port), ntohs(tcp_hdr->dst_port));
+  } else if (ipv6_hdr->proto == IPPROTO_ICMPV6) {
+    printf("[EGRESS-RETURN] ICMPv6 packet detected\n");
+  }
+
   if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
     printf("[EGRESS-RETURN] Detected iperf server response\n");
+
+    // Dump the first 64 bytes of the packet
+    printf("[EGRESS-RETURN] Packet hex dump (first 64 bytes):\n");
+    size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
+    if (dump_len > 64) dump_len = 64;
+    hex_dump(rte_pktmbuf_mtod(mbuf, void *), dump_len);
 
     // Find transit node MAC (first hop in return path)
     struct rte_ether_addr transit_mac = {
@@ -972,10 +1066,38 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
 
             // Remove headers and forward to iperf server (replace MAC/port as needed)
             remove_headers(mbuf);
+            
+            // Debug iperf traffic specifically
+            struct rte_ether_hdr *eth_hdr_final = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+            struct rte_ipv6_hdr *ipv6_hdr_final = (struct rte_ipv6_hdr *)(eth_hdr_final + 1);
+            
+            // Get source and destination IP addresses after header removal
+            char final_src_ip[INET6_ADDRSTRLEN], final_dst_ip[INET6_ADDRSTRLEN];
+            inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, final_src_ip, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, final_dst_ip, INET6_ADDRSTRLEN);
+            
+            printf("[EGRESS-IPERF-DEBUG] Final packet IPv6 src: %s\n", final_src_ip);
+            printf("[EGRESS-IPERF-DEBUG] Final packet IPv6 dst: %s\n", final_dst_ip);
+            
+            // Check for UDP traffic to iperf port
+            if (ipv6_hdr_final->proto == IPPROTO_UDP) {
+                struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)(ipv6_hdr_final + 1);
+                printf("[EGRESS-IPERF-DEBUG] UDP packet: src_port=%u, dst_port=%u, dgram_len=%u\n", 
+                       ntohs(udp_hdr->src_port), ntohs(udp_hdr->dst_port), ntohs(udp_hdr->dgram_len));
+                
+                if (ntohs(udp_hdr->dst_port) == 5201) {
+                    printf("[EGRESS-IPERF-DEBUG] ****** DETECTED UDP PACKET TO IPERF PORT 5201 ******\n");
+                    printf("[EGRESS-IPERF-DEBUG] Watch for server response in tcpdump\n");
+                }
+            }
+            
             // struct rte_ether_addr iperf_mac = {{0x08, 0x00, 0x27, 0x7D, 0xDD, 0x01}};
             struct rte_ether_addr iperf_mac = {
                 {0x02, 0x38, 0x81, 0xe2, 0xf9, 0xa7}};  // Updated to your iperf server MAC
             // send_packet_to(iperf_mac, mbuf, /*tx_port_id*/ 1);
+            printf("[EGRESS-IPERF-DEBUG] Sending to iperf server MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+                   iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2], 
+                   iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
             send_packet_to(iperf_mac, mbuf, 0);
             printf("[EGRESS] Packet hex dump AFTER send (first 64 bytes):\n");
             dump_len = rte_pktmbuf_pkt_len(mbuf);
@@ -1011,12 +1133,18 @@ static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
       // Check if packet is from iperf server
       struct in6_addr iperf_server_addr;
       inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
+      
+      char src_ip[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_ip, INET6_ADDRSTRLEN);
+      printf("[EGRESS-CHECK] Checking if packet from %s is return traffic\n", src_ip);
 
       if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
         // This is return traffic
+        printf("[EGRESS-CHECK] MATCH! Detected return traffic from iperf server\n");
         process_return_traffic(pkts[i]);
       } else {
         // This is client->server traffic
+        printf("[EGRESS-CHECK] Not a match, processing as normal client->server traffic\n");
         process_egress_packet(pkts[i]);
       }
     } else {
