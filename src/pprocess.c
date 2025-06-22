@@ -108,6 +108,7 @@ void remove_headers(struct rte_mbuf *pkt) {
     udp_hdr->dgram_len = rte_cpu_to_be_16(payload_size);
     // Zero out checksum to let the NIC recalculate it
     udp_hdr->dgram_cksum = 0;
+    udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, udp_hdr);
     printf("[DEBUG-REMOVE] Fixed UDP header - src_port: %u, dst_port: %u, dgram_len: %u, cksum: 0x%04x\n",
            rte_be_to_cpu_16(udp_hdr->src_port), rte_be_to_cpu_16(udp_hdr->dst_port),
            rte_be_to_cpu_16(udp_hdr->dgram_len), rte_be_to_cpu_16(udp_hdr->dgram_cksum));
