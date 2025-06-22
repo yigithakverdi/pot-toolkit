@@ -75,9 +75,24 @@ void remove_headers(struct rte_mbuf *pkt) {
   printf("[DEBUG-REMOVE] Trimming %lu bytes from packet\n", trim_size);
   rte_pktmbuf_trim(pkt, trim_size);
 
-  // Restore the original next header from SRH
-  ipv6_hdr->proto = srh->next_header;
-  printf("[DEBUG-REMOVE] Restored IPv6 next header to: %u\n", ipv6_hdr->proto);
+  // Detect the original protocol by examining the payload
+  uint8_t original_next_header = 17; // Default to UDP
+  
+  // If payload looks like UDP (has UDP header structure)
+  if (payload_size >= sizeof(struct rte_udp_hdr)) {
+    struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)payload;
+    uint16_t udp_len = rte_be_to_cpu_16(udp_hdr->dgram_len);
+    
+    // Simple validation: UDP length should match or be close to payload size
+    if (udp_len <= payload_size && udp_len >= sizeof(struct rte_udp_hdr)) {
+      original_next_header = 17; // UDP
+      printf("[DEBUG-REMOVE] Detected UDP payload, UDP length: %u\n", udp_len);
+    }
+  }
+
+  // Set the correct next header (the original protocol, not SRH)
+  ipv6_hdr->proto = original_next_header;
+  printf("[DEBUG-REMOVE] Set IPv6 next header to: %u\n", ipv6_hdr->proto);
 
   // Set the destination IPv6 address to the iperf server's actual address
   struct in6_addr iperf_server_ipv6;
