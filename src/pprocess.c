@@ -296,6 +296,27 @@ void add_custom_header_only(struct rte_mbuf *pkt) {
   RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
 }
 
+// Add this function to handle return traffic at the ingress node
+static inline void process_ingress_return_packet(struct rte_mbuf *mbuf) {
+  struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+
+  printf("[INGRESS-RETURN] Processing iperf server response\n");
+
+  // Forward directly to client
+  struct in6_addr client_addr;
+  inet_pton(AF_INET6, "2a05:d014:dc7:12ff:f611:cc26:cf0d:5c92", &client_addr);
+  struct rte_ether_addr *client_mac = lookup_mac_for_ipv6(&client_addr);
+
+  if (client_mac) {
+    send_packet_to(*client_mac, mbuf, 0);
+    printf("[INGRESS-RETURN] Forwarded server response to client\n");
+  } else {
+    printf("[INGRESS-RETURN] No MAC mapping for client! Dropping packet\n");
+    rte_pktmbuf_free(mbuf);
+  }
+}
+
 // Helper: process a single packet for ingress
 static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_port_id) {
   printf("[INGRESS] Packet hex dump BEFORE processing (first 64 bytes):\n");
@@ -407,9 +428,9 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           printf("Computing HMAC for the packet\n");
           // Log HMAC input values for debugging
           struct in6_addr ingress_addr;
-          inet_pton(AF_INET6, "2a05:d014:dc7:1291:11ed:eb6b:b01a:9452", &ingress_addr);
+          inet_pton(AF_INET6, "2a05:d014:dc7:12ff:f611:cc26:cf0d:5c92", &ingress_addr);
           printf("[INGRESS] HMAC input values (FORCED ingress IP):\n");
-          printf("  src_addr: 2a05:d014:dc7:1291:11ed:eb6b:b01a:9452\n");
+          printf("  src_addr: 2a05:d014:dc7:12ff:f611:cc26:cf0d:5c92\n");
           printf("  srh->last_entry: %u\n", srh->last_entry);
           printf("  srh->flags: %u\n", srh->flags);
           printf("  hmac->hmac_key_id: %u\n", rte_be_to_cpu_32(hmac->hmac_key_id));
@@ -495,7 +516,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
 
             // Update the main IPv6 header's Source Address to the ingress node's own IP.
-            memcpy(&ipv6_hdr->src_addr, &ingress_own_ip_as_src, sizeof(struct in6_addr));
+            // memcpy(&ipv6_hdr->src_addr, &ingress_own_ip_as_src, sizeof(struct in6_addr));
 
             // Get the MAC address of the ingress DPDK port (which will be the source MAC)
             struct rte_ether_addr ingress_port_mac;
@@ -546,11 +567,46 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
   }
 }
 
+// Modify process_ingress function to first check if packet is return traffic
 static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id) {
   printf("Starting process on ingress role with %u packets\n", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
-    process_ingress_packet(pkts[i], rx_port_id);
+    struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkts[i], struct rte_ether_hdr *);
+    uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+
+    if (ether_type == RTE_ETHER_TYPE_IPV6) {
+      struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+
+      // Check if from iperf server (return traffic)
+      struct in6_addr iperf_server_addr;
+      inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
+
+      if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
+        // This is return traffic
+        process_ingress_return_packet(pkts[i]);
+      } else {
+        // This is client->server traffic
+        process_ingress_packet(pkts[i], rx_port_id);
+      }
+    } else {
+      process_ingress_packet(pkts[i], rx_port_id);
+    }
   }
+}
+// Add this function to handle return traffic at the transit node
+static inline void process_transit_return_packet(struct rte_mbuf *mbuf) {
+  struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+
+  printf("[TRANSIT-RETURN] Processing iperf server response\n");
+
+  // Forward to ingress node
+ // 02:0c:b4:7a:8c:6d
+  struct rte_ether_addr ingress_mac = {
+      {0x02, 0x0c, 0xb4, 0x7a, 0x8c, 0x6d}};  // Replace with actual ingress MAC address
+
+  send_packet_to(ingress_mac, mbuf, 0);
+  printf("[TRANSIT-RETURN] Forwarded server response to ingress node\n");
 }
 
 // Helper: process a single packet for transit
@@ -739,9 +795,29 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   }
 }
 
+// Modify process_transit function to first check if packet is return traffic
 static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
   for (uint16_t i = 0; i < nb_rx; i++) {
-    process_transit_packet(pkts[i], i);
+    struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkts[i], struct rte_ether_hdr *);
+    uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+
+    if (ether_type == RTE_ETHER_TYPE_IPV6) {
+      struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+
+      // Check if from iperf server (return traffic)
+      struct in6_addr iperf_server_addr;
+      inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
+
+      if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
+        // This is return traffic
+        process_transit_return_packet(pkts[i]);
+      } else {
+        // This is client->server traffic
+        process_transit_packet(pkts[i], i);
+      }
+    } else {
+      process_transit_packet(pkts[i], i);
+    }
   }
 }
 
@@ -755,6 +831,28 @@ int compare_hmac(struct hmac_tlv *hmac, uint8_t *hmac_out, struct rte_mbuf *mbuf
     printf("The transit of the packet is verified\n");
     // forward it to the tap interface so iperf can catch it
     return 1;
+  }
+}
+
+// Add this function to handle return traffic at the egress node
+static inline void process_return_traffic(struct rte_mbuf *mbuf) {
+  struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+  struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+
+  // Check if this is from the iperf server
+  struct in6_addr iperf_server_addr;
+  inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
+
+  if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
+    printf("[EGRESS-RETURN] Detected iperf server response\n");
+
+    // Find transit node MAC (first hop in return path)
+    struct rte_ether_addr transit_mac = {
+        {0x02, 0xf5, 0x27, 0x51, 0xbc, 0x1d}};  // Replace with your transit MAC
+
+    // Forward packet to transit node
+    send_packet_to(transit_mac, mbuf, 0);
+    printf("[EGRESS-RETURN] Forwarded server response to transit node\n");
   }
 }
 
@@ -901,9 +999,29 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
   }
 }
 
+// Modify process_egress function to first check if packet is return traffic
 static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
   for (uint16_t i = 0; i < nb_rx; i++) {
-    process_egress_packet(pkts[i]);
+    struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkts[i], struct rte_ether_hdr *);
+    uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+
+    if (ether_type == RTE_ETHER_TYPE_IPV6) {
+      struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
+
+      // Check if packet is from iperf server
+      struct in6_addr iperf_server_addr;
+      inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_addr);
+
+      if (memcmp(&ipv6_hdr->src_addr, &iperf_server_addr, sizeof(struct in6_addr)) == 0) {
+        // This is return traffic
+        process_return_traffic(pkts[i]);
+      } else {
+        // This is client->server traffic
+        process_egress_packet(pkts[i]);
+      }
+    } else {
+      process_egress_packet(pkts[i]);
+    }
   }
 }
 
