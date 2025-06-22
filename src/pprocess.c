@@ -8,8 +8,6 @@
 #include <rte_malloc.h>
 #include <rte_mbuf.h>
 #include <rte_memcpy.h>
-#include <rte_tcp.h>  // Added for completeness
-#include <rte_udp.h>  // Added for UDP header processing
 #include <stdint.h>
 #include <sys/socket.h>
 
@@ -34,104 +32,95 @@ void remove_headers(struct rte_mbuf *pkt) {
   struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
   uint8_t *payload = (uint8_t *)(pot + 1);
 
+  printf("[EGRESS] Processing verified packet for forwarding to iperf server\n");
+  printf("[EGRESS] Packet before removing headers - length: %u\n", rte_pktmbuf_pkt_len(pkt));
+  
+  char pre_dst_str[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str));
+  printf("[EGRESS] Pre-modification IPv6 destination: %s\n", pre_dst_str);
+
   printf("[DEBUG-REMOVE] Original packet before header removal:\n");
   printf("  Packet length: %u bytes\n", rte_pktmbuf_pkt_len(pkt));
   printf("  IPv6 next header: %u\n", ipv6_hdr->proto);
   printf("  SRH next header: %u\n", srh->next_header);
+  printf("  IPv6 payload length: %u bytes\n", rte_be_to_cpu_16(ipv6_hdr->payload_len));
 
-  uint16_t original_ipv6_len = rte_be_to_cpu_16(ipv6_hdr->payload_len);
-  printf("  IPv6 payload length: %u bytes\n", original_ipv6_len);
-
-  size_t eth_size = sizeof(struct rte_ether_hdr);
-  size_t ipv6_size = sizeof(struct rte_ipv6_hdr);
-  size_t srh_size = sizeof(struct ipv6_srh);
-  size_t hmac_size = sizeof(struct hmac_tlv);
-  size_t pot_size = sizeof(struct pot_tlv);
-
-  size_t payload_size = rte_pktmbuf_pkt_len(pkt) - (eth_size + ipv6_size + srh_size + hmac_size + pot_size);
+  // Calculate payload size correctly
+  size_t headers_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) + 
+                       sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
+  size_t payload_size = rte_pktmbuf_pkt_len(pkt) - headers_size;
+  
   printf("  Calculated payload size: %lu bytes\n", payload_size);
+  printf("[DEBUG-REMOVE] Header sizes: Eth=%lu, IPv6=%lu, SRH=%lu, HMAC=%lu, POT=%lu\n",
+         sizeof(struct rte_ether_hdr), sizeof(struct rte_ipv6_hdr), 
+         sizeof(struct ipv6_srh), sizeof(struct hmac_tlv), sizeof(struct pot_tlv));
+  printf("[DEBUG-REMOVE] Total headers size: %lu bytes\n", headers_size);
 
-  printf("[DEBUG-REMOVE] Header sizes: Eth=%lu, IPv6=%lu, SRH=%lu, HMAC=%lu, POT=%lu\n", eth_size, ipv6_size,
-         srh_size, hmac_size, pot_size);
-  printf("[DEBUG-REMOVE] Total headers size: %lu bytes\n",
-         eth_size + ipv6_size + srh_size + hmac_size + pot_size);
-
-  if (payload_size <= 0) {
-    printf("[ERROR-REMOVE] Invalid payload size calculation: %lu\n", payload_size);
-    return;
-  }
-
-  uint8_t *tmp_payload = (uint8_t *)malloc(payload_size);
+  // Copy payload to temporary buffer
+  uint8_t *tmp_payload = malloc(payload_size);
   if (tmp_payload == NULL) {
-    printf("[ERROR-REMOVE] malloc failed for payload buffer\n");
+    printf("malloc failed\n");
     return;
   }
-
   memcpy(tmp_payload, payload, payload_size);
   printf("[DEBUG-REMOVE] Payload copied to temp buffer (%lu bytes)\n", payload_size);
-
   printf("[DEBUG-REMOVE] First 16 bytes of payload: ");
-  for (int i = 0; i < 16 && i < payload_size; i++) {
+  for (int i = 0; i < (payload_size < 16 ? payload_size : 16); i++) {
     printf("%02x ", tmp_payload[i]);
   }
   printf("\n");
 
-  size_t trim_size = rte_pktmbuf_pkt_len(pkt) - eth_size - ipv6_size;
+  // Calculate how much to trim (everything except Ethernet + IPv6 + payload)
+  size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
   printf("[DEBUG-REMOVE] Trimming %lu bytes from packet\n", trim_size);
+  rte_pktmbuf_trim(pkt, trim_size);
 
-  if (rte_pktmbuf_trim(pkt, trim_size) < 0) {
-    printf("[ERROR-REMOVE] Failed to trim packet\n");
-    free(tmp_payload);
-    return;
-  }
+  // Restore the original next header (UDP = 17)
+  ipv6_hdr->proto = 17;
 
-  eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
-  ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
-
-  ipv6_hdr->proto = 17;  // UDP protocol
-
+  // Set the destination IPv6 address to the iperf server's address
   struct in6_addr iperf_server_ipv6;
   if (inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_ipv6) != 1) {
-    printf("[ERROR-REMOVE] Error converting IPv6 address\n");
+    printf("Error converting IPv6 address\n");
     free(tmp_payload);
     return;
   }
-
   memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
 
+  // Append the payload back
   uint8_t *new_payload = (uint8_t *)rte_pktmbuf_append(pkt, payload_size);
   if (new_payload == NULL) {
-    printf("[ERROR-REMOVE] Failed to append payload back to packet\n");
+    printf("Failed to append payload back to packet\n");
     free(tmp_payload);
     return;
   }
-
   memcpy(new_payload, tmp_payload, payload_size);
   printf("[DEBUG-REMOVE] Copied %lu bytes of payload back to packet\n", payload_size);
 
+  // Update IPv6 payload length
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
-  printf("[DEBUG-REMOVE] Updated IPv6 payload length: %u bytes\n", rte_be_to_cpu_16(ipv6_hdr->payload_len));
+  printf("[DEBUG-REMOVE] Updated IPv6 payload length: %lu bytes\n", payload_size);
 
-  // --- FIX FOR UDP HEADER ---
-  struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)(ipv6_hdr + 1);
+  // Fix UDP header if present
+  if (ipv6_hdr->proto == 17 && payload_size >= sizeof(struct rte_udp_hdr)) {
+    struct rte_udp_hdr *udp_hdr = (struct rte_udp_hdr *)new_payload;
+    // Update UDP length to match the actual payload size
+    udp_hdr->dgram_len = rte_cpu_to_be_16(payload_size);
+    // Zero out checksum to let the NIC recalculate it
+    udp_hdr->dgram_cksum = 0;
+    printf("[DEBUG-REMOVE] Fixed UDP header - src_port: %u, dst_port: %u, dgram_len: %u, cksum: 0x%04x\n",
+           rte_be_to_cpu_16(udp_hdr->src_port), rte_be_to_cpu_16(udp_hdr->dst_port),
+           rte_be_to_cpu_16(udp_hdr->dgram_len), rte_be_to_cpu_16(udp_hdr->dgram_cksum));
+  }
 
-  // The UDP datagram length is the payload size PLUS the size of the UDP header itself.
-  uint16_t udp_len = payload_size + sizeof(struct rte_udp_hdr);
-  udp_hdr->dgram_len = rte_cpu_to_be_16(udp_len);
-
-  udp_hdr->dgram_cksum = 0;
-  udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, udp_hdr);
-
-  printf("[DEBUG-REMOVE] Fixed UDP header - src_port: %u, dst_port: %u, dgram_len: %u, cksum: 0x%04x\n",
-         rte_be_to_cpu_16(udp_hdr->src_port), rte_be_to_cpu_16(udp_hdr->dst_port),
-         rte_be_to_cpu_16(udp_hdr->dgram_len), rte_be_to_cpu_16(udp_hdr->dgram_cksum));
-
-  char new_dst_str[INET6_ADDRSTRLEN];
-  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, new_dst_str, sizeof(new_dst_str));
-  printf("[DEBUG-REMOVE] New destination IPv6: %s\n", new_dst_str);
-
+  char dst_str[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_str, sizeof(dst_str));
+  printf("[DEBUG-REMOVE] New destination IPv6: %s\n", dst_str);
   printf("[DEBUG-REMOVE] Final packet length: %u bytes\n", rte_pktmbuf_pkt_len(pkt));
   printf("[DEBUG-REMOVE] Protocol in IPv6 header: %u\n", ipv6_hdr->proto);
+
+  printf("[EGRESS] Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(pkt));
+  printf("[EGRESS] Forwarding packet to iperf server MAC: 02:38:81:E2:F9:A7\n");
 
   free(tmp_payload);
 }
@@ -410,7 +399,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           //   printf("Failed to read HMAC key for %s\n", dst_ip_str);
           //   break;
           // }
-          uint8_t *k_hmac_ie = k_pot_in[0];  // egress key
+          uint8_t *k_hmac_ie = k_pot_in[0]; // egress key
           size_t key_len = HMAC_MAX_LENGTH;
 
           // Compute HMAC
@@ -741,10 +730,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
         case 1:
           // Bypass all operations
           break;
-        case 2:
-          printf("[EGRESS] Processing remove_headers_only operation\n");
-          remove_headers(mbuf);
-          break;
+        // case 2: remove_headers_only(mbuf); break;
         default: break;
       }
       break;
@@ -843,7 +829,7 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             //   rte_pktmbuf_free(mbuf);
             //   return;
             // }
-            uint8_t *k_hmac_ie = k_pot_in[0];  // egress key
+            uint8_t *k_hmac_ie = k_pot_in[0]; // egress key
 
             // Log HMAC input values for debugging
             printf("[EGRESS] HMAC input values:\n");
@@ -885,31 +871,11 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
               printf("Egress: HMAC verified successfully, forwarding packet\n");
             }
 
-            printf("[EGRESS] Processing verified packet for forwarding to iperf server\n");
-
-            // Log packet details before modifications
-            printf("[EGRESS] Packet before removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
-
-            // Get IPv6 destination before modification
-            struct rte_ether_hdr *pre_eth = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
-            struct rte_ipv6_hdr *pre_ipv6 = (struct rte_ipv6_hdr *)(pre_eth + 1);
-            char pre_dst[INET6_ADDRSTRLEN];
-            inet_ntop(AF_INET6, &pre_ipv6->dst_addr, pre_dst, sizeof(pre_dst));
-            printf("[EGRESS] Pre-modification IPv6 destination: %s\n", pre_dst);
-
-            // Remove headers and forward to iperf server
+            // Remove headers and forward to iperf server (replace MAC/port as needed)
             remove_headers(mbuf);
-
-            // Log packet after modification
-            printf("[EGRESS] Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
-
-            // Get the MAC address of the iperf server
-            struct rte_ether_addr iperf_mac = {{0x02, 0x38, 0x81, 0xe2, 0xf9, 0xa7}};  // Iperf server MAC
-            printf("[EGRESS] Forwarding packet to iperf server MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                   iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2],
-                   iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
-
-            // Send the modified packet
+            // struct rte_ether_addr iperf_mac = {{0x08, 0x00, 0x27, 0x7D, 0xDD, 0x01}};
+            struct rte_ether_addr iperf_mac = {{0x02, 0x38, 0x81, 0xe2, 0xf9, 0xa7}}; // Updated to your iperf server MAC
+            // send_packet_to(iperf_mac, mbuf, /*tx_port_id*/ 1);
             send_packet_to(iperf_mac, mbuf, 0);
             printf("[EGRESS] Packet hex dump AFTER send (first 64 bytes):\n");
             dump_len = rte_pktmbuf_pkt_len(mbuf);
