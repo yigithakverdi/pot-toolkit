@@ -1,10 +1,15 @@
 #ifndef LATENCY_H
 #define LATENCY_H
 
-#include "common.h"
-#include <rte_mbuf.h>
-#include <stdint.h>
-
+#include <rte_mbuf_core.h>
+#include <rte_mbuf_dyn.h>
+#include <stdlib.h>
+#include "latency.h"
+#include <inttypes.h>        // For PRIu64
+#include <rte_cycles.h>      // For rte_rdtsc() and rte_get_tsc_hz()
+#include "core/init.h"
+#include "latency.h"  // Add this include
+#include "utils/common.h"
 typedef uint64_t tsc_t;
 
 extern int tsc_dynfield_offset;
@@ -19,9 +24,9 @@ uint16_t calc_latency(uint16_t port, uint16_t qidx, struct rte_mbuf **pkts, uint
                       void *user_param);
 
 struct latency_numbers_t {
-    uint64_t total_cycles;
-    uint64_t total_queue_cycles;
-    uint64_t total_pkts;
+  uint64_t total_cycles;
+  uint64_t total_queue_cycles;
+  uint64_t total_pkts;
 };
 
 extern struct latency_numbers_t latency_numbers;

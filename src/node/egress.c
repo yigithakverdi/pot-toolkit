@@ -1,8 +1,8 @@
-#include "include/node/egress.h"
+#include "node/egress.h"
 
-#include "include/common.h"
-#include "include/crypto.h"
-#include "include/pprocess.h"
+#include "utils/common.h"
+#include "security/crypto.h"
+#include "dataplane/processing.h"
 
 static inline void process_egress_packet(struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
@@ -73,7 +73,7 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
   }
 }
 
-static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
+void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
   for (uint16_t i = 0; i < nb_rx; i++) {
     process_egress_packet(pkts[i]);
   }

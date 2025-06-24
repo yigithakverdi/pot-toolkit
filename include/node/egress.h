@@ -58,6 +58,6 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf);
  * @param pkts Pointer to an array of packet buffers.
  * @param nb_rx The number of packets (buffers) in the array.
  */
-static inline void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx);
+void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx);
 
 #endif // TRANSIT_H

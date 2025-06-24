@@ -1,8 +1,8 @@
-#include "include/node/ingress.h"
+#include "node/ingress.h"
 
-#include "include/common.h"
-#include "include/crypto.h"
-#include "include/pprocess.h"
+#include "utils/common.h"
+#include "security/crypto.h"
+#include "dataplane/processing.h"
 
 static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_port_id) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
@@ -85,7 +85,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
   }
 }
 
-static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id) {
+void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id) {
   for (uint16_t i = 0; i < nb_rx; i++) {
     process_ingress_packet(pkts[i], rx_port_id);
   }

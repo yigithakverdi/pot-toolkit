@@ -48,7 +48,7 @@
  * @param pkts Array of pointers to rte_mbuf structures representing incoming packets.
  * @param nb_rx The number of packets in the pkts array.
  */
-static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx);
+void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx);
 
 /**
  * process_transit - Processes an array of received packets.

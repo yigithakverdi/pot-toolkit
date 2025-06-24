@@ -1,9 +1,11 @@
 #include <rte_dev.h>
 #include <sys/types.h>
 
-#include "common.h"
+#include "utils/common.h"
 #include "port.h"
-#include "pprocess.h"
+#include "dataplane/processing.h"
+#include "core/init.h"
+#include "core/nodemng.h"
 
 int main(int argc, char *argv[]) {
   printf("Initializing next-hop table at startup\n");

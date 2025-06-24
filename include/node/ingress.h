@@ -33,7 +33,7 @@
  * @param nb_rx The number of packets in the pkts array.
  * @param rx_port_id The identifier of the ingress port from which the packets were received.
  */
-static inline void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id);
+void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id);
 
 
 /**

@@ -1,6 +1,6 @@
-#include "include/node/transit.h"
-#include "include/common.h"
-#include "include/crypto.h"
+#include "node/transit.h"
+#include "utils/common.h"
+#include "security/crypto.h"
 
 static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
@@ -73,7 +73,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   }
 }
 
-static inline void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
+void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
   for (uint16_t i = 0; i < nb_rx; i++) {
     process_transit_packet(pkts[i], i);
   }
