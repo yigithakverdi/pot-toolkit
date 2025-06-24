@@ -20,29 +20,15 @@ void remove_headers(struct rte_mbuf *pkt) {
   struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
   uint8_t *payload = (uint8_t *)(pot + 1);
 
-  printf("[EGRESS] Processing verified packet for forwarding to iperf server\n");
-  printf("[EGRESS] Packet before removing headers - length: %u\n", rte_pktmbuf_pkt_len(pkt));
 
   char pre_dst_str[INET6_ADDRSTRLEN];
   inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str));
-  printf("[EGRESS] Pre-modification IPv6 destination: %s\n", pre_dst_str);
-
-  printf("[DEBUG-REMOVE] Original packet before header removal:\n");
-  printf("  Packet length: %u bytes\n", rte_pktmbuf_pkt_len(pkt));
-  printf("  IPv6 next header: %u\n", ipv6_hdr->proto);
-  printf("  SRH next header: %u\n", srh->next_header);
-  printf("  IPv6 payload length: %u bytes\n", rte_be_to_cpu_16(ipv6_hdr->payload_len));
 
   // Calculate payload size correctly
   size_t headers_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) + sizeof(struct ipv6_srh) +
                         sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
   size_t payload_size = rte_pktmbuf_pkt_len(pkt) - headers_size;
 
-  printf("  Calculated payload size: %lu bytes\n", payload_size);
-  printf("[DEBUG-REMOVE] Header sizes: Eth=%lu, IPv6=%lu, SRH=%lu, HMAC=%lu, POT=%lu\n",
-         sizeof(struct rte_ether_hdr), sizeof(struct rte_ipv6_hdr), sizeof(struct ipv6_srh),
-         sizeof(struct hmac_tlv), sizeof(struct pot_tlv));
-  printf("[DEBUG-REMOVE] Total headers size: %lu bytes\n", headers_size);
 
   // Copy payload to temporary buffer
   uint8_t *tmp_payload = malloc(payload_size);
@@ -51,16 +37,9 @@ void remove_headers(struct rte_mbuf *pkt) {
     return;
   }
   memcpy(tmp_payload, payload, payload_size);
-  printf("[DEBUG-REMOVE] Payload copied to temp buffer (%lu bytes)\n", payload_size);
-  printf("[DEBUG-REMOVE] First 16 bytes of payload: ");
-  for (int i = 0; i < (payload_size < 16 ? payload_size : 16); i++) {
-    printf("%02x ", tmp_payload[i]);
-  }
-  printf("\n");
 
   // Calculate how much to trim (everything except Ethernet + IPv6 + payload)
   size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
-  printf("[DEBUG-REMOVE] Trimming %lu bytes from packet\n", trim_size);
   rte_pktmbuf_trim(pkt, trim_size);
 
   // Restore the original next header (UDP = 17)
@@ -83,11 +62,9 @@ void remove_headers(struct rte_mbuf *pkt) {
     return;
   }
   memcpy(new_payload, tmp_payload, payload_size);
-  printf("[DEBUG-REMOVE] Copied %lu bytes of payload back to packet\n", payload_size);
 
   // Update IPv6 payload length
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
-  printf("[DEBUG-REMOVE] Updated IPv6 payload length: %lu bytes\n", payload_size);
 
   // Fix UDP header if present
   if (ipv6_hdr->proto == 17 && payload_size >= sizeof(struct rte_udp_hdr)) {
@@ -97,19 +74,10 @@ void remove_headers(struct rte_mbuf *pkt) {
     // Zero out checksum to let the NIC recalculate it
     udp_hdr->dgram_cksum = 0;
     udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, udp_hdr);
-    printf("[DEBUG-REMOVE] Fixed UDP header - src_port: %u, dst_port: %u, dgram_len: %u, cksum: 0x%04x\n",
-           rte_be_to_cpu_16(udp_hdr->src_port), rte_be_to_cpu_16(udp_hdr->dst_port),
-           rte_be_to_cpu_16(udp_hdr->dgram_len), rte_be_to_cpu_16(udp_hdr->dgram_cksum));
   }
 
   char dst_str[INET6_ADDRSTRLEN];
   inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_str, sizeof(dst_str));
-  printf("[DEBUG-REMOVE] New destination IPv6: %s\n", dst_str);
-  printf("[DEBUG-REMOVE] Final packet length: %u bytes\n", rte_pktmbuf_pkt_len(pkt));
-  printf("[DEBUG-REMOVE] Protocol in IPv6 header: %u\n", ipv6_hdr->proto);
-
-  printf("[EGRESS] Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(pkt));
-  printf("[EGRESS] Forwarding packet to iperf server MAC: 02:38:81:E2:F9:A7\n");
 
   free(tmp_payload);
 }
@@ -209,11 +177,9 @@ void add_custom_header(struct rte_mbuf *pkt) {
   // Update IPv6 payload length to include new extension headers
   uint16_t new_plen = rte_pktmbuf_pkt_len(pkt) - sizeof(*eth_hdr_6) - sizeof(*ipv6_hdr);
   ipv6_hdr->payload_len = rte_cpu_to_be_16(new_plen);
-  printf("[INGRESS] Updated IPv6 payload_len: %u\n", new_plen);
 
   // Dump the first 128 bytes (or the whole packet if smaller)
   size_t dump_len = rte_pktmbuf_pkt_len(pkt);
   if (dump_len > 128) dump_len = 128;
-  printf("Packet hex dump after custom header addition (first %zu bytes):\n", dump_len);
   hex_dump(rte_pktmbuf_mtod(pkt, void *), dump_len);
 }
