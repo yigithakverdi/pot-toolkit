@@ -176,7 +176,7 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hm
 
   // Only encrypt with transit (1) and egress (0) keys - the only two you have defined
   for (int i = 1; i >= 0; i--) {
-    for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", buffer[j]);
+    // for (int j = 0; j < HMAC_MAX_LENGTH; j++) printf("%02x", buffer[j]);
     encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out);
     memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
   }
