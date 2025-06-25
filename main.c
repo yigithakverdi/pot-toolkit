@@ -1,9 +1,10 @@
 #include <rte_dev.h>
 #include <sys/types.h>
 
-#include "utils/common.h"
+#include "dataplane/forward.h"
 #include "port.h"
 #include "dataplane/processing.h"
+#include "routing/routecontroller.h"
 #include "core/init.h"
 #include "core/nodemng.h"
 

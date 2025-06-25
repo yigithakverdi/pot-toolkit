@@ -50,7 +50,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           if (dump_len > 128) dump_len = 128;
           uint8_t hmac_out[HMAC_MAX_LENGTH];
           if (calculate_hmac((uint8_t *)&ingress_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
-            for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
+            // for (int i = 0; i < HMAC_MAX_LENGTH; i++) printf("%02x", hmac_out[i]);
             rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
           } else {
             break;

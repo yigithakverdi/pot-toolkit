@@ -11,8 +11,8 @@
 #include <stdint.h>
 #include <sys/socket.h>
 
-#include "utils/common.h"
 void hex_dump(const void *data, size_t size) {
+  printf("!!!!! ");
   const unsigned char *p = data;
   for (size_t i = 0; i < size; i++) {
     printf("%02x ", p[i]);
@@ -23,12 +23,14 @@ void hex_dump(const void *data, size_t size) {
 
 // Utility: Print offset and hex for a structure
 void print_offset_and_hex(const char *label, const void *base, const void *ptr, size_t len) {
-  printf("%s offset: %ld\n", label, (const uint8_t *)ptr - (const uint8_t *)base);
-  printf("%s hex dump:\n", label);
-  hex_dump(ptr, len);
+  printf("!!!!! ");
+  // printf("%s offset: %ld\n", label, (const uint8_t *)ptr - (const uint8_t *)base);
+  // printf("%s hex dump:\n", label);
+  // hex_dump(ptr, len);
 }
 
 void print_ipv6_address(const struct in6_addr *ipv6_addr, const char *label) {
+  printf("!!!!! ");
   char addr_str[INET6_ADDRSTRLEN];  // Buffer for human-readable address
 
   // Convert the IPv6 binary address to a string
@@ -43,6 +45,7 @@ void print_ipv6_address(const struct in6_addr *ipv6_addr, const char *label) {
 // address to dotted-decimal notation and displaying it alongside the provided label; if the conversion
 // fails, an error message is printed.
 void print_ipv4_address(uint32_t ipv4_addr, const char *label) {
+  printf("!!!!! ");
   struct in_addr addr;
   addr.s_addr = ipv4_addr;
   char buf[INET_ADDRSTRLEN];
