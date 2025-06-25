@@ -44,7 +44,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           size_t key_len = HMAC_MAX_LENGTH;
 
           struct in6_addr ingress_addr;
-          inet_pton(AF_INET6, "2a05:d014:dc7:12ff:f611:cc26:cf0d:5c92", &ingress_addr);
+          inet_pton(AF_INET6, "2a05:d014:dc7:127a:fe22:97ab:a0a8:ff18", &ingress_addr);
 
           size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
           if (dump_len > 128) dump_len = 128;
