@@ -1092,8 +1092,9 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             }
             
             // struct rte_ether_addr iperf_mac = {{0x08, 0x00, 0x27, 0x7D, 0xDD, 0x01}};
-            struct rte_ether_addr iperf_mac = {
-                {0x02, 0x38, 0x81, 0xe2, 0xf9, 0xa7}};  // Updated to your iperf server MAC
+            // struct rte_ether_addr iperf_mac = {
+            //     {0x02, 0x38, 0x81, 0xe2, 0xf9, 0xa7}};  // Updated to your iperf server MAC
+            struct rte_ether_addr iperf_mac = {{0x02, 0xcc, 0xef, 0x38, 0x4b, 0x25}};
             // send_packet_to(iperf_mac, mbuf, /*tx_port_id*/ 1);
             printf("[EGRESS-IPERF-DEBUG] Sending to iperf server MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
                    iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2], 
