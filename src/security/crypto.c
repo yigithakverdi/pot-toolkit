@@ -108,7 +108,7 @@ int decrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t pvf
   // Use the key that was passed in
   int dec_len = decrypt(pvf_out, cipher_len, k_pot_in[0], nonce, plaintext);
   memcpy(pvf_out, plaintext, 32);
-  BIO_dump_fp(stdout, (const char *)pvf_out, dec_len);
+  // BIO_dump_fp(stdout, (const char *)pvf_out, dec_len);
   return 0;
 }
 
@@ -185,12 +185,12 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hm
 
 int generate_nonce(uint8_t nonce[NONCE_LENGTH]) {
   if (RAND_bytes(nonce, NONCE_LENGTH) != 1) {
-    printf("Error: Failed to generate random nonce.\n");
+    // printf("Error: Failed to generate random nonce.\n");
     return 1;
   }
   // printf("Generated Nonce: ");
   for (int i = 0; i < NONCE_LENGTH; i++) {
-    printf("%02x", nonce[i]);
+    // printf("%02x", nonce[i]);
   }
   // printf("\n");
   return 0;
