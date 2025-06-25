@@ -58,8 +58,8 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             char final_src_ip[INET6_ADDRSTRLEN], final_dst_ip[INET6_ADDRSTRLEN];
             inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, final_src_ip, INET6_ADDRSTRLEN);
             inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, final_dst_ip, INET6_ADDRSTRLEN);
-
-            struct rte_ether_addr iperf_mac = {{0x02, 0x38, 0x81, 0xe2, 0xf9, 0xa7}};
+            
+            struct rte_ether_addr iperf_mac = {{0x02, 0xcc, 0xef, 0x38, 0x4b, 0x25}};
             send_packet_to(iperf_mac, mbuf, 0);
           }
           break;
