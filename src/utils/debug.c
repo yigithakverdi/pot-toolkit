@@ -47,8 +47,8 @@ void print_ipv4_address(uint32_t ipv4_addr, const char *label) {
   addr.s_addr = ipv4_addr;
   char buf[INET_ADDRSTRLEN];
   if (inet_ntop(AF_INET, &addr, buf, sizeof(buf)) != NULL) {
-    RTE_LOG(INFO, USER1, "%s: %s\n", label, buf);
+    // RTE_LOG(INFO, USER1, "%s: %s\n", label, buf);
   } else {
-    RTE_LOG(ERR, USER1, "inet_ntop failed: %s\n", strerror(errno));
+    // RTE_LOG(ERR, USER1, "inet_ntop failed: %s\n", strerror(errno));
   }
 }

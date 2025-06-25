@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 
 #include "utils/common.h"
+#include "utils/debug.h"
 #include "dataplane/headers.h"
 
 void remove_headers(struct rte_mbuf *pkt) {
@@ -106,7 +107,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
   // Packet must be large enough to hold the new headers
   if (rte_pktmbuf_tailroom(pkt) < sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv)) {
     rte_pktmbuf_free(pkt);
-    RTE_LOG(ERR, USER1, "Packet too small for custom headers\n");
+    // RTE_LOG(ERR, USER1, "Packet too small for custom headers\n");
     return;
   }
 
@@ -122,7 +123,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
   uint8_t *tmp_payload = rte_malloc("tmp_payload", payload_size, RTE_CACHE_LINE_SIZE);
   if (tmp_payload == NULL) {
     rte_pktmbuf_free(pkt);
-    RTE_LOG(ERR, USER1, "rte_malloc failed\n");
+    // RTE_LOG(ERR, USER1, "rte_malloc failed\n");
     return;
   }
 
@@ -172,7 +173,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
                                              0xd9, 0x3b, 0xcb, 0xd2, 0xb3}}};
 
   memcpy(srh_hdr->segments, segments, sizeof(segments));
-  RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
+  // RTE_LOG(INFO, USER1, "Custom headers added to packet\n");
 
   // Update IPv6 payload length to include new extension headers
   uint16_t new_plen = rte_pktmbuf_pkt_len(pkt) - sizeof(*eth_hdr_6) - sizeof(*ipv6_hdr);
@@ -181,5 +182,5 @@ void add_custom_header(struct rte_mbuf *pkt) {
   // Dump the first 128 bytes (or the whole packet if smaller)
   size_t dump_len = rte_pktmbuf_pkt_len(pkt);
   if (dump_len > 128) dump_len = 128;
-  hex_dump(rte_pktmbuf_mtod(pkt, void *), dump_len);
+  // hex_dump(rte_pktmbuf_mtod(pkt, void *), dump_len);
 }

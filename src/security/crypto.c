@@ -38,7 +38,7 @@ int calculate_hmac(uint8_t *src_addr,                // Source IPv6 address (16 
   uint8_t *digest = HMAC(EVP_sha256(), key, key_len, input, input_len, NULL, &hmac_len);
 
   if (!digest) {
-    rte_log(RTE_LOG_ERR, RTE_LOGTYPE_USER1, "HMAC computation failed\n");
+    // rte_log(RTE_LOG_ERR, RTE_LOGTYPE_USER1, "HMAC computation failed\n");
     return -1;
   }
 
