@@ -1,7 +1,6 @@
 #include "dataplane/forward.h"
 #include "utils/common.h"
 #include "core/nodemng.h"
-#include "dataplane/headers.h"
 #include "node/ingress.h"
 #include "node/transit.h"
 #include "node/egress.h"

@@ -1,5 +1,5 @@
-#ifndef TRANSIT_H
-#define TRANSIT_H
+#ifndef EGRESS_H
+#define EGRESS_H
 
 #include <arpa/inet.h>
 #include <getopt.h>

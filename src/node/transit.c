@@ -1,6 +1,10 @@
 #include "node/transit.h"
-#include "utils/common.h"
+
+#include "dataplane/forward.h"
+#include "dataplane/processing.h"
+#include "routing/routecontroller.h"
 #include "security/crypto.h"
+#include "utils/common.h"
 
 static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   size_t dump_len = rte_pktmbuf_pkt_len(mbuf);

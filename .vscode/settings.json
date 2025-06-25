@@ -56,6 +56,9 @@
         "string.h": "c",
         "ctype.h": "c",
         "transit.h": "c",
-        "ingress.h": "c"
+        "ingress.h": "c",
+        "processing.h": "c",
+        "egress.h": "c",
+        "stdint.h": "c"
     }
 }

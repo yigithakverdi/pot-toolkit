@@ -3,6 +3,10 @@
 #include "utils/common.h"
 #include "security/crypto.h"
 #include "dataplane/processing.h"
+#include "dataplane/headers.h"
+#include "dataplane/forward.h"
+#include "utils/common.h"
+#include "routing/routecontroller.h"
 
 static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_port_id) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
