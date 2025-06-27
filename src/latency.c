@@ -1,4 +1,4 @@
-#include <include/latency.h>
+#include "latency.h"
 
 struct latency_numbers_t latency_numbers = {0, 0, 0};
 
@@ -27,14 +27,10 @@ uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf
 
   latency_numbers.total_pkts += nb_pkts;
 
-  printf("Latency = %" PRIu64 " cycles\n", latency_numbers.total_cycles / latency_numbers.total_pkts);
-
-  printf("number of packets: %" PRIu64 "\n", latency_numbers.total_pkts);
 
   double latency_us =
       (double)latency_numbers.total_cycles / rte_get_tsc_hz() * 1e6;  // Convert to microseconds
 
-  printf("Latency: %.3f µs\n", latency_us);
 
   latency_numbers.total_cycles = 0;
   latency_numbers.total_queue_cycles = 0;
