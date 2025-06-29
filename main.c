@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  init_logging("/var/log/dpdk-pot", "app", RTE_LOG_INFO);
+  init_logging("/var/log/dpdk-pot", "app", log_level);
   check_ports_available();
 
   struct rte_mempool *mbuf_pool = create_mempool();
