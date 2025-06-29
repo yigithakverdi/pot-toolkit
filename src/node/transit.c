@@ -10,7 +10,7 @@
 static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
   if (dump_len > 64) dump_len = 64;
-  LOG_DP(DEBUG, "Processing transit packet %u with length %u.", i, rte_pktmbuf_pkt_len(mbuf));
+  // LOG_DP(DEBUG, "Processing transit packet %u with length %u.", i, rte_pktmbuf_pkt_len(mbuf));
 
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
@@ -19,7 +19,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
   // If the least significant bit of the first byte is set, it's multicast/broadcast.
   // Such packets are not processed by this specific logic and are dropped.
   if ((eth_hdr->dst_addr.addr_bytes[0] & 0x01) != 0) {
-    LOG_DP(NOTICE, "Multicast/Broadcast packet received in transit, dropping.");
+    // LOG_DP(NOTICE, "Multicast/Broadcast packet received in transit, dropping.");
     rte_pktmbuf_free(mbuf);
     return;
   }
@@ -122,7 +122,7 @@ void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
   // Processes each received packet in the transit queue.
   // This function iterates over the received packets, processes each one,
   // and logs the packet information.
-  LOG_MAIN(INFO, "Processing %u transit packets", nb_rx);
+  // LOG_MAIN(NOTICE, "Processing %u transit packets", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
     // LOG_MAIN(DEBUG, "Processing transit packet %u with length %u", i, rte_pktmbuf_pkt_len(pkts[i]));
     process_transit_packet(pkts[i], i);

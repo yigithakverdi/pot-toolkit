@@ -8,8 +8,8 @@
 #include "utils/logging.h"
 
 static inline void process_egress_packet(struct rte_mbuf *mbuf) {
-  LOG_MAIN(DEBUG, "Processing egress packet with length %u", rte_pktmbuf_pkt_len(mbuf));
-  LOG_MAIN(DEBUG, "Egress packet nb_segs: %u", mbuf->nb_segs);
+  // LOG_MAIN(NOTICE, "Processing egress packet with length %u", rte_pktmbuf_pkt_len(mbuf));
+  // LOG_MAIN(NOTICE, "Egress packet nb_segs: %u", mbuf->nb_segs);
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
@@ -142,7 +142,7 @@ void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
   // and logs the packet information.
   // It is called by the egress node to handle packets that are ready to be sent
   // out of the egress node.
-  LOG_MAIN(INFO, "Processing %u egress packets", nb_rx);
+  LOG_MAIN(NOTICE, "Processing %u egress packets", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
     // Skip per-packet logging to reduce spam
     process_egress_packet(pkts[i]);
