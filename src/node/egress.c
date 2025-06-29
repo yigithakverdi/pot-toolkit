@@ -13,9 +13,24 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
+  // Check if the packet is IPv6, if not drop it
+  if (ether_type != RTE_ETHER_TYPE_IPV6) {
+    LOG_MAIN(NOTICE, "Non-IPv6 packet received in egress (EtherType: %u), dropping.\n", ether_type);
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+  
+  // Check if the destination MAC address is a multicast/broadcast address
+  // If the least significant bit of the first byte is set, it's multicast/broadcast
+  if ((eth_hdr->dst_addr.addr_bytes[0] & 0x01) != 0) {
+    LOG_MAIN(NOTICE, "Multicast/Broadcast packet received in egress, dropping.\n");
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
-      LOG_MAIN(DEBUG, "Egress packet is IPv6, processing headers");
+      LOG_MAIN(DEBUG, "Egress packet is IPv6, processing headers\n");
 
       // Depending on the operation bypass bit, we either process the packet or bypass operations
       // operation_bypass_bit is a global variable that indicates whether to bypass operations
@@ -25,9 +40,9 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
       // This simplifies the process logic, and allows easy extension in the future
       // if needed.
       switch (operation_bypass_bit) {
-        LOG_MAIN(DEBUG, "Operation bypass bit is %d", operation_bypass_bit);
+        LOG_MAIN(DEBUG, "Operation bypass bit is %d\n", operation_bypass_bit);
         case 0: {
-          LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC");
+          LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC\n");
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
 
@@ -125,10 +140,10 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
         }
         case 1:
 
-          LOG_MAIN(DEBUG, "Bypassing all operations for egress packet");
+          LOG_MAIN(DEBUG, "Bypassing all operations for egress packet\n");
           break;
 
-          LOG_MAIN(DEBUG, "Removing headers only for egress packet");
+          LOG_MAIN(DEBUG, "Removing headers only for egress packet\n");
         default: break;
       }
       break;

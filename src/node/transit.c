@@ -24,9 +24,16 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
     return;
   }
 
+  // Check if the packet is IPv6, if not drop it
+  if (ether_type != RTE_ETHER_TYPE_IPV6) {
+    LOG_MAIN(NOTICE, "Non-IPv6 packet received in transit (EtherType: %u), dropping.\n", ether_type);
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
-      LOG_MAIN(DEBUG, "Transit packet is IPv6, processing headers.");
+      LOG_MAIN(DEBUG, "Transit packet is IPv6, processing headers.\n");
 
       switch (0) {
         case 0: {
