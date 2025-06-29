@@ -1,21 +1,24 @@
 #include <rte_dev.h>
 #include <sys/types.h>
 
-#include "dataplane/forward.h"
-#include "port.h"
-#include "dataplane/processing.h"
-#include "routing/routecontroller.h"
 #include "core/init.h"
 #include "core/nodemng.h"
+#include "dataplane/forward.h"
+#include "dataplane/processing.h"
+#include "port.h"
+#include "routing/routecontroller.h"
 #include "utils/logging.h"
 
 int main(int argc, char *argv[]) {
-  printf("Initializing next-hop table at startup\n");
+  printf("Initializing IPv6 to MAC table at startup\n");
   add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
   add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
-  
+
+  int log_level = RTE_LOG_INFO;
+  int app_arg_start = 1;
+
   init_logging("/var/log/dpdk-pot", "app", RTE_LOG_INFO);
-  
+
   int app_arg_start = 1;
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--") == 0) {
@@ -32,7 +35,17 @@ int main(int argc, char *argv[]) {
         global_role = ROLE_TRANSIT;
       else if (strcmp(argv[i + 1], "egress") == 0)
         global_role = ROLE_EGRESS;
-      i++;  
+      i++;
+    } else if (strcmp(argv[i], "--log-level") == 0 && i + 1 < argc) {
+      if (strcmp(argv[i + 1], "debug") == 0)
+        log_level = RTE_LOG_DEBUG;
+      else if (strcmp(argv[i + 1], "info") == 0)
+        log_level = RTE_LOG_INFO;
+      else if (strcmp(argv[i + 1], "warning") == 0)
+        log_level = RTE_LOG_WARNING;
+      else if (strcmp(argv[i + 1], "error") == 0)
+        log_level = RTE_LOG_ERR;
+      i++;
     }
   }
 
