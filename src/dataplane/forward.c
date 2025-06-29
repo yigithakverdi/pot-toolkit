@@ -94,7 +94,7 @@ void launch_lcore_forwarding(uint16_t *ports) {
 }
 
 void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint16_t tx_port_id) {
-  LOG_MAIN(DEBUG, "Sending packet to port %u with MAC %02x:%02x:%02x:%02x:%02x:%02x", tx_port_id,
+  LOG_MAIN(DEBUG, "Sending packet to port %u with MAC %02x:%02x:%02x:%02x:%02x:%02x\n", tx_port_id,
            mac_addr.addr_bytes[0], mac_addr.addr_bytes[1], mac_addr.addr_bytes[2], mac_addr.addr_bytes[3],
            mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
@@ -105,12 +105,12 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
   // to the CPU's native byte order, as network protocols use big-endian.
   // RTE_ETHER_TYPE_IPV6 is a DPDK macro defining the EtherType value for IPv6.
   if (rte_be_to_cpu_16(eth_hdr->ether_type) == RTE_ETHER_TYPE_IPV6) {
-    LOG_MAIN(DEBUG, "Packet is IPv6, processing headers");
+    LOG_MAIN(DEBUG, "Packet is IPv6, processing headers\n");
     struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr + 1);
     char src_str[INET6_ADDRSTRLEN];
     char dst_str[INET6_ADDRSTRLEN];
 
-    LOG_MAIN(DEBUG, "IPv6 Source: %s, Destination: %s",
+    LOG_MAIN(DEBUG, "IPv6 Source: %s, Destination: %s\n",
              inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_str, sizeof(src_str)),
              inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_str, sizeof(dst_str)));
 
@@ -122,12 +122,12 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
   // rte_is_broadcast_ether_addr() returns 1 if the address is a broadcast address (FF:FF:FF:FF:FF:FF),
   // and 0 otherwise.
   if (rte_is_broadcast_ether_addr(&eth_hdr->dst_addr) != 1) {
-    LOG_MAIN(DEBUG, "Packet is not broadcast, MAC addresses");
+    LOG_MAIN(DEBUG, "Packet is not broadcast, MAC addresses\n");
     rte_ether_addr_copy(&eth_hdr->dst_addr, &eth_hdr->src_addr);
     rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);
 
     LOG_MAIN(
-        DEBUG, "New MAC Source: %02x:%02x:%02x:%02x:%02x:%02x, Destination: %02x:%02x:%02x:%02x:%02x:%02x",
+        DEBUG, "New MAC Source: %02x:%02x:%02x:%02x:%02x:%02x, Destination: %02x:%02x:%02x:%02x:%02x:%02x\n",
         eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1], eth_hdr->src_addr.addr_bytes[2],
         eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5],
         eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2],
@@ -140,7 +140,7 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
   // rte_pktmbuf_pkt_len() returns the total length of the packet, including all headers and payload.
   // sizeof(struct rte_ether_hdr) is the size of the Ethernet header
   if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr)) {
-    LOG_MAIN(ERR, "Packet length %u is less than Ethernet header size %zu, dropping packet",
+    LOG_MAIN(ERR, "Packet length %u is less than Ethernet header size %zu, dropping packet\n",
              rte_pktmbuf_pkt_len(mbuf), sizeof(struct rte_ether_hdr));
     rte_pktmbuf_free(mbuf);
     return;
@@ -151,10 +151,10 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint1
   // port and queue. It returns the number of packets successfully sent.
   uint16_t sent = rte_eth_tx_burst(tx_port_id, 0, &mbuf, 1);
   if (sent == 0) {
-    LOG_MAIN(ERR, "Failed to send packet on port %u, freeing mbuf", tx_port_id);
+    LOG_MAIN(ERR, "Failed to send packet on port %u, freeing mbuf\n", tx_port_id);
     rte_pktmbuf_free(mbuf);
   } else {
-    LOG_MAIN(DEBUG, "Sent %u packet(s) on port %u", sent, tx_port_id);
+    LOG_MAIN(DEBUG, "Sent %u packet(s) on port %u\n", sent, tx_port_id);
     return;
   }
 }
