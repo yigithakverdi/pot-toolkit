@@ -33,7 +33,7 @@ int lcore_main_forward(void *arg) {
     // which may be less than or equal to BURST_SIZE.
     struct rte_mbuf *pkts[BURST_SIZE];
     uint16_t nb_rx = rte_eth_rx_burst(rx_port_id, 0, pkts, BURST_SIZE);
-    LOG_MAIN(DEBUG, "Received %u packets on port %u", nb_rx, rx_port_id);
+    // LOG_MAIN(DEBUG, "Received %u packets on port %u", nb_rx, rx_port_id);
 
     // If no packets were received in this burst (nb_rx is 0),
     // continue to the next iteration of the loop to try again.
