@@ -29,7 +29,7 @@ uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf
 
 
   double latency_us =
-      (double)latency_numbers.total_cycles / rte_get_tsc_hz() * 1e6;  // Convert to microseconds
+      (double)latency_numbers.total_cycles / rte_get_tsc_hz() * 1e6;  
 
 
   latency_numbers.total_cycles = 0;
