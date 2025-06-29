@@ -7,6 +7,7 @@
 #include <rte_log.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <time.h>
 
 int dpdk_pot_logtype_main;

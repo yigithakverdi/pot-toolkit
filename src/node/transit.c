@@ -28,8 +28,6 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
     case RTE_ETHER_TYPE_IPV6:
       LOG_MAIN(DEBUG, "Transit packet is IPv6, processing headers.");
 
-      // This switch statement currently always defaults to case 0,
-      // as the expression is hardcoded to '0'.
       switch (0) {
         case 0: {
           LOG_MAIN(DEBUG, "Processing transit packet with SRH.");
@@ -49,12 +47,9 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             return;
           }
 
-          // Check if SRH is present (next_header == 61 confirmed above, but often repeated).
           if (srh->next_header == 61) {
             size_t srh_bytes = sizeof(struct ipv6_srh);
 
-            // Pointer arithmetic to locate HMAC and POT TLVs,
-            // assuming they immediately follow the SRH in this specific SRv6 packet format.
             uint8_t *hmac_ptr = (uint8_t *)srh + srh_bytes;
             uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
             struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
@@ -62,8 +57,6 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
             char dst_ip_str[INET6_ADDRSTRLEN];
 
-            // Convert the IPv6 destination address from binary to string format for logging/debugging.
-            // If conversion fails, log an error, free the packet, and exit processing.
             if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
               LOG_MAIN(ERR, "Transit: inet_ntop failed for destination address.");
               perror("inet_ntop failed");
@@ -74,8 +67,6 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
             uint8_t pvf_out[HMAC_MAX_LENGTH];
 
-            // Copy the encrypted PVF data (which is the HMAC) from the POT TLV
-            // into a temporary buffer for decryption.
             memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
 
             // Decrypt the PVF. The key `k_pot_in[1]` is used here, implying
@@ -83,8 +74,6 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             // The decrypted result overwrites `pvf_out`.
             decrypt_pvf(&k_pot_in[1], pot->nonce, pvf_out);
 
-            // Copy the decrypted PVF (HMAC) back into the POT TLV in the packet.
-            // This prepares the packet for subsequent hops or final egress.
             memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
             LOG_MAIN(DEBUG, "Transit: PVF (HMAC) decrypted and updated in POT TLV.");
 
@@ -97,62 +86,35 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
               return;
             }
 
-            // Decrement 'segments_left'. This signifies that the current segment
-            // has been processed by this transit node. This is a core operation for SRv6 forwarding.
             srh->segments_left--;
-
-            // Calculate the index of the next segment ID (SID) in the SRH segment list.
-            // The new destination for the packet is this next SID.
             int next_sid_index = srh->last_entry - srh->segments_left + 1;
-
-            // Update the packet's destination IPv6 address to the next SID.
-            // This steers the packet towards the next hop in the segment path.
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
             LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s",
                      inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
 
-            // Lookup the MAC address corresponding to the new destination IPv6 address (next SID).
-            // This is necessary to encapsulate the IPv6 packet in an Ethernet frame for the next hop.
             struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
             if (next_mac) {
-              // If a MAC address is found, send the packet to that MAC address on the appropriate port (port
-              // 0).
               send_packet_to(*next_mac, mbuf, 0);
               LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x",
                        next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                        next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
 
-              // Update dump_len after sending (though this specific line doesn't seem to have an immediate
-              // effect on subsequent logic).
               dump_len = rte_pktmbuf_pkt_len(mbuf);
             } else {
-              // If no MAC address is found for the next SID, the packet cannot be forwarded.
-              // Free the mbuf to prevent resource leaks.
               LOG_MAIN(ERR, "Transit: No MAC found for next SID, dropping packet.");
               rte_pktmbuf_free(mbuf);
             }
           }
           break;
         }
-        case 1:
-          // Case 1: Bypass all operations.
-          // The packet is not modified by this function and will proceed as-is.
-          LOG_MAIN(DEBUG, "Transit: Bypassing all operations.");
-          break;
+        case 1: LOG_MAIN(DEBUG, "Transit: Bypassing all operations."); break;
 
-          // remove_headers_only(mbuf); break; // Placeholder for another bypass mode.
         default:
-
-          // Default case for any other unexpected switch values.
           LOG_MAIN(WARNING, "Transit: Unknown operation_bypass_bit value for transit processing.");
           break;
       }
       break;
-    default:
-
-      // Default case for non-IPv6 packets (already handled at the top, but good for completeness).
-      LOG_MAIN(DEBUG, "Transit: Packet is not IPv6, not processed by transit_packet_process.");
-      break;
+    default: LOG_MAIN(DEBUG, "Transit: Packet is not IPv6, not processed by transit_packet_process."); break;
   }
 }
 
