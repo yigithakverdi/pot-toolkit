@@ -73,7 +73,7 @@ void remove_headers(struct rte_mbuf *pkt) {
   // Hardcoding a new destination IPv6 address.
   // This is a specific transformation, changing where the packet is conceptually headed.
   struct in6_addr iperf_server_ipv6;
-  if (inet_pton(AF_INET6, "2a05:d014:dc7:12c2:724:c0e1:c16d:2f16", &iperf_server_ipv6) != 1) {
+  if (inet_pton(AF_INET6, "2a05:d014:dc7:124f:d056:daa6:1c0a:83b2", &iperf_server_ipv6) != 1) {
     free(tmp_payload);
     LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
     return;
