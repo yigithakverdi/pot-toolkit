@@ -1,6 +1,6 @@
 #include "dataplane/forward.h"
 
-#include "core/nodemng.h"
+#include "core/nodemng.h"       
 #include "node/egress.h"
 #include "node/ingress.h"
 #include "node/transit.h"
@@ -10,16 +10,16 @@
 enum role global_role = ROLE_INGRESS;
 
 int lcore_main_forward(void *arg) {
-  LOG_MAIN(INFO, "Lcore %u started for forwarding", rte_lcore_id());
+  LOG_MAIN(INFO, "Lcore %u started for forwarding\n", rte_lcore_id());
 
   uint16_t *ports = (uint16_t *)arg;
   uint16_t rx_port_id = ports[0];
   enum role cur_role = global_role;
 
-  LOG_MAIN(INFO, "RX Port ID: %u", rx_port_id);
-  LOG_MAIN(INFO, "Current role: %s",
+  LOG_MAIN(INFO, "RX Port ID: %u\n", rx_port_id);
+  LOG_MAIN(INFO, "Current role: %s\n",
            cur_role == ROLE_INGRESS ? "INGRESS" : (cur_role == ROLE_TRANSIT ? "TRANSIT" : "EGRESS"));
-  LOG_MAIN(INFO, "Entering main forwarding loop on lcore %u", rte_lcore_id());
+  LOG_MAIN(INFO, "Entering main forwarding loop on lcore %u\n", rte_lcore_id());
 
   while (1) {
     // Attempt to receive a burst of packets from the specified Ethernet device.
@@ -69,13 +69,13 @@ int lcore_main_forward(void *arg) {
 }
 
 void launch_lcore_forwarding(uint16_t *ports) {
-  LOG_MAIN(INFO, "Launching forwarding on lcore %u", rte_get_next_lcore(-1, 1, 0));
+  LOG_MAIN(INFO, "Launching forwarding on lcore %u\n", rte_get_next_lcore(-1, 1, 0));
   unsigned lcore_id = rte_get_next_lcore(-1, 1, 0);
 
   // Get the actual lcore ID that will execute the forwarding logic.
   // This call is the same as in the LOG_MAIN, ensuring consistency.
   rte_eal_remote_launch(lcore_main_forward, (void *)ports, lcore_id);
-  LOG_MAIN(INFO, "Waiting for all lcores to complete");
+  LOG_MAIN(INFO, "Waiting for all lcores to complete\n");
 
   // Remotely launch the 'lcore_main_forward' function on the selected 'lcore_id'.
   // For distributing tasks across different lcores.
@@ -90,7 +90,7 @@ void launch_lcore_forwarding(uint16_t *ports) {
   // 3. lcore_id: The specific logical core on which 'lcore_main_forward'
   //    will be launched and executed.
   rte_eal_mp_wait_lcore();
-  LOG_MAIN(INFO, "All lcores completed");
+  LOG_MAIN(INFO, "All lcores completed\n");
 }
 
 void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf *mbuf, uint16_t tx_port_id) {

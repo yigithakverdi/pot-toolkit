@@ -8,7 +8,7 @@ int calculate_hmac(uint8_t *src_addr, const struct ipv6_srh *srh, const struct h
   // Calculate the length of the segment list within the SRH.
   // This is crucial for determining how much data to include in the HMAC calculation.
   size_t segment_list_len = sizeof(srh->segments);
-  LOG_MAIN(DEBUG, "Calculating HMAC: Segment list length = %zu bytes.", segment_list_len);
+  LOG_MAIN(DEBUG, "Calculating HMAC: Segment list length = %zu bytes.\n", segment_list_len);
 
   // Calculate the total length of the input data for the HMAC function.
   // This sum accounts for:
@@ -20,24 +20,24 @@ int calculate_hmac(uint8_t *src_addr, const struct ipv6_srh *srh, const struct h
   // - segment_list_len: The actual segment list from SRH
   // Any discrepancy here will lead to incorrect HMAC calculations and verification failures.
   size_t input_len = 16 + 1 + 1 + 2 + 4 + segment_list_len;
-  LOG_MAIN(DEBUG, "Calculating HMAC: Total input length = %zu bytes.", input_len);
+  LOG_MAIN(DEBUG, "Calculating HMAC: Total input length = %zu bytes.\n", input_len);
   uint8_t input[input_len];
 
   size_t offset = 0;
   memcpy(input + offset, src_addr, 16);
   offset += 16;
-  LOG_MAIN(DEBUG, "Calculating HMAC: Copied Source Address (16 bytes). Offset: %zu", offset);
+  LOG_MAIN(DEBUG, "Calculating HMAC: Copied Source Address (16 bytes). Offset: %zu\n", offset);
 
   input[offset++] = srh->last_entry;
   input[offset++] = srh->flags;
-  LOG_MAIN(DEBUG, "Calculating HMAC: Copied SRH Last Entry and Flags (2 bytes). Offset: %zu", offset);
+  LOG_MAIN(DEBUG, "Calculating HMAC: Copied SRH Last Entry and Flags (2 bytes). Offset: %zu\n", offset);
 
   // Copy 2 bytes of reserved/padding field.
   // This assumes a specific layout for the input to HMAC which includes these two zeroed bytes.
   // This padding is crucial for consistency between HMAC calculation and verification.
   input[offset++] = 0;
   input[offset++] = 0;
-  LOG_MAIN(DEBUG, "Calculating HMAC: Added 2 reserved bytes. Offset: %zu", offset);
+  LOG_MAIN(DEBUG, "Calculating HMAC: Added 2 reserved bytes. Offset: %zu\n", offset);
 
   memcpy(input + offset, &hmac_tlv->hmac_key_id, sizeof(hmac_tlv->hmac_key_id));
   offset += sizeof(hmac_tlv->hmac_key_id);

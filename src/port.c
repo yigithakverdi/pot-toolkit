@@ -127,7 +127,7 @@ void display_mac_address(uint16_t port_id) {
 
   rte_eth_macaddr_get(port_id, &mac_addr);
 
-  LOG_MAIN(INFO, "Port %u MAC address: %02x:%02x:%02x:%02x:%02x:%02x", port_id, mac_addr.addr_bytes[0],
+  LOG_MAIN(INFO, "Port %u MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n", port_id, mac_addr.addr_bytes[0],
            mac_addr.addr_bytes[1], mac_addr.addr_bytes[2], mac_addr.addr_bytes[3], mac_addr.addr_bytes[4],
            mac_addr.addr_bytes[5]);
 }
@@ -136,7 +136,7 @@ void check_ports_available() {
   if (rte_eth_dev_count_avail() == 0)
     rte_exit(EXIT_FAILURE, "No Ethernet ports available\n");
   else
-    LOG_MAIN(INFO, "Available Ethernet ports: %u", rte_eth_dev_count_avail());
+    LOG_MAIN(INFO, "Available Ethernet ports: %u\n", rte_eth_dev_count_avail());
 }
 
 void setup_port(uint16_t port_id, struct rte_mempool *mbuf_pool, int is_rx) {

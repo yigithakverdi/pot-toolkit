@@ -31,19 +31,19 @@ void remove_headers(struct rte_mbuf *pkt) {
 
   char pre_dst_str[INET6_ADDRSTRLEN];
   inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str));
-  LOG_MAIN(DEBUG, "Pre-modification IPv6 destination: %s", pre_dst_str);
+  LOG_MAIN(DEBUG, "Pre-modification IPv6 destination: %s\n", pre_dst_str);
 
   // Calculating the total size of all headers to be removed.
   // This sum must precisely match the actual size of the headers in the packet.
   // Any mismatch here will result in incorrect payload extraction or truncation later.
   size_t headers_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) + sizeof(struct ipv6_srh) +
                         sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
-  LOG_MAIN(DEBUG, "Headers size: %zu bytes", headers_size);
+  LOG_MAIN(DEBUG, "Headers size: %zu bytes\n", headers_size);
 
   // Calculating the payload size by subtracting the known header size
   // from the total packet length. This implies the rest of the packet is payload.
   size_t payload_size = rte_pktmbuf_pkt_len(pkt) - headers_size;
-  LOG_MAIN(DEBUG, "Payload size: %zu bytes", payload_size);
+  LOG_MAIN(DEBUG, "Payload size: %zu bytes\n", payload_size);
 
   // Dynamically allocating temporary memory to store the payload.
   // This is necessary because rte_pktmbuf_trim will remove data from the mbuf,
