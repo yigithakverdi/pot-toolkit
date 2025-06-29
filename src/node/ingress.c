@@ -15,7 +15,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
   // If the packet is not IPv6, free it and return.
   // This is an optimization to quickly discard irrelevant packets.
   if (ether_type != RTE_ETHER_TYPE_IPV6) {
-    LOG_MAIN(NOTICE, "Non-IPv6 packet received (EtherType: %u), dropping.", ether_type);
+    LOG_MAIN(NOTICE, "Non-IPv6 packet received (EtherType: %u), dropping.\n", ether_type);
     rte_pktmbuf_free(mbuf);
     return;
   }
@@ -56,7 +56,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             perror("inet_ntop failed");
             break;
           }
-          LOG_MAIN(DEBUG, "Packet Destination IPv6: %s", dst_ip_str);
+          LOG_MAIN(DEBUG, "Packet Destination IPv6: %s\n", dst_ip_str);
 
           uint8_t *k_hmac_ie = k_pot_in[0];
           size_t key_len = HMAC_MAX_LENGTH;
@@ -66,7 +66,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
 
           size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
           if (dump_len > 128) dump_len = 128;
-          LOG_MAIN(DEBUG, "Packet length for dump: %zu", dump_len);
+          LOG_MAIN(DEBUG, "Packet length for dump: %zu\n", dump_len);
 
           uint8_t hmac_out[HMAC_MAX_LENGTH];
 
@@ -75,26 +75,26 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           // using the ingress_addr and the HMAC key.
           if (calculate_hmac((uint8_t *)&ingress_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
             rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
-            LOG_MAIN(DEBUG, "HMAC calculated and copied to packet.");
+            LOG_MAIN(DEBUG, "HMAC calculated and copied to packet.\n");
           } else {
-            LOG_MAIN(ERR, "HMAC calculation failed for ingress packet, dropping.");
+            LOG_MAIN(ERR, "HMAC calculation failed for ingress packet, dropping.\n");
             break;
           }
 
           uint8_t nonce[NONCE_LENGTH];
 
           if (generate_nonce(nonce) != 0) {
-            LOG_MAIN(ERR, "Nonce generation failed, dropping packet.");
+            LOG_MAIN(ERR, "Nonce generation failed, dropping packet.\n");
             break;
           }
 
           encrypt_pvf(k_pot_in, nonce, hmac_out);
           rte_memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
           rte_memcpy(pot->nonce, nonce, NONCE_LENGTH);
-          LOG_MAIN(DEBUG, "HMAC encrypted and Nonce added to POT TLV.");
+          LOG_MAIN(DEBUG, "HMAC encrypted and Nonce added to POT TLV.\n");
 
           if (srh->segments_left == 0) {
-            LOG_MAIN(DEBUG, "SRH segments_left is 0, dropping packet.");
+            LOG_MAIN(DEBUG, "SRH segments_left is 0, dropping packet.\n");
             rte_pktmbuf_free(mbuf);
           } else {
             // If segments_left is not 0, the packet needs to be forwarded to the next segment ID.
@@ -114,7 +114,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
                        next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                        next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
             } else {
-              LOG_MAIN(ERR, "No MAC found for next SID, dropping packet.");
+              LOG_MAIN(ERR, "No MAC found for next SID, dropping packet.\n");
               rte_pktmbuf_free(mbuf);
             }
           }
@@ -126,15 +126,15 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           // The packet is not modified by this function and will proceed
           // to subsequent processing stages (or be forwarded as-is) without
           // SRH/HMAC/POT functionality.
-          LOG_MAIN(DEBUG, "Bypassing custom header operations for ingress packet.");
+          LOG_MAIN(DEBUG, "Bypassing custom header operations for ingress packet.\n");
           break;
 
-        default: LOG_MAIN(WARNING, "Unknown operation_bypass_bit value: %d", operation_bypass_bit); break;
+        default: LOG_MAIN(WARNING, "Unknown operation_bypass_bit value: %d\n", operation_bypass_bit); break;
       }
       break;
     default:
       LOG_MAIN(DEBUG,
-               "Packet is not IPv6, not processed by ingress_packet_process. This should not be reached.");
+               "Packet is not IPv6, not processed by ingress_packet_process. This should not be reached.\n");
       break;
   }
 }
