@@ -104,13 +104,13 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             // The next SID is (last_entry - segments_left + 1) index into the segments array.
             int next_sid_index = srh->last_entry - srh->segments_left + 1;
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
-            LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s",
+            LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s\n",
                      inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
 
             struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
             if (next_mac) {
               send_packet_to(*next_mac, mbuf, rx_port_id);
-              LOG_MAIN(DEBUG, "Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x",
+              LOG_MAIN(DEBUG, "Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
                        next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                        next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
             } else {

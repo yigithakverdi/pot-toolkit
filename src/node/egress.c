@@ -51,25 +51,25 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
           // If the next header is not 61, we do not process the packet further
           // and simply return.
           if (srh->next_header == 61) {
-            LOG_MAIN(DEBUG, "SRH detected, processing packet");
+            LOG_MAIN(DEBUG, "SRH detected, processing packet\n");
             size_t srh_bytes = sizeof(struct ipv6_srh);
             uint8_t *hmac_ptr = (uint8_t *)srh + srh_bytes;
             struct hmac_tlv *hmac = (struct hmac_tlv *)hmac_ptr;
             uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
             struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
-            LOG_MAIN(DEBUG, "HMAC TLV type: %u, length: %u", hmac->type, hmac->length);
+            LOG_MAIN(DEBUG, "HMAC TLV type: %u, length: %u\n", hmac->type, hmac->length);
 
             // Create a buffer to hold the destination IPv6 address as a string
             // Convert the destination IPv6 address from binary to text form.
             // If inet_ntop fails, log an error, free the packet, and exit processing.
             char dst_ip_str[INET6_ADDRSTRLEN];
             if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
-              LOG_MAIN(ERR, "inet_ntop failed for destination address");
+              LOG_MAIN(ERR, "inet_ntop failed for destination address\n");
               rte_pktmbuf_free(mbuf);
               return;
             }
 
-            LOG_MAIN(DEBUG, "Destination IPv6 address: %s", dst_ip_str);
+            LOG_MAIN(DEBUG, "Destination IPv6 address: %s\n", dst_ip_str);
             uint8_t hmac_out[HMAC_MAX_LENGTH];
             memcpy(hmac_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
 
@@ -83,26 +83,26 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             //
             // After this, the code will verify packet integrity by comparing this HMAC
             // with a freshly calculated value to confirm path compliance
-            LOG_MAIN(DEBUG, "Encrypted HMAC length: %zu", sizeof(pot->encrypted_hmac));
+            LOG_MAIN(DEBUG, "Encrypted HMAC length: %zu\n", sizeof(pot->encrypted_hmac));
             decrypt_pvf(&k_pot_in[0], pot->nonce, hmac_out);
             memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
-            LOG_MAIN(DEBUG, "Decrypted HMAC length: %zu", sizeof(pot->encrypted_hmac));
+            LOG_MAIN(DEBUG, "Decrypted HMAC length: %zu\n", sizeof(pot->encrypted_hmac));
 
             // Prepare the HMAC key for verification
             // This key is used to calculate the expected HMAC for the packet.
             uint8_t *k_hmac_ie = k_pot_in[0];
             uint8_t expected_hmac[HMAC_MAX_LENGTH];
-            LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu", HMAC_MAX_LENGTH);
+            LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n", HMAC_MAX_LENGTH);
             if (calculate_hmac((uint8_t *)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
                                expected_hmac) != 0) {
-              LOG_MAIN(ERR, "Egress: HMAC calculation failed");
+              LOG_MAIN(ERR, "Egress: HMAC calculation failed\n");
               rte_pktmbuf_free(mbuf);
               return;
             }
 
-            LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC");
+            LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC\n");
             if (memcmp(hmac_out, expected_hmac, HMAC_MAX_LENGTH) != 0) {
-              LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet");
+              LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
               rte_pktmbuf_free(mbuf);
               return;
             }
@@ -113,26 +113,26 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             // from the packet, and then sending it to the iperf server.
             // The final packet will have the original IPv6 header and payload,
             // but without the SRH, HMAC TLV, and PoT TLV.
-            LOG_MAIN(INFO, "Egress: HMAC verified successfully, forwarding packet");
+            LOG_MAIN(INFO, "Egress: HMAC verified successfully, forwarding packet\n");
             remove_headers(mbuf);
 
-            LOG_MAIN(DEBUG, "Packet after removing headers - length: %u", rte_pktmbuf_pkt_len(mbuf));
+            LOG_MAIN(DEBUG, "Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
             struct rte_ether_hdr *eth_hdr_final = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
             struct rte_ipv6_hdr *ipv6_hdr_final = (struct rte_ipv6_hdr *)(eth_hdr_final + 1);
-            LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s",
+            LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s\n",
                      inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, NULL, 0),
                      inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, NULL, 0));
 
             char final_src_ip[INET6_ADDRSTRLEN], final_dst_ip[INET6_ADDRSTRLEN];
             inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, final_src_ip, INET6_ADDRSTRLEN);
             inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, final_dst_ip, INET6_ADDRSTRLEN);
-            LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s", final_src_ip, final_dst_ip);
+            LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s\n", final_src_ip, final_dst_ip);
 
             // Forward the packet to the iperf server
             // The MAC address of the iperf server is hardcoded here.
             struct rte_ether_addr iperf_mac = {{0x02, 0xcc, 0xef, 0x38, 0x4b, 0x25}};
             send_packet_to(iperf_mac, mbuf, 0);
-            LOG_MAIN(DEBUG, "Packet sent to iperf server with MAC %02x:%02x:%02x:%02x:%02x:%02x",
+            LOG_MAIN(DEBUG, "Packet sent to iperf server with MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
                      iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2],
                      iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
           }
@@ -157,7 +157,7 @@ void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
   // and logs the packet information.
   // It is called by the egress node to handle packets that are ready to be sent
   // out of the egress node.
-  LOG_MAIN(NOTICE, "Processing %u egress packets", nb_rx);
+  LOG_MAIN(NOTICE, "Processing %u egress packets\n", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
     // Skip per-packet logging to reduce spam
     process_egress_packet(pkts[i]);
