@@ -9,7 +9,7 @@ void add_next_hop(const char *ipv6_str, const char *mac_str) {
   // Check if the maximum number of next hops has been reached.
   // If so, log a warning and return to prevent buffer overflow.
   if (next_hop_count >= MAX_NEXT_HOPS) {
-    LOG_MAIN(WARNING, "Cannot add next hop: MAX_NEXT_HOPS (%d) reached.", MAX_NEXT_HOPS);
+    LOG_MAIN(WARNING, "Cannot add next hop: MAX_NEXT_HOPS (%d) reached.\n", MAX_NEXT_HOPS);
     return;
   }
 
@@ -17,7 +17,7 @@ void add_next_hop(const char *ipv6_str, const char *mac_str) {
   // and store it in the next_hops array at the current count.
   // inet_pton() returns 1 on success.
   if (inet_pton(AF_INET6, ipv6_str, &next_hops[next_hop_count].ipv6) != 1) {
-    LOG_MAIN(ERR, "Failed to convert IPv6 string '%s' to binary address.", ipv6_str);
+    LOG_MAIN(ERR, "Failed to convert IPv6 string '%s' to binary address.\n", ipv6_str);
     return;
   }
 
@@ -31,7 +31,7 @@ void add_next_hop(const char *ipv6_str, const char *mac_str) {
          &next_hops[next_hop_count].mac.addr_bytes[5]);
 
   // Increment the count of registered next hops.
-  LOG_MAIN(INFO, "Added next hop: IPv6 %s, MAC %s. Total next hops: %d.", ipv6_str, mac_str,
+  LOG_MAIN(INFO, "Added next hop: IPv6 %s, MAC %s. Total next hops: %d.\n", ipv6_str, mac_str,
            next_hop_count + 1);  
   next_hop_count++;
 }
