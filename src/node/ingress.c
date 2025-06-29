@@ -15,7 +15,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
   // If the packet is not IPv6, free it and return.
   // This is an optimization to quickly discard irrelevant packets.
   if (ether_type != RTE_ETHER_TYPE_IPV6) {
-    LOG_MAIN(DEBUG, "Non-IPv6 packet received (EtherType: %u), dropping.", ether_type);
+    LOG_MAIN(NOTICE, "Non-IPv6 packet received (EtherType: %u), dropping.", ether_type);
     rte_pktmbuf_free(mbuf);
     return;
   }
@@ -24,7 +24,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
   // If the least significant bit of the first byte is set, it's multicast/broadcast.
   // Such packets are not processed by this specific logic and are dropped.
   if ((eth_hdr->dst_addr.addr_bytes[0] & 0x01) != 0) {
-    LOG_MAIN(DEBUG, "Multicast/Broadcast packet received, dropping.");
+    LOG_MAIN(NOTICE, "Multicast/Broadcast packet received, dropping.");
     rte_pktmbuf_free(mbuf);
     return;
   }
@@ -143,10 +143,9 @@ void process_ingress(struct rte_mbuf **pkts, uint16_t nb_rx, uint16_t rx_port_id
   // Process each received packet in the ingress queue.
   // This function iterates over the received packets, processes each one,
   // and logs the packet information.
-  LOG_MAIN(DEBUG, "Processing %u ingress packets on port %u", nb_rx, rx_port_id);
+  LOG_MAIN(INFO, "Processing %u ingress packets on port %u", nb_rx, rx_port_id);
   for (uint16_t i = 0; i < nb_rx; i++) {
-    LOG_MAIN(DEBUG, "Processing packet %u with length %u on port %u", i, rte_pktmbuf_pkt_len(pkts[i]),
-             rx_port_id);
+    // Skip per-packet logging to reduce spam
     process_ingress_packet(pkts[i], rx_port_id);
   }
 }

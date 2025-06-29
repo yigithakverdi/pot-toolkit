@@ -45,7 +45,7 @@ int lcore_main_forward(void *arg) {
     // In a real application, you would typically loop from 0 to nb_rx-1
     // to process ALL received packets in the burst.
     if (nb_rx > 0) {
-      LOG_MAIN(DEBUG, "Processing %u packets on port %u", nb_rx, rx_port_id);
+      LOG_MAIN(INFO, "Processing %u packets on port %u", nb_rx, rx_port_id);
 
       // Get a pointer to the Ethernet header of the first received packet (pkts[0]).
       // rte_pktmbuf_mtod() is a macro that converts an mbuf pointer to a data pointer
