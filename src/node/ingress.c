@@ -31,16 +31,16 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
 
   switch (ether_type) {
     case RTE_ETHER_TYPE_IPV6:
-      LOG_MAIN(DEBUG, "Ingress packet is IPv6, processing headers.");
+      LOG_MAIN(DEBUG, "Ingress packet is IPv6, processing headers.\n");
 
       // Control flow based on a global configuration bit.
       // This allows bypassing certain operations for testing or specific use cases.
-      LOG_MAIN(DEBUG, "Operation bypass bit is %d", operation_bypass_bit);
+      LOG_MAIN(DEBUG, "Operation bypass bit is %d\n", operation_bypass_bit);
       switch (operation_bypass_bit) {
         // Case 0: Full processing including custom header addition, HMAC calculation, and
         // encryption.
         case 0:
-          LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.");
+          LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.\n");
 
           add_custom_header(mbuf);
           struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
@@ -52,7 +52,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           char dst_ip_str[INET6_ADDRSTRLEN];
 
           if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
-            LOG_MAIN(ERR, "inet_ntop failed for destination address.");
+            LOG_MAIN(ERR, "inet_ntop failed for destination address.\n");
             perror("inet_ntop failed");
             break;
           }
