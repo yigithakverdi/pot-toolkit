@@ -37,7 +37,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
       switch (0) {
         case 0: {
-          LOG_MAIN(DEBUG, "Processing transit packet with SRH.");
+          LOG_MAIN(DEBUG, "Processing transit packet with SRH.\n");
 
           // Get pointers to the IPv6 header and Segment Routing Header (SRH).
           // This assumes fixed header order: Ethernet -> IPv6 -> SRH.
@@ -48,7 +48,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
           // and its routing type is 4 (SRH). If not, the packet is not a valid SRv6 packet
           // for this transit node, so it's dropped.
           if (srh->next_header != 61 || srh->routing_type != 4) {
-            LOG_MAIN(WARNING, "Transit: SRH next_header (%u) or routing_type (%u) mismatch, dropping packet.",
+            LOG_MAIN(WARNING, "Transit: SRH next_header (%u) or routing_type (%u) mismatch, dropping packet.\n",
                      srh->next_header, srh->routing_type);
             rte_pktmbuf_free(mbuf);
             return;
@@ -60,17 +60,17 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             uint8_t *hmac_ptr = (uint8_t *)srh + srh_bytes;
             uint8_t *pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
             struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
-            LOG_MAIN(DEBUG, "Transit: SRH detected. POT TLV address: %p", (void *)pot);
+            LOG_MAIN(DEBUG, "Transit: SRH detected. POT TLV address: %p\n", (void *)pot);
 
             char dst_ip_str[INET6_ADDRSTRLEN];
 
             if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
-              LOG_MAIN(ERR, "Transit: inet_ntop failed for destination address.");
+              LOG_MAIN(ERR, "Transit: inet_ntop failed for destination address.\n");
               perror("inet_ntop failed");
               rte_pktmbuf_free(mbuf);
               return;
             }
-            LOG_MAIN(DEBUG, "Transit: Destination IPv6 address: %s", dst_ip_str);
+            LOG_MAIN(DEBUG, "Transit: Destination IPv6 address: %s\n", dst_ip_str);
 
             uint8_t pvf_out[HMAC_MAX_LENGTH];
 
@@ -82,13 +82,13 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             decrypt_pvf(&k_pot_in[1], pot->nonce, pvf_out);
 
             memcpy(pot->encrypted_hmac, pvf_out, HMAC_MAX_LENGTH);
-            LOG_MAIN(DEBUG, "Transit: PVF (HMAC) decrypted and updated in POT TLV.");
+            LOG_MAIN(DEBUG, "Transit: PVF (HMAC) decrypted and updated in POT TLV.\n");
 
             // Check if 'segments_left' is 0. If it is, the packet has reached
             // its final segment in the SRH path at this node, but this is a transit node.
             // This indicates a routing error or misconfiguration, so the packet is dropped.
             if (srh->segments_left == 0) {
-              LOG_MAIN(WARNING, "Transit: segments_left is 0, but packet still in transit, dropping.");
+              LOG_MAIN(WARNING, "Transit: segments_left is 0, but packet still in transit, dropping.\n");
               rte_pktmbuf_free(mbuf);
               return;
             }
@@ -96,32 +96,32 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
             srh->segments_left--;
             int next_sid_index = srh->last_entry - srh->segments_left + 1;
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
-            LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s",
+            LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s\n",
                      inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
 
             struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
             if (next_mac) {
               send_packet_to(*next_mac, mbuf, 0);
-              LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x",
+              LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
                        next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                        next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
 
               dump_len = rte_pktmbuf_pkt_len(mbuf);
             } else {
-              LOG_MAIN(ERR, "Transit: No MAC found for next SID, dropping packet.");
+              LOG_MAIN(ERR, "Transit: No MAC found for next SID, dropping packet.\n");
               rte_pktmbuf_free(mbuf);
             }
           }
           break;
         }
-        case 1: LOG_MAIN(DEBUG, "Transit: Bypassing all operations."); break;
+        case 1: LOG_MAIN(DEBUG, "Transit: Bypassing all operations.\n"); break;
 
         default:
-          LOG_MAIN(WARNING, "Transit: Unknown operation_bypass_bit value for transit processing.");
+          LOG_MAIN(WARNING, "Transit: Unknown operation_bypass_bit value for transit processing.\n");
           break;
       }
       break;
-    default: LOG_MAIN(DEBUG, "Transit: Packet is not IPv6, not processed by transit_packet_process."); break;
+    default: LOG_MAIN(DEBUG, "Transit: Packet is not IPv6, not processed by transit_packet_process.\n"); break;
   }
 }
 
