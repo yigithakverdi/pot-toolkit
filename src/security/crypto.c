@@ -21,17 +21,13 @@ int calculate_hmac(uint8_t *src_addr, const struct ipv6_srh *srh, const struct h
   // Any discrepancy here will lead to incorrect HMAC calculations and verification failures.
   size_t input_len = 16 + 1 + 1 + 2 + 4 + segment_list_len;
   LOG_MAIN(DEBUG, "Calculating HMAC: Total input length = %zu bytes.", input_len);
-
-  // Declare a buffer to hold the concatenated input data for the HMAC algorithm.
   uint8_t input[input_len];
 
   size_t offset = 0;
-  // Copy the 16-byte IPv6 source address into the input buffer.
   memcpy(input + offset, src_addr, 16);
   offset += 16;
   LOG_MAIN(DEBUG, "Calculating HMAC: Copied Source Address (16 bytes). Offset: %zu", offset);
 
-  // Copy the SRH Last Entry and Flags bytes into the input buffer.
   input[offset++] = srh->last_entry;
   input[offset++] = srh->flags;
   LOG_MAIN(DEBUG, "Calculating HMAC: Copied SRH Last Entry and Flags (2 bytes). Offset: %zu", offset);
@@ -43,13 +39,11 @@ int calculate_hmac(uint8_t *src_addr, const struct ipv6_srh *srh, const struct h
   input[offset++] = 0;
   LOG_MAIN(DEBUG, "Calculating HMAC: Added 2 reserved bytes. Offset: %zu", offset);
 
-  // Copy the HMAC Key ID from the HMAC TLV into the input buffer.
   memcpy(input + offset, &hmac_tlv->hmac_key_id, sizeof(hmac_tlv->hmac_key_id));
   offset += sizeof(hmac_tlv->hmac_key_id);
   LOG_MAIN(DEBUG, "Calculating HMAC: Copied HMAC Key ID (%zu bytes). Offset: %zu",
            sizeof(hmac_tlv->hmac_key_id), offset);
 
-  // Copy the entire segment list from the SRH into the input buffer.
   memcpy(input + offset, srh->segments, segment_list_len);
   offset += segment_list_len;
   LOG_MAIN(DEBUG, "Calculating HMAC: Copied SRH Segments (%zu bytes). Offset: %zu", segment_list_len, offset);
@@ -88,9 +82,35 @@ int calculate_hmac(uint8_t *src_addr, const struct ipv6_srh *srh, const struct h
     LOG_MAIN(DEBUG, "Copied HMAC digest (%u bytes) to output, padded with zeros if necessary.", hmac_len);
   }
 
-  // Return 0 to indicate successful HMAC calculation.
   LOG_MAIN(DEBUG, "HMAC calculation completed successfully.");
   return 0;
+}
+
+static int hex_char_to_int(char c) {
+  if ('0' <= c && c <= '9')
+    return c - '0';
+  else if ('a' <= c && c <= 'f')
+    return c - 'a' + 10;
+  else if ('A' <= c && c <= 'F')
+    return c - 'A' + 10;
+  return -1;
+}
+
+static int hex_string_to_bytes(const char *hex_str, uint8_t *buf, size_t buf_len) {
+  size_t hex_len = strlen(hex_str);
+
+  if (hex_len % 2 != 0) return -1;
+  size_t bytes_needed = hex_len / 2;
+
+  if (bytes_needed > buf_len) return -1;
+
+  for (size_t i = 0; i < bytes_needed; i++) {
+    int high = hex_char_to_int(hex_str[2 * i]);
+    int low = hex_char_to_int(hex_str[2 * i + 1]);
+    if (high < 0 || low < 0) return -1;
+    buf[i] = (high << 4) | low;
+  }
+  return (int)bytes_needed;
 }
 
 int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned char *iv,
@@ -296,6 +316,7 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hm
     // If enc_len is negative, it indicates an error in the `encrypt` function.
     if (enc_len < 0) {
       LOG_MAIN(ERR, "PVF Encryption round %d failed.", 2 - i);
+
       // In a real application, you might want to handle this error more gracefully,
       // e.g., free the mbuf and return from the parent function.
       return;
@@ -324,18 +345,11 @@ int generate_nonce(uint8_t nonce[NONCE_LENGTH]) {
     return 1;
   }
   LOG_MAIN(DEBUG, "Successfully generated %d-byte nonce.", NONCE_LENGTH);
-
-  // This loop appears to be a placeholder or remnant. It iterates over the nonce
-  // but performs no operations. It can be safely removed without affecting logic.
-  for (int i = 0; i < NONCE_LENGTH; i++) {
-    // No operation inside the loop.
-  }
-
   return 0;
 }
 
 int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *key_out, size_t key_out_len) {
-  // Critical: Attempt to open the key file in read mode ("r").
+  // Attempt to open the key file in read mode ("r").
   // If the file cannot be opened (e.g., file not found, permissions issue),
   // log an error with `perror` (which adds system error details) and return.
   FILE *f = fopen(file_path, "r");
@@ -349,15 +363,13 @@ int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *k
   char line[256];
   int ret = -1;
 
-  // Critical: Loop through each line of the file until the end of the file (NULL is returned by fgets).
+  // Loop through each line of the file until the end of the file (NULL is returned by fgets).
   while (fgets(line, sizeof(line), f) != NULL) {
     LOG_MAIN(DEBUG, "Reading line from key file: %s", line);
     char *p = line;
-    // Skip leading whitespace characters (spaces, tabs) in the line.
     while (*p && isspace((unsigned char)*p)) {
       p++;
     }
-    // Critical: Skip empty lines, comment lines (starting with '#'), or lines containing only newline.
     if (*p == '#' || *p == '\0' || *p == '\n') {
       LOG_MAIN(DEBUG, "Skipping comment or empty line.");
       continue;
@@ -368,7 +380,7 @@ int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *k
     line[strcspn(line, "\n")] = '\0';
     LOG_MAIN(DEBUG, "Processed line (no newline): %s", line);
 
-    // Critical: Tokenize the line to extract the IPv6 address part.
+    // Tokenize the line to extract the IPv6 address part.
     // strtok() splits the string based on space or tab delimiters.
     char *token = strtok(line, " \t");
     if (!token) {
@@ -377,7 +389,7 @@ int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *k
     }
     LOG_MAIN(DEBUG, "First token (IPv6 address) found: %s", token);
 
-    // Critical: Compare the extracted IPv6 address string with the target `ipv6_addr`.
+    // Compare the extracted IPv6 address string with the target `ipv6_addr`.
     // If they don't match, this line is not the one we're looking for, so continue to the next.
     if (strcmp(token, ipv6_addr) != 0) {
       LOG_MAIN(DEBUG, "IPv6 address '%s' does not match target '%s'.", token, ipv6_addr);
@@ -385,7 +397,6 @@ int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *k
     }
     LOG_MAIN(INFO, "Matching IPv6 address '%s' found in key file.", ipv6_addr);
 
-    // Critical: Extract the key string, which should be the next token after the IPv6 address.
     char *key_str = strtok(NULL, " \t");
     if (!key_str) {
       LOG_MAIN(ERR, "Key string not found for IPv6 address '%s'.", ipv6_addr);
@@ -394,7 +405,7 @@ int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *k
     }
     LOG_MAIN(DEBUG, "Key string found: %s", key_str);
 
-    // Critical: Convert the hexadecimal key string into its binary byte representation.
+    // Convert the hexadecimal key string into its binary byte representation.
     // `hex_string_to_bytes` is assumed to be an external function for this conversion.
     // `key_out` is the buffer to store the binary key, `key_out_len` is its max length.
     if (hex_string_to_bytes(key_str, key_out, key_out_len) < 0) {
@@ -407,36 +418,8 @@ int read_encryption_key(const char *file_path, const char *ipv6_addr, uint8_t *k
     break;
   }
 
-  // Critical: Close the file. This is essential to release file resources.
   fclose(f);
   LOG_MAIN(DEBUG, "Key file %s closed.", file_path);
 
   return ret;
-}
-
-static int hex_char_to_int(char c) {
-  if ('0' <= c && c <= '9')
-    return c - '0';
-  else if ('a' <= c && c <= 'f')
-    return c - 'a' + 10;
-  else if ('A' <= c && c <= 'F')
-    return c - 'A' + 10;
-  return -1;
-}
-
-static int hex_string_to_bytes(const char *hex_str, uint8_t *buf, size_t buf_len) {
-  size_t hex_len = strlen(hex_str);
-
-  if (hex_len % 2 != 0) return -1;
-  size_t bytes_needed = hex_len / 2;
-
-  if (bytes_needed > buf_len) return -1;
-
-  for (size_t i = 0; i < bytes_needed; i++) {
-    int high = hex_char_to_int(hex_str[2 * i]);
-    int low = hex_char_to_int(hex_str[2 * i + 1]);
-    if (high < 0 || low < 0) return -1;
-    buf[i] = (high << 4) | low;
-  }
-  return (int)bytes_needed;
 }

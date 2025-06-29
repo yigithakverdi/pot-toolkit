@@ -37,18 +37,12 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
       // This allows bypassing certain operations for testing or specific use cases.
       LOG_MAIN(DEBUG, "Operation bypass bit is %d", operation_bypass_bit);
       switch (operation_bypass_bit) {
-
         // Case 0: Full processing including custom header addition, HMAC calculation, and
         // encryption.
         case 0:
           LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.");
 
-          // Add custom headers (SRH, HMAC, POT TLVs) to the packet.
-          // This function modifies the mbuf in place by appending new headers and adjusting payload.
           add_custom_header(mbuf);
-
-          // Re-obtain pointers to headers as the mbuf's data layout might have changed
-          // after `add_custom_header` (e.g., if it moved existing data).
           struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr6 + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
@@ -57,8 +51,6 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
 
           char dst_ip_str[INET6_ADDRSTRLEN];
 
-          // Convert the IPv6 destination address from binary to string format for logging/debugging.
-          // If conversion fails, log an error and break from processing this packet.
           if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
             LOG_MAIN(ERR, "inet_ntop failed for destination address.");
             perror("inet_ntop failed");
@@ -66,18 +58,12 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           }
           LOG_MAIN(DEBUG, "Packet Destination IPv6: %s", dst_ip_str);
 
-          // Retrieve the HMAC key (k_hmac_ie) and its length from global storage.
-          // This key is crucial for calculating the HMAC to secure the packet.
           uint8_t *k_hmac_ie = k_pot_in[0];
           size_t key_len = HMAC_MAX_LENGTH;
 
-          // Define the IPv6 address of the ingress node.
-          // This is used as part of the HMAC calculation to authenticate the ingress point.
           struct in6_addr ingress_addr;
           inet_pton(AF_INET6, "2a05:d014:dc7:127a:fe22:97ab:a0a8:ff18", &ingress_addr);
 
-          // Determine the length to dump for debugging purposes.
-          // Ensures that we don't try to dump more than the actual packet length, limiting to 128 bytes.
           size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
           if (dump_len > 128) dump_len = 128;
           LOG_MAIN(DEBUG, "Packet length for dump: %zu", dump_len);
@@ -97,29 +83,20 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
 
           uint8_t nonce[NONCE_LENGTH];
 
-          // Generate a cryptographically secure random nonce.
-          // The nonce is essential for the PVF (Path Validation Function) encryption
-          // to prevent replay attacks and ensure unique encryption for each packet.
           if (generate_nonce(nonce) != 0) {
             LOG_MAIN(ERR, "Nonce generation failed, dropping packet.");
             break;
           }
 
-          // Encrypt the computed HMAC (now in hmac_out) using the PVF mechanism.
-          // This uses the shared secret key (k_pot_in) and the generated nonce.
           encrypt_pvf(k_pot_in, nonce, hmac_out);
           rte_memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
           rte_memcpy(pot->nonce, nonce, NONCE_LENGTH);
           LOG_MAIN(DEBUG, "HMAC encrypted and Nonce added to POT TLV.");
 
-          // Check the 'segments_left' field in the SRH.
-          // If segments_left is 0, it means the packet has reached its final destination
-          // in the segment routing path, or it's an invalid case for this router.
           if (srh->segments_left == 0) {
             LOG_MAIN(DEBUG, "SRH segments_left is 0, dropping packet.");
             rte_pktmbuf_free(mbuf);
           } else {
-
             // If segments_left is not 0, the packet needs to be forwarded to the next segment ID.
             // Calculate the index of the next segment ID (SID) in the SRH segment list.
             // srh->last_entry is the total number of segments.
@@ -130,20 +107,13 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s",
                      inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
 
-            // Lookup the MAC address corresponding to the new destination IPv6 address (next SID).
-            // This is typically done via an ARP/NDP cache or a pre-configured table.
             struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
             if (next_mac) {
-
-              // If a MAC address is found, send the packet to that MAC address on the appropriate port.
-              // rx_port_id is likely used to determine the egress port, or it's explicitly passed.
               send_packet_to(*next_mac, mbuf, rx_port_id);
               LOG_MAIN(DEBUG, "Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x",
                        next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                        next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
             } else {
-              // If no MAC address is found for the next SID, the packet cannot be forwarded.
-              // Free the mbuf to prevent resource leaks.
               LOG_MAIN(ERR, "No MAC found for next SID, dropping packet.");
               rte_pktmbuf_free(mbuf);
             }
@@ -158,9 +128,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           // SRH/HMAC/POT functionality.
           LOG_MAIN(DEBUG, "Bypassing custom header operations for ingress packet.");
           break;
-          
-        // case 2: add_custom_header_only(mbuf); break; // Placeholder for a mode that only adds headers
-        // without security operations.
+
         default: LOG_MAIN(WARNING, "Unknown operation_bypass_bit value: %d", operation_bypass_bit); break;
       }
       break;

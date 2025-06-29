@@ -3,6 +3,7 @@
 #include <rte_mbuf_core.h>
 #include <rte_mbuf_dyn.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "utils/common.h"
 #include "utils/logging.h"

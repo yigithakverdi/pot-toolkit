@@ -14,7 +14,6 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
   switch (ether_type) {
-    // Only process IPv6 packets
     case RTE_ETHER_TYPE_IPV6:
       LOG_MAIN(DEBUG, "Egress packet is IPv6, processing headers");
 
@@ -73,7 +72,7 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             decrypt_pvf(&k_pot_in[0], pot->nonce, hmac_out);
             memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
             LOG_MAIN(DEBUG, "Decrypted HMAC length: %zu", sizeof(pot->encrypted_hmac));
-            
+
             // Prepare the HMAC key for verification
             // This key is used to calculate the expected HMAC for the packet.
             uint8_t *k_hmac_ie = k_pot_in[0];
@@ -86,14 +85,13 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
               return;
             }
 
-            // Compare the calculated HMAC with the expected HMAC from the packet
             LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC");
             if (memcmp(hmac_out, expected_hmac, HMAC_MAX_LENGTH) != 0) {
               LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet");
               rte_pktmbuf_free(mbuf);
               return;
             }
-            
+
             // If the HMAC verification is successful, we proceed to remove headers
             // and forward the packet to the iperf server.
             // This includes removing the SRH, HMAC TLV, and PoT TLV
@@ -102,19 +100,19 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             // but without the SRH, HMAC TLV, and PoT TLV.
             LOG_MAIN(DEBUG, "Egress: HMAC verified successfully, forwarding packet");
             remove_headers(mbuf);
-            
+
             LOG_MAIN(DEBUG, "Packet after removing headers - length: %u", rte_pktmbuf_pkt_len(mbuf));
             struct rte_ether_hdr *eth_hdr_final = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
             struct rte_ipv6_hdr *ipv6_hdr_final = (struct rte_ipv6_hdr *)(eth_hdr_final + 1);
             LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s",
                      inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, NULL, 0),
                      inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, NULL, 0));
-            
+
             char final_src_ip[INET6_ADDRSTRLEN], final_dst_ip[INET6_ADDRSTRLEN];
             inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, final_src_ip, INET6_ADDRSTRLEN);
             inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, final_dst_ip, INET6_ADDRSTRLEN);
             LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s", final_src_ip, final_dst_ip);
-             
+
             // Forward the packet to the iperf server
             // The MAC address of the iperf server is hardcoded here.
             struct rte_ether_addr iperf_mac = {{0x02, 0xcc, 0xef, 0x38, 0x4b, 0x25}};
@@ -127,12 +125,10 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
         }
         case 1:
 
-          // Bypass all operations
           LOG_MAIN(DEBUG, "Bypassing all operations for egress packet");
           break;
-          
-        // case 2: remove_headers_only(mbuf); break;
-        LOG_MAIN(DEBUG, "Removing headers only for egress packet");
+
+          LOG_MAIN(DEBUG, "Removing headers only for egress packet");
         default: break;
       }
       break;

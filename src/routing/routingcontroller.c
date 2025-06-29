@@ -61,14 +61,3 @@ struct rte_ether_addr *lookup_mac_for_ipv6(struct in6_addr *ipv6) {
            inet_ntop(AF_INET6, ipv6, (char[INET6_ADDRSTRLEN]){0}, INET6_ADDRSTRLEN));
   return NULL;
 }
-
-struct rte_ether_addr *lookup_mac_for_ipv6(struct in6_addr *ipv6) {
-  LOG_MAIN(DEBUG, "Looking up MAC for IPv6 address %s...",
-           inet_ntop(AF_INET6, ipv6, (char[INET6_ADDRSTRLEN]){0}, INET6_ADDRSTRLEN));
-  for (int i = 0; i < next_hop_count; i++) {
-    LOG_MAIN(DEBUG, "Checking next hop %d: IPv6 %s",
-             i, inet_ntop(AF_INET6, &next_hops[i].ipv6, (char[INET6_ADDRSTRLEN]){0}, INET6_ADDRSTRLEN));
-    if (memcmp(&next_hops[i].ipv6, ipv6, sizeof(struct in6_addr)) == 0) return &next_hops[i].mac;
-  }
-  return NULL;
-}
