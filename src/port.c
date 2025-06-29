@@ -1,24 +1,9 @@
 #include "port.h"
 
-#include "utils/common.h"
 #include "latency.h"
+#include "utils/common.h"
+#include "utils/logging.h"
 
-/*
- * port_init - Initialize a DPDK Ethernet port for RX and TX operation.
- *
- * This function configures a given Ethernet port for packet I/O using DPDK. It performs
- * the following steps:
- *   1. Validates the port ID.
- *   2. Retrieves and configures device information and offloads.
- *   3. Configures the Ethernet device.
- *   4. Sets up RX and TX queues.
- *   5. Starts the Ethernet device.
- *   6. Displays the port's MAC address.
- *   7. Enables promiscuous mode.
- *
- * The function is refactored for clarity and reusability, with each step handled by a
- * dedicated static helper function. Returns 0 on success, or a negative error code on failure.
- */
 int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
   struct rte_eth_conf port_conf;
   const uint16_t rx_rings = 1, tx_rings = 1;
@@ -32,53 +17,52 @@ int port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 
   retval = get_and_configure_dev_info(port, &port_conf, &dev_info);
   if (retval != 0) {
-    printf("Failed at get_and_configure_dev_info\n");
+    LOG_MAIN(INFO, "Failed at get_and_configure_dev_info\n");
     return retval;
   }
 
   retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
   if (retval != 0) {
-    printf("Failed at rte_eth_dev_configure: %d\n", retval);
+    LOG_MAIN(INFO, "Failed at rte_eth_dev_configure: %d\n", retval);
     return retval;
   }
 
   retval = rte_eth_dev_adjust_nb_rx_tx_desc(port, &nb_rxd, &nb_txd);
   if (retval != 0) {
-    printf("Failed at rte_eth_dev_adjust_nb_rx_tx_desc\n");
+    LOG_MAIN(INFO, "Failed at rte_eth_dev_adjust_nb_rx_tx_desc\n");
     return retval;
   }
 
   retval = setup_rx_queues(port, rx_rings, nb_rxd, mbuf_pool);
   if (retval != 0) {
-    printf("Failed at setup_rx_queues\n");
+    LOG_MAIN(INFO, "Failed at setup_rx_queues\n");
     return retval;
   }
 
   retval = setup_tx_queues(port, tx_rings, nb_txd, &dev_info, &port_conf);
   if (retval != 0) {
-    printf("Failed at setup_tx_queues\n");
+    LOG_MAIN(INFO, "Failed at setup_tx_queues\n");
     return retval;
   }
 
   retval = start_port(port);
   if (retval != 0) {
-    printf("Failed at start_port\n");
+    LOG_MAIN(INFO, "Failed at start_port\n");
     return retval;
   }
 
-  // <<< add this so the NIC will pass every unicast frame into DPDK
   rte_eth_promiscuous_enable(port);
-  printf("Promiscuous mode enabled on port %u\n", port);
+  LOG_MAIN(INFO, "Promiscuous mode enabled on port %u\n", port);
 
   retval = display_port_mac(port);
   if (retval != 0) {
-    printf("Failed at display_port_mac\n");
+    LOG_MAIN(INFO, "Failed at display_port_mac\n");
     return retval;
   }
 
   retval = display_port_mac(port);
   if (retval != 0) {
-    printf("Failed at display_port_mac\n");
+    LOG_MAIN(INFO, "Failed at display_port_mac\n");
     return retval;
   }
 
@@ -89,7 +73,7 @@ int get_and_configure_dev_info(uint16_t port, struct rte_eth_conf *port_conf,
                                struct rte_eth_dev_info *dev_info) {
   int retval = rte_eth_dev_info_get(port, dev_info);
   if (retval != 0) {
-    printf("Error during getting device (port %u) info: %s\n", port, strerror(-retval));
+    LOG_MAIN(INFO, "Error during getting device (port %u) info: %s\n", port, strerror(-retval));
     return retval;
   }
   if (dev_info->tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE)
@@ -126,8 +110,9 @@ int display_port_mac(uint16_t port) {
   struct rte_ether_addr addr;
   int retval = rte_eth_macaddr_get(port, &addr);
   if (retval != 0) return retval;
-  printf("Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n", port,
-         RTE_ETHER_ADDR_BYTES(&addr));
+  LOG_MAIN(INFO,
+           "Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n",
+           port, RTE_ETHER_ADDR_BYTES(&addr));
   return 0;
 }
 
@@ -140,25 +125,18 @@ int enable_promiscuous(uint16_t port) {
 void display_mac_address(uint16_t port_id) {
   struct rte_ether_addr mac_addr;
 
-  // Retrieve the MAC address of the specified port
   rte_eth_macaddr_get(port_id, &mac_addr);
 
-  // Display the MAC address
-  printf("MAC address of port %u: %02X:%02X:%02X:%02X:%02X:%02X\n", port_id, mac_addr.addr_bytes[0],
-         mac_addr.addr_bytes[1], mac_addr.addr_bytes[2], mac_addr.addr_bytes[3], mac_addr.addr_bytes[4],
-         mac_addr.addr_bytes[5]);
+  LOG_MAIN(INFO, "Port %u MAC address: %02x:%02x:%02x:%02x:%02x:%02x", port_id, mac_addr.addr_bytes[0],
+           mac_addr.addr_bytes[1], mac_addr.addr_bytes[2], mac_addr.addr_bytes[3], mac_addr.addr_bytes[4],
+           mac_addr.addr_bytes[5]);
 }
 
-// Checks if there are any available Ethernet ports on the system for DPDK to use.
-// If no ports are available, the function terminates the program with an error message.
-// Otherwise, it prints the total number of Ethernet ports detected (including both available and unavailable
-// ports). This function is useful for ensuring that the application does not proceed without any network
-// interfaces to operate on.
 void check_ports_available() {
   if (rte_eth_dev_count_avail() == 0)
     rte_exit(EXIT_FAILURE, "No Ethernet ports available\n");
   else
-    printf("number of ports: %d \n", (int)rte_eth_dev_count_total());
+    LOG_MAIN(INFO, "Available Ethernet ports: %u", rte_eth_dev_count_avail());
 }
 
 void setup_port(uint16_t port_id, struct rte_mempool *mbuf_pool, int is_rx) {
@@ -172,5 +150,5 @@ void setup_port(uint16_t port_id, struct rte_mempool *mbuf_pool, int is_rx) {
 
   struct rte_eth_link link;
   (void)rte_eth_link_get_nowait(port_id, &link);
-  printf("Port %u link status: %s\n", port_id, link.link_status ? "UP" : "DOWN");
+  LOG_MAIN(INFO, "Port %u link status: %s\n", port_id, link.link_status ? "UP" : "DOWN");
 }
