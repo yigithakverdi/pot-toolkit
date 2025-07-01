@@ -4,6 +4,7 @@
 #include "core/init.h"
 #include "core/nodemng.h"
 #include "dataplane/forward.h"
+#include "dataplane/headers.h"
 #include "dataplane/processing.h"
 #include "port.h"
 #include "routing/routecontroller.h"
@@ -45,6 +46,14 @@ int main(int argc, char *argv[]) {
         log_level = RTE_LOG_ERR;
       else if (strcmp(argv[i + 1], "off") == 0)
         log_level = RTE_LOG_EMERG;        
+      i++;
+    } else if (strcmp(argv[i], "--segment-list") == 0 && i + 1 < argc) {
+      const char* segment_list_file = argv[i + 1];
+      printf("Loading segment list from %s\n", segment_list_file);
+      if (read_segment_list(segment_list_file) <= 0) {
+        printf("Failed to load segment list from %s\n", segment_list_file);
+        return -1;
+      }
       i++;
     }
   }
