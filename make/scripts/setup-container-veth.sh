@@ -12,6 +12,7 @@ NET_PREFIX="10.10.20"  # Network prefix for IP addresses
 IPV6_PREFIX="2001:db8:1::"  # IPv6 prefix for addresses
 KEYS_FILE="${2:-$(pwd)/keys.txt}"  # Path to input keys file, if available
 GEN_KEYS_FILE="$(pwd)/container_keys.txt"  # Path to generated keys file
+SEGMENT_LIST_FILE="$(pwd)/segment_list.txt"  # Path to generated segment list file
 SOCKET_MEM="128"  # Socket memory for DPDK
 START_LCORE=1  # Starting CPU core number
 
@@ -98,6 +99,34 @@ generate_keys_file() {
     info "Keys file generated with $((NUM_TRANSIT_NODES + 1)) entries"
 }
 
+# --- Segment List Generation Function ---
+generate_segment_list() {
+    info "Generating segment list file at $SEGMENT_LIST_FILE"
+    > "$SEGMENT_LIST_FILE"  # Clear file
+    
+    # Add transit nodes to the segment list in reverse order (last to first)
+    # This creates a path that will be traversed in order: ingress → transit-1 → ... → transit-N → egress
+    for i in $(seq $NUM_TRANSIT_NODES -1 1); do
+        # Format the IPv6 address for this transit node
+        local ipv6="${IPV6_PREFIX}${i}"
+        echo "$ipv6" >> "$SEGMENT_LIST_FILE"
+    done
+    
+    # Add the egress node last (index 0 in our setup)
+    local egress_ipv6="${IPV6_PREFIX}0"
+    echo "$egress_ipv6" >> "$SEGMENT_LIST_FILE"
+    
+    info "Segment list file generated with $((NUM_TRANSIT_NODES)) entries"
+    
+    # Display the path
+    local path="ingress"
+    for i in $(seq 1 $NUM_TRANSIT_NODES); do
+        path="$path → transit-$i"
+    done
+    path="$path → egress"
+    info "Path: $path"
+}
+
 # --- Launch Container Function ---
 # Args: $1=container_name, $2=container_index
 launch_container() {
@@ -119,6 +148,7 @@ launch_container() {
         -v /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages \
         -v /sys/devices/system/node:/sys/devices/system/node \
         -v "$GEN_KEYS_FILE":/etc/dpdk-pot/keys.txt \
+        -v "$SEGMENT_LIST_FILE":/etc/dpdk-pot/segment_list.txt \
         "$IMAGE_NAME" \
         infinity
 
@@ -186,8 +216,9 @@ create_and_assign_veth() {
 # --- Main Execution ---
 cleanup
 
-# Generate keys file first
+# Generate keys and segment list files first
 generate_keys_file
+generate_segment_list
 
 info "--- Creating Transit Node Chain with $NUM_TRANSIT_NODES Nodes ---"
 
@@ -253,6 +284,10 @@ info "To run your DPDK POT application in a container:"
 echo "  sudo docker exec -it --user root ${NODE_PREFIX}-\${NODE_IDX} bash"
 echo "  # Inside container:"
 echo "  # Keys file is already mounted at /etc/dpdk-pot/keys.txt"
+echo "  # Segment list is mounted at /etc/dpdk-pot/segment_list.txt"
+echo "  # For ingress node (NODE_IDX=0):"
+echo "  dpdk-pot --role ingress --node-id 0 --keys-file /etc/dpdk-pot/keys.txt --segment-list /etc/dpdk-pot/segment_list.txt"
+echo "  # For transit nodes (NODE_IDX=1,2,...,$NUM_TRANSIT_NODES):"
 echo "  dpdk-pot --role transit --node-id \${NODE_IDX} --keys-file /etc/dpdk-pot/keys.txt"
 echo
 info "To clean up all containers and interfaces:"
@@ -262,5 +297,13 @@ info "IPv6 Addressing information:"
 info "Each container has been assigned an IPv6 address in the format:"
 info "  ${IPV6_PREFIX}[node_index]  (e.g. ${IPV6_PREFIX}0, ${IPV6_PREFIX}1, etc.)"
 info "These addresses match the keys in the generated $GEN_KEYS_FILE file"
+
+info "Segment List information:"
+info "A segment list file has been generated at $SEGMENT_LIST_FILE with the following path:"
+cat "$SEGMENT_LIST_FILE" | while read line; do
+    echo "  - $line"
+done
+info "This segment list defines a path: ingress → transit-nodes → egress"
+info "Use this with your ingress node to correctly program the SRv6 header"
 echo
 

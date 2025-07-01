@@ -9,10 +9,55 @@
 #include <rte_mbuf.h>
 #include <rte_memcpy.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include "utils/common.h"
 #include "utils/logging.h"
+
+#define MAX_SEGMENTS 10  // Maximum number of segments in the path
+
+// Global segment list to store IPv6 addresses read from file
+struct in6_addr g_segments[MAX_SEGMENTS];
+int g_segment_count = 0;
+
+// Function to read segment list from a file
+int read_segment_list(const char *file_path) {
+  FILE *f = fopen(file_path, "r");
+  if (!f) {
+    LOG_MAIN(ERR, "Failed to open segment list file: %s\n", file_path);
+    return -1;
+  }
+  
+  char line[INET6_ADDRSTRLEN + 1];
+  int count = 0;
+  
+  while (count < MAX_SEGMENTS && fgets(line, sizeof(line), f) != NULL) {
+    // Remove newline
+    line[strcspn(line, "\n")] = '\0';
+    
+    // Skip empty lines and comments
+    if (line[0] == '\0' || line[0] == '#')
+      continue;
+    
+    // Convert string to IPv6 address
+    if (inet_pton(AF_INET6, line, &g_segments[count]) != 1) {
+      LOG_MAIN(ERR, "Invalid IPv6 address in segment list: %s\n", line);
+      fclose(f);
+      return -1;
+    }
+    
+    LOG_MAIN(DEBUG, "Loaded segment[%d]: %s\n", count, line);
+    count++;
+  }
+  
+  fclose(f);
+  g_segment_count = count;
+  LOG_MAIN(INFO, "Loaded %d segments from %s\n", count, file_path);
+  return count;
+}
 
 void remove_headers(struct rte_mbuf *pkt) {
   
@@ -211,15 +256,27 @@ void add_custom_header(struct rte_mbuf *pkt) {
   LOG_MAIN(DEBUG, "SRH header added with next_header %u, hdr_ext_len %u, routing_type %u\n",
            srh_hdr->next_header, srh_hdr->hdr_ext_len, srh_hdr->routing_type);
 
-  // Defining the IPv6 segments (waypoints) for the Segment Routing Header.
-  // These are hardcoded IPv6 addresses that the packet is intended to visit.
-  // The 'segments' array contains two IPv6 addresses in binary format.
-  struct in6_addr segments[] = {{.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96, 0x48, 0x6b,
+  // Using the globally loaded segment list for the Segment Routing Header
+  // If no segments are loaded, fall back to default hardcoded values for backward compatibility
+  if (g_segment_count > 0) {
+    // Use dynamically loaded segments
+    LOG_MAIN(DEBUG, "Using %d dynamically loaded segments for SRH", g_segment_count);
+    
+    // Update the SRH header with the correct number of segments
+    srh_hdr->last_entry = g_segment_count - 1;
+    srh_hdr->segments_left = g_segment_count;
+    
+    // Copy segments to SRH
+    memcpy(srh_hdr->segments, g_segments, g_segment_count * sizeof(struct in6_addr));
+  } else {
+    // Fallback to hardcoded segments
+    LOG_MAIN(NOTICE, "No segments loaded, using hardcoded defaults");
+    struct in6_addr segments[] = {{.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96, 0x48, 0x6b,
                                              0xf3, 0xe1, 0x82, 0xc7, 0xb4}},
                                 {.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0x09, 0x81, 0x69, 0xd7,
                                              0xd9, 0x3b, 0xcb, 0xd2, 0xb3}}};
-
-  memcpy(srh_hdr->segments, segments, sizeof(segments));
+    memcpy(srh_hdr->segments, segments, sizeof(segments));
+  }
   LOG_MAIN(DEBUG, "SRH segments added: %s, %s\n", inet_ntop(AF_INET6, &srh_hdr->segments[0], NULL, 0),
            inet_ntop(AF_INET6, &srh_hdr->segments[1], NULL, 0));
 
