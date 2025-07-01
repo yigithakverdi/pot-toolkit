@@ -19,6 +19,7 @@ int dpdk_pot_logtype_crypto;
 static char log_file_path[MAX_LOGFILE_PATH];
 
 int init_logging(const char *log_dir, const char *component_name, int log_level) {
+  return 0;
   struct stat st = {0};
 
   if (stat(log_dir, &st) == -1) {
