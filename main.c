@@ -43,6 +43,8 @@ int main(int argc, char *argv[]) {
         log_level = RTE_LOG_WARNING;
       else if (strcmp(argv[i + 1], "error") == 0)
         log_level = RTE_LOG_ERR;
+      else if (strcmp(argv[i + 1], "off") == 0)
+        log_level = RTE_LOG_EMERG;        
       i++;
     }
   }
