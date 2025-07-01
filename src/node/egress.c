@@ -102,7 +102,7 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
 
             LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC\n");
             if (memcmp(hmac_out, expected_hmac, HMAC_MAX_LENGTH) != 0) {
-              LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
+              // LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
               rte_pktmbuf_free(mbuf);
               return;
             }
@@ -113,7 +113,7 @@ static inline void process_egress_packet(struct rte_mbuf *mbuf) {
             // from the packet, and then sending it to the iperf server.
             // The final packet will have the original IPv6 header and payload,
             // but without the SRH, HMAC TLV, and PoT TLV.
-            LOG_MAIN(INFO, "Egress: HMAC verified successfully, forwarding packet\n");
+            // LOG_MAIN(INFO, "Egress: HMAC verified successfully, forwarding packet\n");
             remove_headers(mbuf);
 
             LOG_MAIN(DEBUG, "Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
@@ -157,7 +157,7 @@ void process_egress(struct rte_mbuf **pkts, uint16_t nb_rx) {
   // and logs the packet information.
   // It is called by the egress node to handle packets that are ready to be sent
   // out of the egress node.
-  LOG_MAIN(NOTICE, "Processing %u egress packets\n", nb_rx);
+  // LOG_MAIN(NOTICE, "Processing %u egress packets\n", nb_rx);
   for (uint16_t i = 0; i < nb_rx; i++) {
     // Skip per-packet logging to reduce spam
     process_egress_packet(pkts[i]);

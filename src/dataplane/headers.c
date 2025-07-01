@@ -15,7 +15,7 @@
 #include "utils/logging.h"
 
 void remove_headers(struct rte_mbuf *pkt) {
-
+  
   // Assuming the packet structure. This code makes strong assumptions
   // about the order and presence of headers: Ethernet -> IPv6 -> SRH -> HMAC -> POT.
   // If a packet doesn't conform to this exact structure, subsequent pointer
@@ -73,7 +73,7 @@ void remove_headers(struct rte_mbuf *pkt) {
   // Hardcoding a new destination IPv6 address.
   // This is a specific transformation, changing where the packet is conceptually headed.
   struct in6_addr iperf_server_ipv6;
-  if (inet_pton(AF_INET6, "2a05:d014:dc7:124f:d056:daa6:1c0a:83b2", &iperf_server_ipv6) != 1) {
+  if (inet_pton(AF_INET6, "2a05:d014:dc7:12ef:2dc:bf79:a352:6efe", &iperf_server_ipv6) != 1) {
     free(tmp_payload);
     LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
     return;
@@ -228,8 +228,8 @@ void add_custom_header(struct rte_mbuf *pkt) {
   LOG_MAIN(DEBUG, "Updated IPv6 payload length to %u\n", new_plen);
 
   size_t dump_len = rte_pktmbuf_pkt_len(pkt);
-  if (dump_len > 128) dump_len = 128;
-  LOG_MAIN(DEBUG, "Packet hex dump after custom header addition (first %zu bytes):\n", dump_len);
-  rte_pktmbuf_dump(stdout, pkt, dump_len);
-  LOG_MAIN(DEBUG, "Custom headers added to packet successfully\n");
+  // if (dump_len > 128) dump_len = 128;
+  // LOG_MAIN(DEBUG, "Packet hex dump after custom header addition (first %zu bytes):\n", dump_len);
+  // rte_pktmbuf_dump(stdout, pkt, dump_len);
+  // LOG_MAIN(DEBUG, "Custom headers added to packet successfully\n");
 }
