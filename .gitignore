@@ -2,6 +2,9 @@
 /docs/notes/*.md
 /docs/experiment.md
 
+# Ignore build directories
+/build
+
 # Ignore dependency files since they are git submodules
 /deps
 
