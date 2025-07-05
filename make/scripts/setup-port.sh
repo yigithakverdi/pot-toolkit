@@ -14,7 +14,7 @@
 
 # --- Configuration ---
 # The network interface you want to dedicate to DPDK (e.g., ens6, eth1)
-DPDK_IFACE="ens6"
+DPDK_IFACE="eno1"
 
 # The DPDK driver to use. 'vfio-pci' is recommended.
 DPDK_DRIVER="vfio-pci"

@@ -1,6 +1,6 @@
 #include "dataplane/forward.h"
 
-#include "core/nodemng.h"       
+#include "core/nodemng.h"
 #include "node/egress.h"
 #include "node/ingress.h"
 #include "node/transit.h"
@@ -14,9 +14,11 @@ int lcore_main_forward(void *arg) {
 
   uint16_t *ports = (uint16_t *)arg;
   uint16_t rx_port_id = ports[0];
+  uint16_t tx_port_id = ports[1];
   enum role cur_role = global_role;
 
   LOG_MAIN(INFO, "RX Port ID: %u\n", rx_port_id);
+  if (cur_role == ROLE_TRANSIT) LOG_MAIN(INFO, "TX Port ID: %u\n", tx_port_id);
   LOG_MAIN(INFO, "Current role: %s\n",
            cur_role == ROLE_INGRESS ? "INGRESS" : (cur_role == ROLE_TRANSIT ? "TRANSIT" : "EGRESS"));
   LOG_MAIN(INFO, "Entering main forwarding loop on lcore %u\n", rte_lcore_id());
