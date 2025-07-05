@@ -1,6 +1,6 @@
 #include "utils/utils.h"
 
-int main(char *argv[], int argc) {
+int main(int argc, char *argv[]) {
 
     // Parse the arguments
     parse_args(argc, argv);
