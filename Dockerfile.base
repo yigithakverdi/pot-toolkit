@@ -80,6 +80,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libelf1 \
     libatomic1 \
     # Network troubleshooting tools
+    iputils-ping \
     iproute2 \
     tcpdump \
     net-tools \

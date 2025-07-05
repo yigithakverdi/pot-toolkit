@@ -20,12 +20,14 @@
 #define HMAC_MAX_LENGTH 32
 #define SID_NO 4
 #define MAX_NEXT_HOPS 8
+#define MAX_POT_NODES 50
 extern int operation_bypass_bit;
 extern int tsc_dynfield_offset;
 typedef uint64_t tsc_t;
 
 
-extern uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH];
+extern uint8_t k_pot_in[MAX_POT_NODES+1][HMAC_MAX_LENGTH]; // +1 for egress
+extern int num_transit_nodes;
      
 struct next_hop_entry {
   struct in6_addr ipv6;

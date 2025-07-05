@@ -21,7 +21,6 @@
 #include <rte_mbuf_dyn.h>
 #include <stdalign.h>
 #include <stdint.h>
-
 /**
  * @brief Process transit packets and handle segment routing.
  *
@@ -63,5 +62,4 @@ void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx);
  * // Calls process_transit_packet for each packet, passing the packet and its index
  */
 static inline void process_transit_packet(struct rte_mbuf *mbuf, int i);
-
 #endif // TRANSIT_H

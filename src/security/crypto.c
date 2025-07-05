@@ -179,42 +179,22 @@ int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, u
 }
 
 int decrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t pvf_out[32]) {
-  // Declare a buffer to hold the decrypted plaintext.
-  // The size 128 is chosen to be sufficiently large to accommodate the expected decrypted data (32 bytes
-  // HMAC).
   uint8_t plaintext[128];
-
-  // Set the length of the ciphertext to be decrypted, which is 32 bytes (HMAC_MAX_LENGTH).
   int cipher_len = 32;
   LOG_MAIN(DEBUG, "Decrypting PVF: Ciphertext length = %d bytes.\n", cipher_len);
 
-  // Call the generic `decrypt` function to perform the AES-256-CTR decryption.
-  // - pvf_out: Input buffer containing the encrypted PVF data (the HMAC).
-  // - cipher_len: Length of the encrypted PVF data.
-  // - k_pot_in[0]: The decryption key. This implies that the first key in the `k_pot_in` array
-  //   is used for decryption at this stage.
-  // - nonce: The Initialization Vector (Nonce) used during encryption, crucial for CTR mode.
-  // - plaintext: Output buffer where the decrypted data will be stored.
-  int dec_len = decrypt(pvf_out, cipher_len, k_pot_in[0], nonce, plaintext);
-
-  // Check if the decryption function returned an error.
-  // Although the current `decrypt` function returns `-1` on error, this `if` block
-  // could be extended to handle `dec_len` being less than 0.
-  if (dec_len < 0) {
-    LOG_MAIN(ERR, "PVF decryption failed for incoming data.\n");
-
-    // This function currently returns 0 on success, so a non-zero value
-    // might indicate an error here if the return type were changed.
-    return -1;
+  // Decrypt onion-style: loop from 0 to num_transit_nodes (egress to last transit)
+  memcpy(plaintext, pvf_out, cipher_len);
+  for (int i = 0; i <= num_transit_nodes; i++) {
+    int dec_len = decrypt(plaintext, cipher_len, k_pot_in[i], nonce, pvf_out);
+    if (dec_len < 0) {
+      LOG_MAIN(ERR, "PVF decryption failed at layer %d.\n", i);
+      return -1;
+    }
+    LOG_MAIN(DEBUG, "PVF decryption layer %d successful.\n", i);
+    memcpy(plaintext, pvf_out, cipher_len);
   }
-  LOG_MAIN(DEBUG, "PVF decryption successful. Decrypted length: %d bytes.\n", dec_len);
-
-  // Copy the decrypted plaintext (which is the HMAC) back into the `pvf_out` buffer.
-  // This overwrites the original encrypted data with its decrypted version,
-  // making it ready for HMAC verification.
-  memcpy(pvf_out, plaintext, 32);
-  LOG_MAIN(DEBUG, "Decrypted HMAC copied back to pvf_out buffer.\n");
-
+  LOG_MAIN(DEBUG, "PVF decryption: All layers completed. Final decrypted HMAC in pvf_out.\n");
   return 0;
 }
 
@@ -281,45 +261,19 @@ int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, uns
 }
 
 void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t *nonce, uint8_t hmac_out[32]) {
-  // Declare a temporary buffer to hold the HMAC value during the iterative encryption process.
-  // Its size is HMAC_MAX_LENGTH (32 bytes).
   uint8_t buffer[HMAC_MAX_LENGTH];
-
-  // Copy the initial HMAC value (which is to be encrypted) into the temporary buffer.
-  // This `buffer` will be updated with the result of each encryption round.
   memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
   LOG_MAIN(DEBUG, "PVF Encryption: Initial HMAC copied to buffer. Length: %d bytes.\n", HMAC_MAX_LENGTH);
 
-  // This loop performs a "double encryption" or an iterative encryption process.
-  // The loop runs twice (from i=1 down to 0). This suggests a two-layer encryption
-  // where the output of one encryption is fed as input to the next, likely using
-  // different keys from the `k_pot_in` array.
-  for (int i = 1; i >= 0; i--) {
-    LOG_MAIN(DEBUG, "PVF Encryption: Starting round %d with key_pot_in[%d].\n", 2 - i, i);
-
-    // Perform the encryption.
-    // - buffer: The plaintext for this round (initially the HMAC, then the result of the previous round).
-    // - HMAC_MAX_LENGTH: Length of the plaintext.
-    // - k_pot_in[i]: The encryption key for the current round. This uses different keys for each round
-    //   (k_pot_in[1] for the first round, k_pot_in[0] for the second).
-    // - nonce: The Initialization Vector (Nonce), which must be consistent across rounds and unique per
-    // packet.
-    // - hmac_out: The output buffer where the ciphertext of the current round will be placed.
+  // Loop from num_transit_nodes down to 0 (onion encryption)
+  for (int i = num_transit_nodes; i >= 0; i--) {
+    LOG_MAIN(DEBUG, "PVF Encryption: Starting round %d with key_pot_in[%d].\n", num_transit_nodes - i + 1, i);
     int enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out);
-
-    // Check if the encryption failed.
-    // If enc_len is negative, it indicates an error in the `encrypt` function.
     if (enc_len < 0) {
-      LOG_MAIN(ERR, "PVF Encryption round %d failed.\n", 2 - i);
-
-      // In a real application, you might want to handle this error more gracefully,
-      // e.g., free the mbuf and return from the parent function.
+      LOG_MAIN(ERR, "PVF Encryption round %d failed.\n", num_transit_nodes - i + 1);
       return;
     }
-    LOG_MAIN(DEBUG, "PVF Encryption round %d successful. Ciphertext length: %d bytes.\n", 2 - i, enc_len);
-
-    // Copy the ciphertext from the current round (`hmac_out`) back into `buffer`.
-    // This prepares `buffer` to be the plaintext input for the next encryption round.
+    LOG_MAIN(DEBUG, "PVF Encryption round %d successful. Ciphertext length: %d bytes.\n", num_transit_nodes - i + 1, enc_len);
     memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
     LOG_MAIN(DEBUG, "PVF Encryption: Ciphertext copied to buffer for next round.\n");
   }

@@ -48,7 +48,8 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
           // and its routing type is 4 (SRH). If not, the packet is not a valid SRv6 packet
           // for this transit node, so it's dropped.
           if (srh->next_header != 61 || srh->routing_type != 4) {
-            LOG_MAIN(WARNING, "Transit: SRH next_header (%u) or routing_type (%u) mismatch, dropping packet.\n",
+            LOG_MAIN(WARNING,
+                     "Transit: SRH next_header (%u) or routing_type (%u) mismatch, dropping packet.\n",
                      srh->next_header, srh->routing_type);
             rte_pktmbuf_free(mbuf);
             return;
@@ -101,7 +102,7 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
 
             struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
             if (next_mac) {
-              send_packet_to(*next_mac, mbuf, 0);
+              send_packet_to(*next_mac, mbuf, 1);
               LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
                        next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                        next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
@@ -121,9 +122,12 @@ static inline void process_transit_packet(struct rte_mbuf *mbuf, int i) {
           break;
       }
       break;
-    default: LOG_MAIN(DEBUG, "Transit: Packet is not IPv6, not processed by transit_packet_process.\n"); break;
+    default:
+      LOG_MAIN(DEBUG, "Transit: Packet is not IPv6, not processed by transit_packet_process.\n");
+      break;
   }
 }
+
 
 void process_transit(struct rte_mbuf **pkts, uint16_t nb_rx) {
   // Processes each received packet in the transit queue.
