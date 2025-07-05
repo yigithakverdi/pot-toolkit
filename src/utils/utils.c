@@ -1,5 +1,10 @@
 #include "utils/utils.h"
 
+#include <stdlib.h>
+
+#include "utils/logging.h"
+#include "utils/role.h"
+
 void parse_args(int argc, char *argv[]) {
   // Get index where application arguments start, this is indicated with
   // "--" in the command line, after the double dash the arguments are
@@ -28,6 +33,10 @@ void parse_args(int argc, char *argv[]) {
       case '-r': {
         // Feed the related function for this arugment with the value of this
         // argument which just i+1
+        setup_node_role(argv[i + 1]);
+
+        // Increment i to skip the next argument which is the value of this one
+        i++;
       }
 
       // Argument that sets up the log level, it is broadcasted to all
@@ -35,6 +44,10 @@ void parse_args(int argc, char *argv[]) {
       // definition under `logging.c` file
       case '--log-level':
       case '-l': {
+        init_logging("/var/log/dpdk-pot", "dpdk-pot", RTE_LOG_DEBUG);
+
+        // Increment i to skip the next argument which is the value of this one
+        i++;
       }
 
       // --segment-list: Optional argument to specify a custom segment list
@@ -44,6 +57,30 @@ void parse_args(int argc, char *argv[]) {
       // making this configuration critical to the application's routing behavior.
       case '--segment-list':
       case '-sl': {
+        read_segment_list(argv[i + 1]);
+
+        // Increment i to skip the next argument which is the value of this one
+        i++;
+      }
+
+      // Help argument, it prints out the help message
+      case '--help':
+      case '-h': {
+        printf("Usage: dpdk-pot [options]\n");
+        printf("Options:\n");
+        printf("  --role, -r <role>          Set the role of the node (client, server, proxy)\n");
+        printf("  --log-level, -l <level>  Set the log level (debug, info, warning, error)\n");
+        printf("  --segment-list, -sl <file> Specify a custom segment list file\n");
+        printf("  --help, -h                Show this help message\n");
+        exit(0);
+      }
+
+      // Default case, if the argument is not recognized, it prints an error message
+      default: {
+        fprintf(stderr, "Unknown argument: %s\n", argv[i]);
+        fprintf(stderr, "Use --help for usage information.\n");
+        exit(EXIT_FAILURE);
       }
     }
   }
+}
