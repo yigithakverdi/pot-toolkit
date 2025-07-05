@@ -17,4 +17,7 @@ enum role {
 // and global_role.
 enum role setup_node_role(const char *role_str);
 
+// To obtain the role name as string
+const char *get_role_name(enum role role);
+
 #endif ROLE_H
