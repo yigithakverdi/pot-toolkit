@@ -61,6 +61,8 @@
         "egress.h": "c",
         "stdint.h": "c",
         "init.h": "c",
-        "nodemng.h": "c"
+        "nodemng.h": "c",
+        "compare": "c",
+        "cstdint": "c"
     }
 }
