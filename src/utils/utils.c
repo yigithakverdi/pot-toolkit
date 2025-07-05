@@ -33,8 +33,9 @@ void parse_args(int argc, char *argv[]) {
       case '-r': {
         // Feed the related function for this arugment with the value of this
         // argument which just i+1
-        setup_node_role(argv[i + 1]);
 
+        enum role r = setup_node_role(argv[i + 1]);
+        printf("[INFO] Node role set to: %s\n", get_role_name(r));
         // Increment i to skip the next argument which is the value of this one
         i++;
       }
@@ -42,9 +43,13 @@ void parse_args(int argc, char *argv[]) {
       // Argument that sets up the log level, it is broadcasted to all
       // RTE_LOG definitions, it is utilized under the central logging
       // definition under `logging.c` file
+      //
+      // TODO: Instead of printing the value of the arugments directly taken from
+      // `argv` instead use the value returned from the function
       case '--log-level':
       case '-l': {
         init_logging("/var/log/dpdk-pot", "dpdk-pot", RTE_LOG_DEBUG);
+        printf("[INFO] Log level set to: %s\n", argv[i + 1]);
 
         // Increment i to skip the next argument which is the value of this one
         i++;
@@ -55,9 +60,13 @@ void parse_args(int argc, char *argv[]) {
       // These segments are defined in the packet header's SRH (Segment Routing Header) section.
       // The packet processing logic varies based on the "segments left" value in the SRH,
       // making this configuration critical to the application's routing behavior.
+      //
+      // TODO: Instead of printing the value of the arugments directly taken from
+      // `argv` instead use the value returned from the function
       case '--segment-list':
       case '-sl': {
         read_segment_list(argv[i + 1]);
+        printf("[INFO] Segment list file set to: %s\n", argv[i + 1]);
 
         // Increment i to skip the next argument which is the value of this one
         i++;

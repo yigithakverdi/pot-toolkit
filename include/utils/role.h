@@ -8,9 +8,9 @@
 extern enum role global_role;
 enum role {
   ROLE_UNDEFINED = 0,  // Undefined role, used for error handling
-  ROLE_CLIENT,         // Client role, typically sends packets
-  ROLE_SERVER,         // Server role, typically receives packets
-  ROLE_PROXY           // Proxy role, forwards packets between client and server
+  ROLE_INGRESS,        // Client role, typically sends packets
+  ROLE_EGRESS,         // Server role, typically receives packets
+  ROLE_TRANSIT         // Proxy role, forwards packets between client and server
 };
 
 // Function that will setup the node role, it will additionally set up the environment variables
