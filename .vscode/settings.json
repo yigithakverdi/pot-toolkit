@@ -63,6 +63,16 @@
         "init.h": "c",
         "nodemng.h": "c",
         "compare": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "rte_ethdev.h": "c",
+        "time.h": "c",
+        "stat.h": "c",
+        "rte_lcore.h": "c",
+        "stdlib.h": "c",
+        "rte_mbuf_core.h": "c",
+        "stdio.h": "c",
+        "utils.h": "c",
+        "inttypes.h": "c",
+        "role.h": "c"
     }
 }

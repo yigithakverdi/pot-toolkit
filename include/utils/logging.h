@@ -10,7 +10,7 @@ extern int dpdk_pot_logtype_data;
 extern int dpdk_pot_logtype_control;
 extern int dpdk_pot_logtype_security;
 
-int init_logging(const char *log_dir, const char *component_name, int log_level);
+void print_system_info();
 
 #define LOG_MAIN(level, fmt, args...) \
   rte_log(RTE_LOG_##level, dpdk_pot_logtype_main, "%s: " fmt, __func__, ##args)

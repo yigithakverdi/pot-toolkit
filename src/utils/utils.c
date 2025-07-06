@@ -5,7 +5,9 @@
 #include "utils/logging.h"
 #include "utils/role.h"
 
-void parse_args(int argc, char *argv[]) {
+int tsc_dynfield_offset = 0;
+
+void parse_args(int argc, char* argv[]) {
   // Get index where application arguments start, this is indicated with
   // "--" in the command line, after the double dash the arguments are
   // considered application specific and not related to the DPDK framework,
@@ -87,4 +89,39 @@ void parse_args(int argc, char *argv[]) {
       exit(EXIT_FAILURE);
     }
   }
+}
+
+uint16_t add_timestamps(uint16_t port __rte_unused, uint16_t qidx __rte_unused, struct rte_mbuf** pkts,
+                        uint16_t nb_pkts, uint16_t max_pkts __rte_unused, void* _ __rte_unused) {
+  unsigned i;
+  uint64_t now = rte_rdtsc();
+
+  for (i = 0; i < nb_pkts; i++) *tsc_field(pkts[i]) = now;
+  return nb_pkts;
+}
+
+struct latency_numbers_t latency_numbers = {0, 0, 0};
+uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf** pkts, uint16_t nb_pkts,
+                      void* _ __rte_unused) {
+  uint64_t cycles = 0;
+  uint64_t queue_ticks = 0;
+  uint64_t now = rte_rdtsc();
+  uint64_t ticks;
+  unsigned i;
+
+  for (i = 0; i < nb_pkts; i++) {
+    cycles += now - *tsc_field(pkts[i]);
+  }
+
+  latency_numbers.total_cycles += cycles;
+
+  latency_numbers.total_pkts += nb_pkts;
+
+  double latency_us = (double)latency_numbers.total_cycles / rte_get_tsc_hz() * 1e6;
+
+  latency_numbers.total_cycles = 0;
+  latency_numbers.total_queue_cycles = 0;
+  latency_numbers.total_pkts = 0;
+
+  return nb_pkts;
 }
