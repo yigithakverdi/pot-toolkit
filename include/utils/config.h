@@ -19,7 +19,6 @@ typedef struct {
 } AppConfig;
 
 void config_load_env(AppConfig* config);
-int read_segment_list(const char* file_path);
 AppConfig config_load_defaults();
 
 #endif // CONFIG_H

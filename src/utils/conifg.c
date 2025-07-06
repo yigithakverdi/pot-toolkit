@@ -29,18 +29,6 @@ AppConfig config_load_defaults() {
   return config;
 }
 
-int read_segment_list(const char* file_path) {
-  FILE* f = fopen(file_path, "r");
-  if (!f) {
-    perror("Failed to open segment list file");
-    return -1;
-  }
-
-  // TODO implement the logic of reading the segment list from a file and returning
-  //  it in the desired format.
-  //  ...
-}
-
 // Helper function for loading the given environment variable, either from CLI arugments
 // or from defaults.
 void config_load_env(AppConfig* config) {
