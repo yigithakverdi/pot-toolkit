@@ -1,6 +1,25 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-int read_segment_list(const char *file_path);
+typedef struct {
+  char* key_locations;
+  char* segment_list;
+  int num_transit;
+} TopologyConfig;
+
+typedef struct {
+  char* log_level;
+  char* log_file;
+  char* type;
+} NodeConfig;
+
+typedef struct {
+  TopologyConfig topology;
+  NodeConfig node;
+} AppConfig;
+
+void config_load_env(AppConfig* config);
+int read_segment_list(const char* file_path);
+AppConfig config_load_defaults();
 
 #endif // CONFIG_H

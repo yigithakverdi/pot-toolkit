@@ -1,4 +1,5 @@
 #include "utils/logging.h"
+#include "utils/config.h"
 #include "utils/role.h"
 #include <err.h>
 #include <errno.h>
@@ -14,7 +15,7 @@
 
 int dpdk_pot_logtype_main = 0;
 
-void print_system_info() {
+void print_system_info(AppConfig* config) {
   printf("TSC frequency: %" PRIu64 " Hz\n", rte_get_tsc_hz());
 
   uint16_t nb_ports = rte_eth_dev_count_avail();
@@ -39,6 +40,16 @@ void print_system_info() {
            link.link_speed, link.link_duplex == RTE_ETH_LINK_FULL_DUPLEX ? "full" : "half");
   }
   printf("==== End DPDK Port Information ====\n\n");
+
+  printf("==== Application Configuration ====\n");
+  printf("Node type: %s\n", config->node.type ? config->node.type : "N/A");
+  printf("Logging level: %s\n", config->node.log_level ? config->node.log_level : "N/A");
+  printf("Topology segment list: %s\n",
+         config->topology.segment_list ? config->topology.segment_list : "N/A");
+  printf("Topology key locations: %s\n",
+         config->topology.key_locations ? config->topology.key_locations : "N/A");
+  printf("Number of transit nodes: %d\n", config->topology.num_transit);
+  printf("==== End Application Configuration ====\n\n");
 }
 
 void print_startup_banner(enum role role, uint16_t rx_port, uint16_t tx_port) {

@@ -73,6 +73,7 @@
         "stdio.h": "c",
         "utils.h": "c",
         "inttypes.h": "c",
-        "role.h": "c"
+        "role.h": "c",
+        "logging.h": "c"
     }
 }
