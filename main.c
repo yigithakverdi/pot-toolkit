@@ -1,7 +1,7 @@
-#include "init.h"
 #include "port.h"
 #include "utils/role.h"
 #include "utils/utils.h"
+#include "utils/config.h"
 
 int main(int argc, char* argv[]) {
 
@@ -17,10 +17,18 @@ int main(int argc, char* argv[]) {
   init_mempool();
   register_tsc_dynfield();
 
+  // Initialize the topology configurations, this is manily the transit node set up, number of
+  // tranist nodes, in between ingress and egress nodes, however these creates topology.ini file
+  // and node.ini files in a default location, these two crucical config files then point to the
+  // segment_list, and key files that is used to define the core PoT processing logic  
+  AppConfig conf = config_load_defaults();
 
   // Parse the arguments, it sets up environment variables, depending on the given arguments,
   // if optional arguments not given then default values are used, that are defined under .ini
   // files.
+  //
+  // NOTE the CLI arguments defined here overrides the previous default config loads, it also 
+  // overrides what is already defined on the environment, and updates the related changes
   parse_args(argc, argv);
 
   // Given the EAL, and configurations are set up, we check the available ports
@@ -44,7 +52,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Print the system information, before starting the packet processing loop
-  print_system_info();
+  print_system_info(&conf);
 
   // Start the packet processing loop after the flight checks:
   // ...

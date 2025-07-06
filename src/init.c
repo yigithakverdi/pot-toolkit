@@ -72,6 +72,33 @@ struct rte_mempool* init_mempool() {
   return mbuf_pool;
 }
 
+int init_topology() {
+  LOG_MAIN(DEBUG, "Initializing topology\n");
+
+  // Default number of transit node is set to 1, this is applied to the topology.ini file
+  // that will be generated here, later on, changing the number of transit nodes, or
+  // changing anything on the transit.ini file after the first run, it will 
+  // change the configurations accordingly, so that the application can
+  // adapt to the new topology.
+  int num_transit = 1;
+
+
+  // TODO Implement the topology.ini file generation according to logic 
+  // that is defined here programatically. 
+  // ...
+
+  // After the related ini files are created, topology.ini, node.ini etc.
+  // next thing is to define the environment variables. These variables
+  // in the end what the application uses, not the definitions under
+  // ini files, the env variables, the ini files are basically a secondry
+  // way of making the configuration easy. 
+  LOG_MAIN(DEBUG, "Topology initialized with %d transit nodes\n", num_transit);
+  
+
+
+
+}
+
 void register_tsc_dynfield() {
   LOG_MAIN(DEBUG, "Registering TSC dynamic field for mbufs\n");
   static const struct rte_mbuf_dynfield tsc_dynfield_desc = {
