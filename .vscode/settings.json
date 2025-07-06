@@ -74,6 +74,9 @@
         "utils.h": "c",
         "inttypes.h": "c",
         "role.h": "c",
-        "logging.h": "c"
+        "logging.h": "c",
+        "stdalign.h": "c",
+        "rte_ip.h": "c",
+        "in.h": "c"
     }
 }

@@ -1,4 +1,5 @@
 #include "init.h"
+#include "headers.h"
 #include "utils/logging.h"
 #include "utils/utils.h"
 #include <getopt.h>
@@ -77,26 +78,56 @@ int init_topology() {
 
   // Default number of transit node is set to 1, this is applied to the topology.ini file
   // that will be generated here, later on, changing the number of transit nodes, or
-  // changing anything on the transit.ini file after the first run, it will 
+  // changing anything on the transit.ini file after the first run, it will
   // change the configurations accordingly, so that the application can
   // adapt to the new topology.
-  int num_transit = 1;
-
-
-  // TODO Implement the topology.ini file generation according to logic 
-  // that is defined here programatically. 
-  // ...
+  //
+  // TODO instead of calling it and assigning it with a environment variable,
+  // just use config_load_env to first load the environment as it is done
+  // on the main.c then use global variables directly 
+  int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
+  if (num_transit <= 0) {
+    LOG_MAIN(ERR, "Invalid number of transit nodes: %d\n", num_transit);
+    return -1;
+  }
 
   // After the related ini files are created, topology.ini, node.ini etc.
   // next thing is to define the environment variables. These variables
   // in the end what the application uses, not the definitions under
   // ini files, the env variables, the ini files are basically a secondry
-  // way of making the configuration easy. 
+  // way of making the configuration easy.
   LOG_MAIN(DEBUG, "Topology initialized with %d transit nodes\n", num_transit);
-  
 
+  // Read the segments from the segment list file in the specified path, this
+  // path is defined under env POT_SEGMENT_LIST_FILE
+  const char* segment_list_path = getenv("POT_SEGMENT_LIST_FILE");
+  if (segment_list_path == NULL) {
+    LOG_MAIN(ERR, "Environment variable POT_SEGMENT_LIST_FILE is not set\n");
+    return -1;
+  }
+  if (load_srh_segments(segment_list_path) < 0) {
+    LOG_MAIN(ERR, "Failed to read segment list from %s\n", segment_list_path);
+    return -1;
+  }
 
+  const char* keys_path = getenv("POT_KEYS_FILE");
+  if (keys_path == NULL) {
+    LOG_MAIN(ERR, "Ortam değişkeni POT_KEYS_FILE ayarlanmamış\n");
+    return -1;
+  }
 
+  // For onion encryption 1 (ingress/egress) + transit
+  int total_keys_needed = num_transit + 1;
+  if (total_keys_needed > MAX_POT_NODES + 1) {
+    LOG_MAIN(ERR, "Gerekli anahtar sayısı (%d) hard limiti (%d) aşıyor!\n", total_keys_needed,
+             MAX_POT_NODES + 1);
+    return -1;
+  }
+
+  if (load_pot_keys(keys_path, total_keys_needed) < 0) {
+    LOG_MAIN(ERR, "Anahtar listesi okunamadı: %s\n", keys_path);
+    return -1;
+  }
 }
 
 void register_tsc_dynfield() {

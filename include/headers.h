@@ -25,18 +25,18 @@
 // This is also a hard limit for the number of segments that can be defined and placed in the
 // custom header, soft limit is placed using the configurations, i.e. environment variable.
 // POT_MAX_SEGMENTS is the soft limit.
-#define MAX_SEGMENTS 50
-
-#define MAX_POT_NODES 50
 #define HMAC_MAX_LENGTH 32
+#define MAX_SEGMENTS 50
+#define MAX_POT_NODES 50
 #define MAX_NEXT_HOPS 8
+
+// Global segment array and count
+extern struct in6_addr *g_segments;
+extern int g_segment_count;
 
 extern int operation_bypass_bit;
 extern int tsc_dynfield_offset;
 typedef uint64_t tsc_t;
-
-extern uint8_t k_pot_in[MAX_POT_NODES + 1][HMAC_MAX_LENGTH]; // +1 for egress
-extern int num_transit_nodes;
 
 struct next_hop_entry {
   struct in6_addr ipv6;
@@ -77,8 +77,9 @@ struct pot_tlv {
   uint8_t encrypted_hmac[32]; // Encrypted HMAC (variable length)
 };
 
-int read_segment_list(const char* file_path);
 void add_custom_header(struct rte_mbuf* pkt);
 void remove_headers(struct rte_mbuf* pkt);
+int load_srh_segments(const char* filepath);
+void free_srh_segments(void);
 
 #endif // HEADERS_H
