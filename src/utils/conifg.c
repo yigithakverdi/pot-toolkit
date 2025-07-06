@@ -24,8 +24,8 @@ AppConfig config_load_defaults() {
 
   // Topology default settings
   config.topology.num_transit = 1; // Default number of transit nodes
-  config.topology.key_locations = strdup("/etc/secret/key_locations.json");
-  config.topology.segment_list = strdup("/etc/segment/segment_list.json");
+  config.topology.key_locations = strdup("/etc/secret/key_locations.txt");
+  config.topology.segment_list = strdup("/etc/segment/segment_list.txt");
   return config;
 }
 
@@ -43,5 +43,15 @@ void config_load_env(AppConfig* config) {
     free(config->topology.segment_list);
     config->topology.segment_list = strdup(env_val);
   }
+
+  if ((env_val = getenv("APP_TOPOLOGY_KEY_LOCATIONS"))) {
+    free(config->topology.key_locations);
+    config->topology.key_locations = strdup(env_val);
+  }
+
+  if ((env_val = getenv("APP_TOPOLOGY_NUM_TRANSIT_NODES"))) {
+    config->topology.num_transit = atoi(env_val);
+  }
+
   // ... repeat for all possible environment variables
 }

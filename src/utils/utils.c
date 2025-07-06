@@ -65,7 +65,7 @@ void parse_args(int argc, char* argv[]) {
     // TODO: Instead of printing the value of the arugments directly taken from
     // `argv` instead use the value returned from the function
     else if (strcmp(argv[i], "--segment-list") == 0 || strcmp(argv[i], "-sl") == 0) {
-      read_segment_list(argv[i + 1]);
+      // read_segment_list(argv[i + 1]);
       printf("[INFO] Segment list file set to: %s\n", argv[i + 1]);
 
       // Increment i to skip the next argument which is the value of this one
@@ -115,11 +115,9 @@ uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf
   }
 
   latency_numbers.total_cycles += cycles;
-
   latency_numbers.total_pkts += nb_pkts;
 
   double latency_us = (double)latency_numbers.total_cycles / rte_get_tsc_hz() * 1e6;
-
   latency_numbers.total_cycles = 0;
   latency_numbers.total_queue_cycles = 0;
   latency_numbers.total_pkts = 0;

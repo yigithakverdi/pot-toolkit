@@ -2,6 +2,7 @@
 #define INIT_H
 
 #include "port.h"
+#include "utils/config.h"
 #include "utils/logging.h"
 #include <err.h>
 #include <errno.h>
@@ -13,18 +14,9 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#define RX_RING_SIZE 2048
-#define TX_RING_SIZE 2048
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
-#define BURST_SIZE 256
-#define CUSTOM_HEADER_TYPE 0x0833
 #define EXTRA_SPACE 128
-#define NONCE_LENGTH 16
-#define HMAC_MAX_LENGTH 32
-#define SID_NO 4
-#define MAX_NEXT_HOPS 8
-#define MAX_POT_NODES 50
 
 void init_eal(int argc, char* argv[]);
 void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role);

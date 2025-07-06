@@ -1,16 +1,65 @@
 #include "headers.h"
 #include "utils/logging.h"
 
-int read_segment_list(const char* file_path) {
-  FILE* f = fopen(file_path, "r");
-  if (!f) {
-    perror("Failed to open segment list file");
+// Global segment list pointer to store IPv6 addresses read from file
+struct in6_addr *g_segments = NULL;
+int g_segment_count = 0;
+int operation_bypass_bit = 0;
+
+// Function to read segment list from a file
+int load_srh_segments(const char* filepath) {
+  FILE* file = fopen(filepath, "r");
+  if (!file) {
+    perror("Error opening segment list file");
     return -1;
   }
 
-  // TODO implement the logic of reading the segment list from a file and returning
-  //  it in the desired format.
-  //  ...
+  // Allocate memory for the segments using DPDK's memory allocator
+  g_segments = rte_malloc("SRH_SEGMENTS", MAX_SEGMENTS * sizeof(struct in6_addr), 0);
+  if (g_segments == NULL) {
+    LOG_MAIN(ERR, "Failed to allocate memory for SRH segments\n");
+    fclose(file);
+    return -1;
+  }
+
+  char line[INET6_ADDRSTRLEN];
+  while (fgets(line, sizeof(line), file) && g_segment_count < MAX_SEGMENTS) {
+    // Remove newline character from the end of the line
+    line[strcspn(line, "\n")] = 0;
+
+    // Skip empty lines
+    if (strlen(line) == 0) {
+      continue;
+    }
+
+    // Convert string to binary IPv6 address and store it
+    if (inet_pton(AF_INET6, line, &g_segments[g_segment_count]) == 1) {
+      g_segment_count++;
+    } else {
+      LOG_MAIN(WARNING, "Invalid IPv6 address in segment file: %s\n", line);
+    }
+  }
+
+  fclose(file);
+
+  if (g_segment_count == 0) {
+    LOG_MAIN(WARNING, "No valid segments were loaded from %s\n", filepath);
+    rte_free(g_segments);
+    g_segments = NULL;
+    return -1;
+  }
+
+  LOG_MAIN(INFO, "Successfully loaded %u SRH segments from %s\n", g_segment_count, filepath);
+  return 0;
+}
+
+// Function to free the allocated memory when the application shuts down
+void free_srh_segments(void) {
+  if (g_segments != NULL) {
+    rte_free(g_segments);
+    g_segments = NULL;
+    g_segment_count = 0;
+  }
 }
 
 void remove_headers(struct rte_mbuf* pkt) {
@@ -178,27 +227,25 @@ void add_custom_header(struct rte_mbuf* pkt) {
 
   // Using the globally loaded segment list for the Segment Routing Header
   // If no segments are loaded, fall back to default hardcoded values for backward compatibility
-  //   if (g_segment_count > 0) {
-  //     // Use dynamically loaded segments
-  //     LOG_MAIN(DEBUG, "Using %d dynamically loaded segments for SRH", g_segment_count);
+  if (g_segment_count > 0) {
+    // Use dynamically loaded segments
+    LOG_MAIN(DEBUG, "Using %d dynamically loaded segments for SRH", g_segment_count);
 
-  //     // Update the SRH header with the correct number of segments
-  //     srh_hdr->last_entry = g_segment_count - 1;
-  //     srh_hdr->segments_left = g_segment_count;
+    // Update the SRH header with the correct number of segments
+    srh_hdr->last_entry = g_segment_count - 1;
+    srh_hdr->segments_left = g_segment_count;
 
-  //     // Copy segments to SRH
-  //     memcpy(srh_hdr->segments, g_segments, g_segment_count * sizeof(struct in6_addr));
-  //   } else {
-
-  //     LOG_MAIN(NOTICE, "No segments loaded, using hardcoded defaults");
-  //     struct in6_addr segments[] = {{.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96,
-  //     0x48,
-  //                                                0x6b, 0xf3, 0xe1, 0x82, 0xc7, 0xb4}},
-  //                                   {.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0x09, 0x81,
-  //                                   0x69,
-  //                                                0xd7, 0xd9, 0x3b, 0xcb, 0xd2, 0xb3}}};
-  //     memcpy(srh_hdr->segments, segments, sizeof(segments));
-  //   }
+    // Copy segments to SRH
+    memcpy(srh_hdr->segments, g_segments, g_segment_count * sizeof(struct in6_addr));
+  } else {
+    // Fallback to hardcoded segments
+    LOG_MAIN(NOTICE, "No segments loaded, using hardcoded defaults");
+    struct in6_addr segments[] = {{.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0xdc, 0x96, 0x48,
+                                               0x6b, 0xf3, 0xe1, 0x82, 0xc7, 0xb4}},
+                                  {.s6_addr = {0x2a, 0x05, 0xd0, 0x14, 0x0d, 0xc7, 0x12, 0x09, 0x81, 0x69,
+                                               0xd7, 0xd9, 0x3b, 0xcb, 0xd2, 0xb3}}};
+    memcpy(srh_hdr->segments, segments, sizeof(segments));
+  }
   LOG_MAIN(DEBUG, "SRH segments added: %s, %s\n", inet_ntop(AF_INET6, &srh_hdr->segments[0], NULL, 0),
            inet_ntop(AF_INET6, &srh_hdr->segments[1], NULL, 0));
 
@@ -207,4 +254,8 @@ void add_custom_header(struct rte_mbuf* pkt) {
   LOG_MAIN(DEBUG, "Updated IPv6 payload length to %u\n", new_plen);
 
   size_t dump_len = rte_pktmbuf_pkt_len(pkt);
+  // if (dump_len > 128) dump_len = 128;
+  // LOG_MAIN(DEBUG, "Packet hex dump after custom header addition (first %zu bytes):\n", dump_len);
+  // rte_pktmbuf_dump(stdout, pkt, dump_len);
+  // LOG_MAIN(DEBUG, "Custom headers added to packet successfully\n");
 }
