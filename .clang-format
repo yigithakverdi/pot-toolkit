@@ -1,7 +1,8 @@
 # Google C/C++ Style Guide: https://google.github.io/styleguide/cppguide.html
 # Clang-Format Style Options: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 
-BasedOnStyle: Google
+BasedOnStyle: LLVM
+
 
 # The column limit for formatting.
 ColumnLimit: 110
