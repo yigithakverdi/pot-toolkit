@@ -6,6 +6,8 @@
 #include "headers.h"
 #include "forward.h"
 
+int g_node_index = -1;
+
 void add_next_hop(const char* ipv6_str, const char* mac_str) {
   // Check if the maximum number of next hops has been reached.
   // If so, log a warning and return to prevent buffer overflow.

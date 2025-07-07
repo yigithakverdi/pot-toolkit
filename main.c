@@ -1,11 +1,17 @@
 #include "crypto.h"
 #include "headers.h"
 #include "port.h"
+#include "forward.h"
+#include "init.h"
 #include "utils/config.h"
 #include "utils/role.h"
 #include "utils/utils.h"
+#include "node/controller.h"
 
 int main(int argc, char* argv[]) {
+
+  // Initialize empty AppConfig structure later on will be filled with default values.
+  AppConfig config;
 
   // Initialize the DPDK environment, the first thing application does is initializing the EAL
   // it sets up the infrastructure configurations that our DPDK apps needed to run, so it is
@@ -23,8 +29,10 @@ int main(int argc, char* argv[]) {
   // tranist nodes, in between ingress and egress nodes, however these creates topology.ini file
   // and node.ini files in a default location, these two crucical config files then point to the
   // segment_list, and key files that is used to define the core PoT processing logic
-  AppConfig conf = config_load_defaults();
-  config_load_env(&conf);
+  config_init(&config);
+  config_load_defaults(&config);
+  config_load_env(&config);
+  
 
   // Parse the arguments, it sets up environment variables, depending on the given arguments,
   // if optional arguments not given then default values are used, that are defined under .ini
@@ -32,19 +40,15 @@ int main(int argc, char* argv[]) {
   //
   // NOTE the CLI arguments defined here overrides the previous default config loads, it also
   // overrides what is already defined on the environment, and updates the related changes
-  parse_args(argc, argv);
+  parse_args(&config, argc, argv);
 
-  // TODO Besides the environment variables, also set the global variables according to given
-  // configurations these are mostly extern variables, and sometimes preprocessors, for
-  // now the number of transit for global variable defined here
-  const char* num_transit_env = getenv("APP_TOPOLOGY_NUM_TRANSIT_NODES");
-  if (num_transit_env) {
-    num_transit_nodes = atoi(num_transit_env);
-  } else {
-    // Ortam değişkeni yoksa, conf'daki son değere (default/ini) geri dön
-    num_transit_nodes = conf.topology.num_transit;
-  }
-  printf("App will start with %d number of transit nodes.\n", num_transit_nodes);
+  // TODO before initializing the topology force the index of the current node from the
+  // environment variable that is supplied when running the script `setup_container_veth.sh`
+  // this script creates NODE_INDEX env variable for each container, normally, this should be
+  // integrated through the controller node, that is responsible for Shamir Secret Sharing
+  // and the key distribution, however, for now, we are forcing the node index through the
+  // script `setup_container_veth.sh`
+  g_node_index = getenv_int("POT_NODE_INDEX");
 
   // Init topology after calling the default arguments load, and the parse args function, which
   // might overload the given default values
@@ -63,6 +67,7 @@ int main(int argc, char* argv[]) {
   // assumed to be not affect the an access to a element that is not used
   uint16_t rx_port = 0;
   uint16_t tx_port = 1;
+  uint16_t ports[2] = {rx_port, tx_port};
   init_ports(rx_port, tx_port, 0);
 
   // If the role of the node is transit then initialize the second port since it might
@@ -73,7 +78,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Print the system information, before starting the packet processing loop
-  print_system_info(&conf);
+  print_system_info(&config);
 
   // Start the packet processing loop after the flight checks:
   // ...
@@ -81,6 +86,7 @@ int main(int argc, char* argv[]) {
   // - Initialization of the memory pool
   // - Initialization of the ports
   // - Initialization of the packet processing functions
+  launch_lcore_forwarding(ports);
 
   // Free the segment list in any case
   atexit(free_srh_segments);

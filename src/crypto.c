@@ -8,6 +8,7 @@
 
 uint8_t g_key_count = 0;
 int num_transit_nodes = 0;
+uint8_t k_pot_in[MAX_POT_NODES + 1][HMAC_MAX_LENGTH];
 
 int load_pot_keys(const char* filepath, int keys_to_load) {
   FILE* file = fopen(filepath, "r");
