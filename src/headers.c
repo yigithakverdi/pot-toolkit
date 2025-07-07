@@ -2,7 +2,7 @@
 #include "utils/logging.h"
 
 // Global segment list pointer to store IPv6 addresses read from file
-struct in6_addr *g_segments = NULL;
+struct in6_addr* g_segments = NULL;
 int g_segment_count = 0;
 int operation_bypass_bit = 0;
 
@@ -175,11 +175,18 @@ void add_custom_header(struct rte_mbuf* pkt) {
   rte_pktmbuf_trim(pkt, payload_size);
   LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", payload_size);
 
+  size_t srh_size =
+      8 + (g_segment_count * sizeof(struct in6_addr));
+  srh_hdr = (struct ipv6_srh*)rte_pktmbuf_append(pkt, srh_size);
+
   // Appending the new headers in order.
   // rte_pktmbuf_append increases the mbuf's data_len and returns a pointer
   // to the newly appended space. These calls ensure the SRH, HMAC, and POT TLVs
   // are inserted directly after the IPv6 header.
-  srh_hdr = (struct ipv6_srh*)rte_pktmbuf_append(pkt, sizeof(struct ipv6_srh));
+  //
+  // NOTE the SRH header size calculation is updated with the above logic, we might remove
+  // this line later if we decide to dynamic segment count.
+  // srh_hdr = (struct ipv6_srh*)rte_pktmbuf_append(pkt, sizeof(struct ipv6_srh));
   hmac_hdr = (struct hmac_tlv*)rte_pktmbuf_append(pkt, sizeof(struct hmac_tlv));
   pot_hdr = (struct pot_tlv*)rte_pktmbuf_append(pkt, sizeof(struct pot_tlv));
   payload = (uint8_t*)rte_pktmbuf_append(pkt, payload_size);
@@ -216,7 +223,7 @@ void add_custom_header(struct rte_mbuf* pkt) {
   // header. 'hdr_ext_len = 2' is specific to SRH and its length calculation. 'routing_type = 4' indicates a
   // Segment Routing Header. 'last_entry = 1' and 'segments_left = 2' define the routing path specifics.
   srh_hdr->next_header = 61;
-  srh_hdr->hdr_ext_len = 2;
+  srh_hdr->hdr_ext_len = g_segment_count * 2;
   srh_hdr->routing_type = 4;
   srh_hdr->last_entry = 1;
   srh_hdr->flags = 0;
@@ -227,6 +234,9 @@ void add_custom_header(struct rte_mbuf* pkt) {
 
   // Using the globally loaded segment list for the Segment Routing Header
   // If no segments are loaded, fall back to default hardcoded values for backward compatibility
+  // 
+  // TODO later on this part could be completly translated to the dynamic segment loading
+  // instead of hardcoded segments.
   if (g_segment_count > 0) {
     // Use dynamically loaded segments
     LOG_MAIN(DEBUG, "Using %d dynamically loaded segments for SRH", g_segment_count);

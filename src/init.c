@@ -84,7 +84,7 @@ int init_topology() {
   //
   // TODO instead of calling it and assigning it with a environment variable,
   // just use config_load_env to first load the environment as it is done
-  // on the main.c then use global variables directly 
+  // on the main.c then use global variables directly
   int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
   if (num_transit <= 0) {
     LOG_MAIN(ERR, "Invalid number of transit nodes: %d\n", num_transit);
@@ -128,6 +128,12 @@ int init_topology() {
     LOG_MAIN(ERR, "Anahtar listesi okunamadı: %s\n", keys_path);
     return -1;
   }
+}
+
+void init_lookup_table() {
+  printf("Initializing lookup table for next hops\n");
+  add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
+  add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
 }
 
 void register_tsc_dynfield() {

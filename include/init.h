@@ -23,6 +23,7 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role);
 int init_logging(const char* log_dir, const char* component_name, int log_level);
 struct rte_mempool* init_mempool();
 int init_topology();
+void init_lookup_table();
 void register_tsc_dynfield();
 
 #endif // INIT_H

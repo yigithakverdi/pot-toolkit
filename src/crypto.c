@@ -314,25 +314,47 @@ int encrypt(unsigned char* plaintext, int plaintext_len, unsigned char* key, uns
   return ciphertext_len;
 }
 
+// void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hmac_out[32]) {
+//   uint8_t buffer[HMAC_MAX_LENGTH];
+//   memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+//   LOG_MAIN(DEBUG, "PVF Encryption: Initial HMAC copied to buffer. Length: %d bytes.\n", HMAC_MAX_LENGTH);
+
+//   // Loop from num_transit_nodes down to 0 (onion encryption)
+//   for (int i = num_transit_nodes; i >= 0; i--) {
+//     LOG_MAIN(DEBUG, "PVF Encryption: Starting round %d with key_pot_in[%d].\n", num_transit_nodes - i + 1,
+//     i); int enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out); if (enc_len < 0) {
+//       LOG_MAIN(ERR, "PVF Encryption round %d failed.\n", num_transit_nodes - i + 1);
+//       return;
+//     }
+//     LOG_MAIN(DEBUG, "PVF Encryption round %d successful. Ciphertext length: %d bytes.\n",
+//              num_transit_nodes - i + 1, enc_len);
+//     memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+//     LOG_MAIN(DEBUG, "PVF Encryption: Ciphertext copied to buffer for next round.\n");
+//   }
+//   LOG_MAIN(DEBUG, "PVF Encryption: All rounds completed. Final encrypted HMAC in hmac_out.\n");
+// }
+
 void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hmac_out[32]) {
   uint8_t buffer[HMAC_MAX_LENGTH];
   memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
-  LOG_MAIN(DEBUG, "PVF Encryption: Initial HMAC copied to buffer. Length: %d bytes.\n", HMAC_MAX_LENGTH);
 
-  // Loop from num_transit_nodes down to 0 (onion encryption)
-  for (int i = num_transit_nodes; i >= 0; i--) {
-    LOG_MAIN(DEBUG, "PVF Encryption: Starting round %d with key_pot_in[%d].\n", num_transit_nodes - i + 1, i);
-    int enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out);
-    if (enc_len < 0) {
-      LOG_MAIN(ERR, "PVF Encryption round %d failed.\n", num_transit_nodes - i + 1);
+  // 1. First, encrypt the innermost layer with the Egress key (k[0])
+  int enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[0], nonce, hmac_out);
+  if (enc_len < 0) { 
+    return;
+  }
+  memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+
+  // 2. Then, encrypt outward with the transit keys in order (k[1], k[2], ...)
+  // This creates the onion layers in the correct order.
+  for (int i = 1; i <= num_transit_nodes; i++) {
+    enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out);
+    if (enc_len < 0) { 
       return;
     }
-    LOG_MAIN(DEBUG, "PVF Encryption round %d successful. Ciphertext length: %d bytes.\n",
-             num_transit_nodes - i + 1, enc_len);
     memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
-    LOG_MAIN(DEBUG, "PVF Encryption: Ciphertext copied to buffer for next round.\n");
   }
-  LOG_MAIN(DEBUG, "PVF Encryption: All rounds completed. Final encrypted HMAC in hmac_out.\n");
+  LOG_MAIN(DEBUG, "PVF Encryption: All rounds completed.\n");
 }
 
 int compare_hmac(struct hmac_tlv* hmac, uint8_t* hmac_out, struct rte_mbuf* mbuf) {

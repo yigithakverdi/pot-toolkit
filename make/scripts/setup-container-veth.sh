@@ -144,7 +144,7 @@ launch_container() {
     local index="$2"
     local lcore=$((START_LCORE + index % $(nproc)))
     
-    info "Launching container: $name (using core $lcore)" >&2
+    info "Launching container: $name (using core $lcore, assigning NODE_INDEX=$index)" >&2
     sudo docker run -d \
         --name="$name" \
         --hostname="$name" \
@@ -160,6 +160,7 @@ launch_container() {
         -v "$GEN_KEYS_FILE":/etc/dpdk-pot/keys.txt \
         -v "$SEGMENT_LIST_FILE":/etc/dpdk-pot/segment_list.txt \
         "$IMAGE_NAME" \
+        -e "POT_NODE_INDEX=${index}"} \
         infinity >/dev/null
 
     sleep 1
