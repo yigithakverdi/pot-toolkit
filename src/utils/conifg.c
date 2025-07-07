@@ -15,43 +15,118 @@
 #include "utils/config.h"
 #include "utils/logging.h"
 
-AppConfig config_load_defaults() {
-  AppConfig config;
+void config_init(AppConfig* config) {
+  config->node.log_level = NULL;
+  config->node.type = NULL;
+  config->topology.key_locations = NULL;
+  config->topology.segment_list = NULL;
 
-  // Node default settings
-  config.node.log_level = "info";
-  config.node.type = strdup("transit");
-
-  // Topology default settings
-  config.topology.num_transit = 1; // Default number of transit nodes
-  config.topology.key_locations = strdup("/etc/secret/key_locations.txt");
-  config.topology.segment_list = strdup("/etc/segment/segment_list.txt");
-  return config;
+  // Sayısal değerleri sıfırla
+  config->topology.num_transit = 0;
 }
 
-// Helper function for loading the given environment variable, either from CLI arugments
-// or from defaults.
+// AppConfig tarafından ayrılan tüm dinamik belleği serbest bırakır.
+void config_destroy(AppConfig* config) {
+  // Free the dynamically allocated strings in the AppConfig structure.
+  // with the strdup function, we ensure that we only free memory
+  // that was allocated with strdup, and not any other memory.
+  free(config->node.log_level);
+  free(config->node.type);
+  free(config->topology.key_locations);
+  free(config->topology.segment_list);
+
+  // For safety, set pointers to NULL after freeing them
+  config->node.log_level = NULL;
+  config->node.type = NULL;
+  // ...
+}
+
+// Loads default config values
+void config_load_defaults(AppConfig* config) {
+  // Node default settings
+  free(config->node.log_level);
+  config->node.log_level = strdup("info");
+
+  free(config->node.type);
+  config->node.type = strdup("transit");
+
+  // Topology default settings
+  config->topology.num_transit = 1;
+
+  free(config->topology.key_locations);
+  config->topology.key_locations = strdup("/etc/secret/key_locations.txt");
+
+  free(config->topology.segment_list);
+  config->topology.segment_list = strdup("/etc/segment/segment_list.txt");
+}
+
+// For string env values, safely loads the value from the environment variable
+// into the target pointer, freeing any previously allocated memory.
+// If the environment variable is not set, the target pointer remains unchanged.
+void load_string_from_env(char** target, const char* env_var_name) {
+  const char* env_val = getenv(env_var_name);
+  if (env_val) {
+    free(*target);
+    *target = strdup(env_val);
+  }
+}
+
+// Main function to load configuration from environment variables.
 void config_load_env(AppConfig* config) {
-  const char* env_val;
+  load_string_from_env(&config->node.log_level, "APP_NODE_LOG_LEVEL");
+  load_string_from_env(&config->topology.segment_list, "APP_TOPOLOGY_SEGMENT_LIST_PATH");
+  load_string_from_env(&config->topology.key_locations, "APP_TOPOLOGY_KEY_LOCATIONS");
 
-  if ((env_val = getenv("APP_NODE_LOGGING_LEVEL"))) {
-    free(config->node.log_level);
-    config->node.log_level = strdup(env_val);
+  // Safer for integer values:
+  // Read the number of transit nodes from the environment variable.
+  // If the variable is not set or has an invalid value, it will not change the
+  // default value set in config_load_defaults.
+  const char* env_val_num_transit = getenv("APP_TOPOLOGY_NUM_TRANSIT_NODES");
+  if (env_val_num_transit) {
+    char* endptr;
+    errno = 0; // Hata kontrolü için errno'yu sıfırla
+    long val = strtol(env_val_num_transit, &endptr, 10);
+
+    // Error handling:
+    // 1. Was there an error during conversion (e.g., overflow)?
+    // 2. Was the entire string converted to a number?
+    if (errno == 0 && *endptr == '\0' && env_val_num_transit != endptr) {
+      config->topology.num_transit = (int)val;
+    } else {
+      fprintf(stderr, "WARN: Invalid value for APP_TOPOLOGY_NUM_TRANSIT_NODES: '%s'. Using previous value.\n",
+              env_val_num_transit);
+    }
   }
+}
 
-  if ((env_val = getenv("APP_TOPOLOGY_SEGMENT_LIST_PATH"))) {
-    free(config->topology.segment_list);
-    config->topology.segment_list = strdup(env_val);
-  }
+// Loads all the config settings in the following order:
+// 1. Initializes the AppConfig struct to a safe state.
+// 2. Loads compile-time defaults.
+// 3. Optionally loads configuration from a file (not recommended for production).
+// 4. Loads environment variables (highest priority).
+// 5. Optionally validates that all required settings are set.
+//    This step is optional but recommended for ensuring the application has all necessary configurations.
+// Returns 0 on success, -1 on failure.
+int load_app_config(AppConfig* config) {
 
-  if ((env_val = getenv("APP_TOPOLOGY_KEY_LOCATIONS"))) {
-    free(config->topology.key_locations);
-    config->topology.key_locations = strdup(env_val);
-  }
+  // 1. Initialization: Set all pointers to NULL and numeric values to 0.
+  config_init(config);
 
-  if ((env_val = getenv("APP_TOPOLOGY_NUM_TRANSIT_NODES"))) {
-    config->topology.num_transit = atoi(env_val);
-  }
+  // 2. Step: Load compile-time defaults.
+  config_load_defaults(config);
 
-  // ... repeat for all possible environment variables
+  // (OPTIONAL BUT RECOMMENDED) Step 3: Load configuration from a file.
+  // config_load_file(config, "/etc/app/config.toml");
+  // This layer overrides defaults but can be overridden by environment variables.
+
+  // Step 4: Load environment variables (highest priority).
+  config_load_env(config);
+
+  // (OPTIONAL) Step 5: Verify that all required settings have been set
+  // if (config->topology.key_locations == NULL) {
+  //    fprintf(stderr, "ERROR: Mandatory config 'key_locations' is not set!\n");
+  //    return -1;
+  // }
+
+  return 0;
 }

@@ -3,91 +3,100 @@
 
 #include <stdlib.h>
 
+#include "utils/config.h"
 #include "utils/logging.h"
 #include "utils/role.h"
 
 int tsc_dynfield_offset = 0;
 
-void parse_args(int argc, char* argv[]) {
-  // Get index where application arguments start, this is indicated with
-  // "--" in the command line, after the double dash the arguments are
-  // considered application specific and not related to the DPDK framework,
-  // such as EAL.
-  int app_arg_start = 1;
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "--") == 0) {
-      app_arg_start = i + 1;
-      break;
-    }
+int getenv_int(const char* name) {
+  const char* val = getenv(name);
+  if (val == NULL) {
+    return 0; // Default value if not set
   }
 
-  // After the above loop, we can pivot from the EAL arguments to the
-  // application arguments. The arguments provided also sets up
-  // environment variables as well.
-  for (int i = app_arg_start; i < argc; i++) {
-    // From here on the argument parsing is just a string compare
-    // and bunch of switch cases, depending on the received argument,
-    // related functions are called
+  char* endptr;
+  long result = strtol(val, &endptr, 10);
 
-    // Argument that sets up the role of the current running instance of the
-    // DPDK application, it affects how the packets are processed and send
-    // it is crucial part of the application logic.
-    if (strcmp(argv[i], "--role") == 0 || strcmp(argv[i], "-r") == 0) {
-      // Feed the related function for this arugment with the value of this
-      // argument which just i+1
+  if (*endptr != '\0' || endptr == val) {
+    // Conversion error or empty string
+    return 0; // Default value if invalid
+  }
 
-      enum role r = setup_node_role(argv[i + 1]);
-      printf("[INFO] Node role set to: %s\n", get_role_name(r));
-      // Increment i to skip the next argument which is the value of this one
-      i++;
-    }
+  return (int)result;
+}
 
-    // Argument that sets up the log level, it is broadcasted to all
-    // RTE_LOG definitions, it is utilized under the central logging
-    // definition under `logging.c` file
-    //
-    // TODO: Instead of printing the value of the arugments directly taken from
-    // `argv` instead use the value returned from the function
-    else if (strcmp(argv[i], "--log-level") == 0 || strcmp(argv[i], "-l") == 0) {
-      init_logging("/var/log/dpdk-pot", "dpdk-pot", RTE_LOG_DEBUG);
-      printf("[INFO] Log level set to: %s\n", argv[i + 1]);
+void parse_args(AppConfig* config, int argc, char* argv[]) {
+  static struct option long_options[] = {
+      // name              has_arg            flag  val
+      {"type", required_argument, 0, 't'},
+      {"log-level", required_argument, 0, 'l'},
+      {"log-file", required_argument, 0, 'f'},
+      {"segment-list", required_argument, 0, 's'},
+      {"key-locations", required_argument, 0, 'k'},
+      {"num-transit", required_argument, 0, 'n'},
+      {"help", no_argument, 0, 'h'},
+      {0, 0, 0, 0} // Dizi sonunu belirtir
+  };
 
-      // Increment i to skip the next argument which is the value of this one
-      i++;
-    }
+  int opt_index = 0;
+  int c;
 
-    // --segment-list: Optional argument to specify a custom segment list
-    // If not provided, the application uses a predefined segment list hardcoded in the code.
-    // These segments are defined in the packet header's SRH (Segment Routing Header) section.
-    // The packet processing logic varies based on the "segments left" value in the SRH,
-    // making this configuration critical to the application's routing behavior.
-    //
-    // TODO: Instead of printing the value of the arugments directly taken from
-    // `argv` instead use the value returned from the function
-    else if (strcmp(argv[i], "--segment-list") == 0 || strcmp(argv[i], "-sl") == 0) {
-      // read_segment_list(argv[i + 1]);
-      printf("[INFO] Segment list file set to: %s\n", argv[i + 1]);
+  // Kısa opsiyon string'i
+  const char* short_options = "t:l:f:s:k:n:h";
 
-      // Increment i to skip the next argument which is the value of this one
-      i++;
-    }
+  while ((c = getopt_long(argc, argv, short_options, long_options, &opt_index)) != -1) {
+    switch (c) {
+    case 't': // --type veya -t
+      free(config->node.type);
+      config->node.type = strdup(optarg);
+      break;
 
-    // Help argument, it prints out the help message
-    else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
-      printf("Usage: dpdk-pot [options]\n");
-      printf("Options:\n");
-      printf("  --role, -r <role>          Set the role of the node (client, server, proxy)\n");
-      printf("  --log-level, -l <level>  Set the log level (debug, info, warning, error)\n");
-      printf("  --segment-list, -sl <file> Specify a custom segment list file\n");
-      printf("  --help, -h                Show this help message\n");
-      exit(0);
-    }
+    case 'l': // --log-level veya -l
+      free(config->node.log_level);
+      config->node.log_level = strdup(optarg);
+      break;
 
-    // Default case, if the argument is not recognized, it prints an error message
-    else {
-      fprintf(stderr, "Unknown argument: %s\n", argv[i]);
-      fprintf(stderr, "Use --help for usage information.\n");
+    case 'f': // --log-file veya -f
+      free(config->node.log_file);
+      config->node.log_file = strdup(optarg);
+      break;
+
+    case 's': // --segment-list veya -s
+      free(config->topology.segment_list);
+      config->topology.segment_list = strdup(optarg);
+      break;
+
+    case 'k': // --key-locations veya -k
+      free(config->topology.key_locations);
+      config->topology.key_locations = strdup(optarg);
+      break;
+
+    case 'n': // --num-transit veya -n
+      config->topology.num_transit = atoi(optarg);
+      break;
+
+    case 'h': // --help veya -h
+      printf("Usage: %s [options]\n\n", argv[0]);
+      printf("Node Options:\n");
+      printf("  -t, --type <type>             Set the node type (e.g., 'transit', 'edge').\n");
+      printf("  -l, --log-level <level>         Set the log level (e.g., 'debug', 'info').\n");
+      printf("  -f, --log-file <path>           Specify a log file path.\n\n");
+      printf("Topology Options:\n");
+      printf("  -s, --segment-list <path>     Specify the segment list file.\n");
+      printf("  -k, --key-locations <path>    Specify the key locations file.\n");
+      printf("  -n, --num-transit <number>    Set the number of transit nodes.\n\n");
+      printf("Other Options:\n");
+      printf("  -h, --help                      Show this help message.\n");
+      exit(EXIT_SUCCESS);
+      break;
+
+    case '?': // Bilinmeyen opsiyon veya eksik argüman
+      fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
       exit(EXIT_FAILURE);
+      break;
+
+    default: abort();
     }
   }
 }

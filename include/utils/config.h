@@ -18,7 +18,9 @@ typedef struct {
   NodeConfig node;
 } AppConfig;
 
+int load_app_config(AppConfig* config);
 void config_load_env(AppConfig* config);
-AppConfig config_load_defaults();
-
+void load_string_from_env(char** target, const char* env_var_name);
+void config_load_defaults(AppConfig* config);
+void config_destroy(AppConfig* config);
 #endif // CONFIG_H
