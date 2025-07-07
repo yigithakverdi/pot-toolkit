@@ -84,15 +84,13 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         LOG_MAIN(DEBUG, "Encrypted HMAC length: %zu\n", sizeof(pot->encrypted_hmac));
 
         uint8_t final_hmac[HMAC_MAX_LENGTH];
-        int dec_len = decrypt(pot->encrypted_hmac, HMAC_MAX_LENGTH,
-                              k_pot_in[0],
-                              pot->nonce, final_hmac);
+        int dec_len = decrypt(pot->encrypted_hmac, HMAC_MAX_LENGTH, k_pot_in[0], pot->nonce, final_hmac);
 
         if (dec_len < 0) {
           LOG_MAIN(ERR, "Egress: Final PVF decryption failed.\n");
           return;
         }
-        memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
+        // memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
         LOG_MAIN(DEBUG, "Decrypted HMAC length: %zu\n", sizeof(pot->encrypted_hmac));
 
         // Prepare the HMAC key for verification
@@ -108,7 +106,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         }
 
         LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC\n");
-        if (memcmp(hmac_out, expected_hmac, HMAC_MAX_LENGTH) != 0) {
+        if (memcmp(final_hmac, expected_hmac, HMAC_MAX_LENGTH) != 0) {
           // LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
           rte_pktmbuf_free(mbuf);
           return;

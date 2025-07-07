@@ -56,6 +56,10 @@ int main(int argc, char* argv[]) {
     rte_exit(EXIT_FAILURE, "Failed to initialize topology\n");
   }
 
+  // Initialize the lookup table, that will be used to forward the packet to destined node
+  // given the IPv6 info from SRH, that is then mapped to MAC address using this lookup table.
+  init_lookup_table();
+
   // Given the EAL, and configurations are set up, we check the available ports
   // and make sure that we have at least one port available to use, otherwise we exit the
   // application with an error message. And afterwards if everyhing works fine initializes the
