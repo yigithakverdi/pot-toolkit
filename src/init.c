@@ -160,6 +160,7 @@ int init_topology() {
     LOG_MAIN(ERR, "Anahtar listesi okunamadı: %s\n", keys_path);
     return -1;
   }
+  return 0;
 }
 
 void init_lookup_table() {
