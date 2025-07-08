@@ -104,8 +104,8 @@ int start_port(uint16_t port, uint16_t num_queues) {
 
   retval = rte_eth_promiscuous_enable(port);
   if (retval != 0) {
-    LOG_MAIN(ERR, "Promiscuous mode enable failed: %s\n", strerror(-retval));
-    return retval;
+    LOG_MAIN(WARNING, "Promiscuous mode enable failed for port %u: %s (continuing anyway)\n", port, rte_strerror(-retval));
+    // return retval;
   }
   LOG_MAIN(INFO, "Promiscuous mode enabled on port %u\n", port);
 

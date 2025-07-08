@@ -14,13 +14,23 @@ int load_srh_segments(const char* filepath) {
     return -1;
   }
 
-  // Allocate memory for the segments using DPDK's memory allocator
-  g_segments = rte_malloc("SRH_SEGMENTS", MAX_SEGMENTS * sizeof(struct in6_addr), 0);
+  // Add debug output before allocation
+  LOG_MAIN(DEBUG, "Allocating memory for %d segments, size: %zu bytes\n",
+           MAX_SEGMENTS, MAX_SEGMENTS * sizeof(struct in6_addr));
+
+  // Use regular malloc instead of rte_malloc for this test
+  g_segments = malloc(MAX_SEGMENTS * sizeof(struct in6_addr));
   if (g_segments == NULL) {
     LOG_MAIN(ERR, "Failed to allocate memory for SRH segments\n");
     fclose(file);
     return -1;
   }
+
+  // Zero-initialize the memory
+  memset(g_segments, 0, MAX_SEGMENTS * sizeof(struct in6_addr));
+
+  // Add debug output after allocation
+  LOG_MAIN(DEBUG, "Successfully allocated memory at %p for SRH segments\n", g_segments);
 
   char line[INET6_ADDRSTRLEN];
   while (fgets(line, sizeof(line), file) && g_segment_count < MAX_SEGMENTS) {
@@ -32,11 +42,32 @@ int load_srh_segments(const char* filepath) {
       continue;
     }
 
+    // Add bounds checking
+    if (g_segment_count >= MAX_SEGMENTS) {
+      LOG_MAIN(ERR, "Too many segments in file, maximum is %d\n", MAX_SEGMENTS);
+      break;
+    }
+
+    // Add debug output before inet_pton
+    LOG_MAIN(DEBUG, "Processing segment %d: '%s', target address: %p\n",
+             g_segment_count, line, &g_segments[g_segment_count]);
+
+    // Add validation for the target address
+    if (&g_segments[g_segment_count] == NULL) {
+      LOG_MAIN(ERR, "Invalid target address for segment %d\n", g_segment_count);
+      break;
+    }
+
     // Convert string to binary IPv6 address and store it
-    if (inet_pton(AF_INET6, line, &g_segments[g_segment_count]) == 1) {
+    int result = inet_pton(AF_INET6, line, &g_segments[g_segment_count]);
+    if (result == 1) {
+      LOG_MAIN(DEBUG, "Successfully parsed segment %d\n", g_segment_count);
       g_segment_count++;
-    } else {
+    } else if (result == 0) {
       LOG_MAIN(WARNING, "Invalid IPv6 address in segment file: %s\n", line);
+    } else {
+      LOG_MAIN(ERR, "inet_pton error for address: %s\n", line);
+      perror("inet_pton");
     }
   }
 
@@ -44,15 +75,17 @@ int load_srh_segments(const char* filepath) {
 
   if (g_segment_count == 0) {
     LOG_MAIN(WARNING, "No valid segments were loaded from %s\n", filepath);
-    rte_free(g_segments);
+    free(g_segments);
     g_segments = NULL;
     return -1;
   }
 
-  LOG_MAIN(INFO, "Successfully loaded %u SRH segments from %s\n", g_segment_count, filepath);
+  LOG_MAIN(INFO, "Successfully loaded %d SRH segments from %s\n", g_segment_count, filepath);
   return 0;
 }
 
+// Function to read segment list from a file
+// Function to read segment list from a file
 // Function to free the allocated memory when the application shuts down
 void free_srh_segments(void) {
   if (g_segments != NULL) {

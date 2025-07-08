@@ -164,9 +164,21 @@ int init_topology() {
 }
 
 void init_lookup_table() {
-  printf("Initializing lookup table for next hops\n");
+  printf("DEBUG: Starting init_lookup_table\n");
+  LOG_MAIN(DEBUG, "Initializing lookup table for next hops\n");
+  
+  printf("DEBUG: Adding first next hop\n");
   add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
+  
+  printf("DEBUG: First next hop added successfully\n");
+  
+  printf("DEBUG: Adding second next hop\n");
   add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
+  
+  printf("DEBUG: Second next hop added successfully\n");
+  
+  printf("DEBUG: init_lookup_table completed\n");
+  LOG_MAIN(DEBUG, "Lookup table initialization completed\n");
 }
 
 void register_tsc_dynfield() {
