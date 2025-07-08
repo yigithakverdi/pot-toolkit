@@ -109,8 +109,10 @@ void sync_config_to_env(AppConfig* config) {
   if (config->node.type) setenv("POT_NODE_TYPE", config->node.type, 1);
   if (config->node.log_level) setenv("POT_NODE_LOG_LEVEL", config->node.log_level, 1);
   if (config->topology.key_locations) setenv("POT_TOPOLOGY_KEY_LOCATIONS", config->topology.key_locations, 1);
-  if (config->topology.segment_list)
+  if (config->topology.segment_list) {
     setenv("POT_TOPOLOGY_SEGMENT_LIST_PATH", config->topology.segment_list, 1);
+    setenv("POT_SEGMENT_LIST_FILE", config->topology.segment_list, 1);
+  }
 }
 
 // Loads all the config settings in the following order:
