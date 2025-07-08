@@ -1,6 +1,9 @@
 #include "utils/logging.h"
 #include "utils/config.h"
 #include "utils/role.h"
+#include "headers.h"         // Add this for g_segments, g_segment_count, next_hops, etc.
+#include "crypto.h"          // Add this for g_key_count
+#include "node/controller.h" // Add this for g_node_index
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -12,6 +15,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <arpa/inet.h>       // Add this for inet_ntop
+
+// ...existing code...
 
 int dpdk_pot_logtype_main = 0;
 
@@ -43,13 +49,63 @@ void print_system_info(AppConfig* config) {
 
   printf("==== Application Configuration ====\n");
   printf("Node type: %s\n", config->node.type ? config->node.type : "N/A");
+  printf("Node role: %s\n", get_role_name(global_role));
   printf("Logging level: %s\n", config->node.log_level ? config->node.log_level : "N/A");
-  printf("Topology segment list: %s\n",
-         config->topology.segment_list ? config->topology.segment_list : "N/A");
-  printf("Topology key locations: %s\n",
-         config->topology.key_locations ? config->topology.key_locations : "N/A");
+  printf("Topology segment list: %s\n", config->topology.segment_list ? config->topology.segment_list : "N/A");
+  printf("Topology key locations: %s\n", config->topology.key_locations ? config->topology.key_locations : "N/A");
   printf("Number of transit nodes: %d\n", config->topology.num_transit);
   printf("==== End Application Configuration ====\n\n");
+
+  printf("==== Environment Variables ====\n");
+  printf("POT_NODE_TYPE: %s\n", getenv("POT_NODE_TYPE") ? getenv("POT_NODE_TYPE") : "NOT SET");
+  printf("POT_NODE_INDEX: %s\n", getenv("POT_NODE_INDEX") ? getenv("POT_NODE_INDEX") : "NOT SET");
+  printf("POT_NODE_LOG_LEVEL: %s\n", getenv("POT_NODE_LOG_LEVEL") ? getenv("POT_NODE_LOG_LEVEL") : "NOT SET");
+  printf("POT_TOPOLOGY_NUM_TRANSIT_NODES: %s\n", getenv("POT_TOPOLOGY_NUM_TRANSIT_NODES") ? getenv("POT_TOPOLOGY_NUM_TRANSIT_NODES") : "NOT SET");
+  printf("POT_SEGMENT_LIST_FILE: %s\n", getenv("POT_SEGMENT_LIST_FILE") ? getenv("POT_SEGMENT_LIST_FILE") : "NOT SET");
+  printf("POT_KEYS_FILE: %s\n", getenv("POT_KEYS_FILE") ? getenv("POT_KEYS_FILE") : "NOT SET");
+  printf("POT_TOPOLOGY_SEGMENT_LIST_PATH: %s\n", getenv("POT_TOPOLOGY_SEGMENT_LIST_PATH") ? getenv("POT_TOPOLOGY_SEGMENT_LIST_PATH") : "NOT SET");
+  printf("POT_TOPOLOGY_KEY_LOCATIONS: %s\n", getenv("POT_TOPOLOGY_KEY_LOCATIONS") ? getenv("POT_TOPOLOGY_KEY_LOCATIONS") : "NOT SET");
+  printf("==== End Environment Variables ====\n\n");
+
+  printf("==== Runtime Information ====\n");
+  printf("Global node index: %d\n", g_node_index);
+  printf("Global role: %s (%d)\n", get_role_name(global_role), global_role);
+  printf("Operation bypass bit: %d\n", operation_bypass_bit);
+  printf("Loaded SRH segments: %d\n", g_segment_count);
+  printf("Loaded POT keys: %d\n", g_key_count);
+  printf("Next hop entries: %d\n", next_hop_count);
+  printf("TSC dynfield offset: %d\n", tsc_dynfield_offset);
+  printf("==== End Runtime Information ====\n\n");
+
+  printf("==== Memory Information ====\n");
+  if (g_segments != NULL) {
+    printf("SRH segments memory: %p (allocated)\n", g_segments);
+    printf("Segment list contents:\n");
+    for (int i = 0; i < g_segment_count; i++) {
+      char seg_str[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &g_segments[i], seg_str, sizeof(seg_str));
+      printf("  [%d]: %s\n", i, seg_str);
+    }
+  } else {
+    printf("SRH segments memory: NOT ALLOCATED\n");
+  }
+  printf("==== End Memory Information ====\n\n");
+
+  printf("==== Next Hop Table ====\n");
+  if (next_hop_count > 0) {
+    for (int i = 0; i < next_hop_count; i++) {
+      char ipv6_str[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &next_hops[i].ipv6, ipv6_str, sizeof(ipv6_str));
+      printf("  [%d]: %s -> %02x:%02x:%02x:%02x:%02x:%02x\n",
+             i, ipv6_str,
+             next_hops[i].mac.addr_bytes[0], next_hops[i].mac.addr_bytes[1],
+             next_hops[i].mac.addr_bytes[2], next_hops[i].mac.addr_bytes[3],
+             next_hops[i].mac.addr_bytes[4], next_hops[i].mac.addr_bytes[5]);
+    }
+  } else {
+    printf("  No next hop entries configured\n");
+  }
+  printf("==== End Next Hop Table ====\n\n");
 }
 
 void print_startup_banner(enum role role, uint16_t rx_port, uint16_t tx_port) {
