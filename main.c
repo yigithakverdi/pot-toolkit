@@ -16,17 +16,17 @@ int main(int argc, char* argv[]) {
   // Initialize the logging
   // init_logging("/var/log/dpdk-pot", "pot", RTE_LOG_DEBUG);
 
-  // Given the EAL, and configurations are set up, we check the available ports
-  // and make sure that we have at least one port available to use, otherwise we exit the
-  // application with an error message. And afterwards if everyhing works fine initializes the
-  // ports, and sets up the memory pool for the mbufs.
-  check_ports();
-
   // Initialize the DPDK environment, the first thing application does is initializing the EAL
   // it sets up the infrastructure configurations that our DPDK apps needed to run, so it is
   // important to call this function first, in terms of both making sure everything is set up
   // correctly on EAL without any side effects caused by our app.
   init_eal(argc, argv);
+
+  // Given the EAL, and configurations are set up, we check the available ports
+  // and make sure that we have at least one port available to use, otherwise we exit the
+  // application with an error message. And afterwards if everyhing works fine initializes the
+  // ports, and sets up the memory pool for the mbufs.
+  check_ports();
 
   // Initialize the memory pool, that is used for the mbufs, that are used to store the packets
   // that are received from the ports, and sent to the ports. The memory pool is a shared resource
