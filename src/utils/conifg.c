@@ -99,6 +99,20 @@ void config_load_env(AppConfig* config) {
   }
 }
 
+void sync_config_to_env(AppConfig* config) {
+  // Convert numerical values to strings and set environment variables
+  char num_transit_str[16];
+  snprintf(num_transit_str, sizeof(num_transit_str), "%d", config->topology.num_transit);
+  setenv("POT_TOPOLOGY_NUM_TRANSIT_NODES", num_transit_str, 1); // 1 means overwrite if exists
+
+  // Sync string values if needed
+  if (config->node.type) setenv("POT_NODE_TYPE", config->node.type, 1);
+  if (config->node.log_level) setenv("POT_NODE_LOG_LEVEL", config->node.log_level, 1);
+  if (config->topology.key_locations) setenv("POT_TOPOLOGY_KEY_LOCATIONS", config->topology.key_locations, 1);
+  if (config->topology.segment_list)
+    setenv("POT_TOPOLOGY_SEGMENT_LIST_PATH", config->topology.segment_list, 1);
+}
+
 // Loads all the config settings in the following order:
 // 1. Initializes the AppConfig struct to a safe state.
 // 2. Loads compile-time defaults.

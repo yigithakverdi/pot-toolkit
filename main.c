@@ -47,8 +47,10 @@ int main(int argc, char* argv[]) {
   // files.
   //
   // NOTE the CLI arguments defined here overrides the previous default config loads, it also
-  // overrides what is already defined on the environment, and updates the related changes
+  // overrides what is already defined on the environment, and updates the related changes.
+  // after that sync the config with the environment variables.
   parse_args(&config, argc, argv);
+  sync_config_to_env(&config);
 
   // TODO before initializing the topology force the index of the current node from the
   // environment variable that is supplied when running the script `setup_container_veth.sh`
