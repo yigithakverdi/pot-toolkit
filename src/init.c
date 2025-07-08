@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h> 
 
 void init_eal(int argc, char* argv[]) {
   LOG_MAIN(DEBUG, "Initializing DPDK EAL\n");
@@ -48,8 +49,31 @@ int init_logging(const char* log_dir, const char* component_name, int log_level)
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
 
-  // TODO Rest of the logging initialization will be implemented here
-  //  ...
+  char log_file_path[256];
+  snprintf(log_file_path, sizeof(log_file_path), "%s/%s-%d-%02d-%02d_%02d%02d%02d.log", log_dir,
+           component_name, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+  int fd = open(log_file_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+  if (fd < 0) {
+    fprintf(stderr, "Error opening log file %s: %s\n", log_file_path, strerror(errno));
+    return -1;
+  }
+
+  rte_log_set_global_level(log_level);
+  rte_openlog_stream(fdopen(fd, "a"));
+
+  dpdk_pot_logtype_main = rte_log_register("main");
+  if (dpdk_pot_logtype_main < 0) {
+    fprintf(stderr, "Error registering main log type\n");
+    return -1;
+  }
+
+  rte_log_set_level(dpdk_pot_logtype_main, log_level);
+
+  printf("Logging initialized: %s\n", log_file_path);
+  LOG_MAIN(INFO, "Logging initialized: %s\n", log_file_path);
+
+  return 0;
 }
 
 struct rte_mempool* init_mempool() {
