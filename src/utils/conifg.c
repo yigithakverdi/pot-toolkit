@@ -54,7 +54,7 @@ void config_load_defaults(AppConfig* config) {
   config->topology.num_transit = 1;
 
   free(config->topology.key_locations);
-  config->topology.key_locations = strdup("/etc/secret/key_locations.txt");
+  config->topology.key_locations = strdup("/etc/secret/pot_keys.txt");
 
   free(config->topology.segment_list);
   config->topology.segment_list = strdup("/etc/segment/segment_list.txt");
@@ -103,15 +103,19 @@ void sync_config_to_env(AppConfig* config) {
   // Convert numerical values to strings and set environment variables
   char num_transit_str[16];
   snprintf(num_transit_str, sizeof(num_transit_str), "%d", config->topology.num_transit);
-  setenv("POT_TOPOLOGY_NUM_TRANSIT_NODES", num_transit_str, 1); // 1 means overwrite if exists
+  setenv("POT_TOPOLOGY_NUM_TRANSIT_NODES", num_transit_str, 1);
 
   // Sync string values if needed
   if (config->node.type) setenv("POT_NODE_TYPE", config->node.type, 1);
   if (config->node.log_level) setenv("POT_NODE_LOG_LEVEL", config->node.log_level, 1);
-  if (config->topology.key_locations) setenv("POT_TOPOLOGY_KEY_LOCATIONS", config->topology.key_locations, 1);
   if (config->topology.segment_list) {
     setenv("POT_TOPOLOGY_SEGMENT_LIST_PATH", config->topology.segment_list, 1);
     setenv("POT_SEGMENT_LIST_FILE", config->topology.segment_list, 1);
+  }
+  if (config->topology.key_locations) {
+    setenv("POT_TOPOLOGY_KEY_LOCATIONS", config->topology.key_locations, 1);
+    // Add this line to fix the segmentation fault
+    setenv("POT_KEYS_FILE", config->topology.key_locations, 1);
   }
 }
 
