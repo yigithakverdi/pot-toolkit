@@ -2,12 +2,12 @@
 #include "headers.h"
 #include "utils/logging.h"
 #include "utils/utils.h"
+#include <fcntl.h>
 #include <getopt.h>
 #include <rte_ethdev.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h> 
 
 void init_eal(int argc, char* argv[]) {
   LOG_MAIN(DEBUG, "Initializing DPDK EAL\n");
@@ -98,6 +98,14 @@ struct rte_mempool* init_mempool() {
 }
 
 int init_topology() {
+
+  // Guard, check if the environment variable POT_NODE_INDEX is set.
+  if (getenv("POT_NODE_INDEX") == NULL) {
+    LOG_MAIN(ERR, "Environment variable POT_NODE_INDEX is not set\n");
+    setenv("POT_NODE_INDEX", "0", 1); // Set a default value
+    LOG_MAIN(INFO, "Setting default POT_NODE_INDEX=0\n");
+  }
+
   LOG_MAIN(DEBUG, "Initializing topology\n");
 
   // Default number of transit node is set to 1, this is applied to the topology.ini file
