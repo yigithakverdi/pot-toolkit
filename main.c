@@ -1,17 +1,26 @@
 #include "crypto.h"
-#include "headers.h"
-#include "port.h"
 #include "forward.h"
+#include "headers.h"
 #include "init.h"
+#include "node/controller.h"
+#include "port.h"
 #include "utils/config.h"
 #include "utils/role.h"
 #include "utils/utils.h"
-#include "node/controller.h"
 
 int main(int argc, char* argv[]) {
 
   // Initialize empty AppConfig structure later on will be filled with default values.
   AppConfig config;
+
+  // Initialize the logging
+  // init_logging("/var/log/dpdk-pot", "pot", RTE_LOG_DEBUG);
+
+  // Given the EAL, and configurations are set up, we check the available ports
+  // and make sure that we have at least one port available to use, otherwise we exit the
+  // application with an error message. And afterwards if everyhing works fine initializes the
+  // ports, and sets up the memory pool for the mbufs.
+  check_ports();
 
   // Initialize the DPDK environment, the first thing application does is initializing the EAL
   // it sets up the infrastructure configurations that our DPDK apps needed to run, so it is
@@ -32,7 +41,6 @@ int main(int argc, char* argv[]) {
   config_init(&config);
   config_load_defaults(&config);
   config_load_env(&config);
-  
 
   // Parse the arguments, it sets up environment variables, depending on the given arguments,
   // if optional arguments not given then default values are used, that are defined under .ini
@@ -59,12 +67,6 @@ int main(int argc, char* argv[]) {
   // Initialize the lookup table, that will be used to forward the packet to destined node
   // given the IPv6 info from SRH, that is then mapped to MAC address using this lookup table.
   init_lookup_table();
-
-  // Given the EAL, and configurations are set up, we check the available ports
-  // and make sure that we have at least one port available to use, otherwise we exit the
-  // application with an error message. And afterwards if everyhing works fine initializes the
-  // ports, and sets up the memory pool for the mbufs.
-  check_ports();
 
   // NOTE Define the ports, these are fixed, across each node type, ingress, transit and egress
   // since the ingress and egress assumed to be not using the second port, the definitions

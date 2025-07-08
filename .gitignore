@@ -3,7 +3,10 @@
 /docs/experiment.md
 
 # Ignore build artifacts
+./vscode/*
+./vscode/
 ./vscode
+.vscode
 
 # Ignore build directories
 /build
