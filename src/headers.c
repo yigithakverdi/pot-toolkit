@@ -173,6 +173,7 @@ void add_custom_header(struct rte_mbuf* pkt) {
   // rte_pktmbuf_free(pkt) is called to release the packet, preventing a leak
   // and indicating that this packet cannot be processed as intended.
   if (rte_pktmbuf_tailroom(pkt) < sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv)) {
+    LOG_MAIN(ERR, "Not enough tailroom in mbuf to add custom headers\n");
     rte_pktmbuf_free(pkt);
     return;
   }

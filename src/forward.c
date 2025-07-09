@@ -2,7 +2,9 @@
 #include "utils/logging.h"
 #include "utils/role.h"
 #include "utils/utils.h"
-
+#include "node/ingress.h"
+#include "node/transit.h"
+#include "node/egress.h"
 
 int lcore_main_forward(void* arg) {
   LOG_MAIN(INFO, "Lcore %u started for forwarding\n", rte_lcore_id());

@@ -126,5 +126,8 @@ int main(int argc, char* argv[]) {
   // Free the segment list in any case
   // atexit(free_srh_segments);
 
+  // Launch the packet processing loop
+  launch_lcore_forwarding(ports);
+
   return 0;
 }
