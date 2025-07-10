@@ -23,6 +23,7 @@ void config_init(AppConfig* config) {
 
   // Sayısal değerleri sıfırla
   config->topology.num_transit = 0;
+  config->follow_flag = 0;  // default: do not follow log
 }
 
 // AppConfig tarafından ayrılan tüm dinamik belleği serbest bırakır.

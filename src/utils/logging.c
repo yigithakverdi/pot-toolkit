@@ -17,7 +17,32 @@
 #include <time.h>
 #include <arpa/inet.h>       // Add this for inet_ntop
 
-// ...existing code...
+// global storage for the current log file path
+static char g_log_file_path[256] = {0};
+
+int init_logging(const char* log_dir, const char* component_name, int log_level) {
+  // build timestamped log path
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  char log_file_path[256];
+  // build file path
+  snprintf(log_file_path, sizeof(log_file_path), "%s/%s-%d-%02d-%02d_%02d%02d%02d.log", log_dir,
+           component_name,
+           tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+           tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+  // store for follow mode
+  strncpy(g_log_file_path, log_file_path, sizeof(g_log_file_path) - 1);
+  g_log_file_path[sizeof(g_log_file_path) - 1] = '\0';
+
+  int fd = open(log_file_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+  // ... existing code ...
+}
+
+// new helper to retrieve the last created log file
+const char* get_log_file_path(void) {
+  return g_log_file_path;
+}
 
 int dpdk_pot_logtype_main = 0;
 

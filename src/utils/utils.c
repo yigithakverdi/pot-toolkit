@@ -28,7 +28,7 @@ int getenv_int(const char* name) {
 
 void parse_args(AppConfig* config, int argc, char* argv[]) {
   static struct option long_options[] = {
-      // name              has_arg            flag  val
+      {"follow", no_argument, 0, 'F'}, // --follow, shorthand -F
       {"type", required_argument, 0, 't'},
       {"log-level", required_argument, 0, 'l'},
       {"log-file", required_argument, 0, 'f'},
@@ -43,10 +43,13 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
   int c;
 
   // Kısa opsiyon string'i
-  const char* short_options = "t:l:f:s:k:n:h";
+  const char* short_options = "t:l:f:s:k:n:hF"; // added F for --follow
 
   while ((c = getopt_long(argc, argv, short_options, long_options, &opt_index)) != -1) {
     switch (c) {
+    case 'F': // --follow
+      config->follow_flag = 1;
+      break;
     case 't': // --type veya -t
       free(config->node.type);
       config->node.type = strdup(optarg);

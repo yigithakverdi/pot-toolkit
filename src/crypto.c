@@ -60,7 +60,8 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
                    uint8_t* key, size_t key_len, uint8_t* hmac_out) {
   // Calculate the length of the segment list within the SRH.
   // This is crucial for determining how much data to include in the HMAC calculation.
-  size_t segment_list_len = sizeof(srh->segments);
+  // size_t segment_list_len = sizeof(srh->segments);
+  size_t segment_list_len = srh->hdr_ext_len * 8;
   LOG_MAIN(DEBUG, "Calculating HMAC: Segment list length = %zu bytes.\n", segment_list_len);
 
   // Calculate the total length of the input data for the HMAC function.
