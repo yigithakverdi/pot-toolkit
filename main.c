@@ -90,16 +90,27 @@ int main(int argc, char* argv[]) {
   // NOTE Define the ports, these are fixed, across each node type, ingress, transit and egress
   // since the ingress and egress assumed to be not using the second port, the definitions
   // assumed to be not affect the an access to a element that is not used
+  // Determine available ports and handle single-port loopback in transit mode
+  uint16_t port_count = rte_eth_dev_count_avail();
   uint16_t rx_port = 0;
   uint16_t tx_port = 1;
+  if (global_role == ROLE_TRANSIT && port_count < 2) {
+    LOG_MAIN(WARNING, "Transit mode with only %u port(s): using port %u for both RX and TX",
+             port_count, rx_port);
+    tx_port = rx_port;
+  }
   uint16_t ports[2] = {rx_port, tx_port};
   init_ports(rx_port, mbuf_pool, 0);
 
   // If the role of the node is transit then initialize the second port since it might
   // be used for the veth pairing in case of container setup, besides the VM setup
   if (global_role == ROLE_TRANSIT) {
-    printf("[INFO] Setting up second port %u for transit role\n", tx_port);
-    init_ports(tx_port, mbuf_pool, 1);
+    if (tx_port != rx_port) {
+      printf("[INFO] Setting up second port %u for transit role\n", tx_port);
+      init_ports(tx_port, mbuf_pool, 1);
+    } else {
+      LOG_MAIN(INFO, "Single-port loopback mode: skipping init of port %u for TX", tx_port);
+    }
   }
 
   // Print the system information, before starting the packet processing loop

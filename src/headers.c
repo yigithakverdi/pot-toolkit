@@ -165,123 +165,123 @@ void remove_headers(struct rte_mbuf* pkt) {
   LOG_MAIN(DEBUG, "Headers removed and payload restored successfully\n");
 }
 
-void add_custom_header(struct rte_mbuf* pkt) {
+void add_custom_header(struct rte_mbuf *pkt) {
   LOG_MAIN(DEBUG, "Adding custom headers to packet\n");
+  LOG_MAIN(DEBUG, "g_segments pointer: %p, g_segment_count: %d\n", g_segments, g_segment_count);
 
-  // Validate segment count first
-  if (g_segment_count <= 0) {
-    LOG_MAIN(ERR, "Invalid segment count: %d\n", g_segment_count);
+  // Check if segments are loaded properly
+  if (g_segments == NULL || g_segment_count <= 0) {
+    LOG_MAIN(ERR, "ERROR: g_segments is NULL or empty - cannot add custom headers\n");
     rte_pktmbuf_free(pkt);
     return;
   }
 
-  // Calculate total space needed for all headers
-  size_t srh_size = 8 + (g_segment_count * sizeof(struct in6_addr));
-  size_t total_headers_size = srh_size + sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
-
-  LOG_MAIN(DEBUG, "SRH size: %zu, HMAC size: %zu, POT size: %zu, Total headers: %zu\n", srh_size,
-           sizeof(struct hmac_tlv), sizeof(struct pot_tlv), total_headers_size);
-
-  // Check if there's enough tailroom for ALL headers
-  uint16_t available_tailroom = rte_pktmbuf_tailroom(pkt);
-  if (available_tailroom < total_headers_size) {
-    LOG_MAIN(ERR, "Not enough tailroom: need %zu, have %u\n", total_headers_size, available_tailroom);
-    rte_pktmbuf_free(pkt);
-    return;
-  }
-  LOG_MAIN(DEBUG, "Tailroom check passed: have %u, need %zu\n", available_tailroom, total_headers_size);
-
-  struct ipv6_srh* srh_hdr;
-  struct hmac_tlv* hmac_hdr;
-  struct pot_tlv* pot_hdr;
-  struct rte_ether_hdr* eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
-  struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr_6 + 1);
-
-  uint8_t* payload = (uint8_t*)(ipv6_hdr + 1);
-  size_t payload_size = rte_pktmbuf_pkt_len(pkt) - 54;
-
-  LOG_MAIN(DEBUG, "Original packet length: %u, payload size: %zu\n", rte_pktmbuf_pkt_len(pkt), payload_size);
-
-  // Validate payload size
-  if (payload_size == 0 || payload_size > 1500) {
-    LOG_MAIN(ERR, "Invalid payload size: %zu\n", payload_size);
+  // Check if there's enough tailroom
+  size_t needed_tailroom = sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
+  if (rte_pktmbuf_tailroom(pkt) < needed_tailroom) {
+    LOG_MAIN(ERR, "ERROR: Not enough tailroom in mbuf (%zu needed, %u available) - cannot add custom headers\n",
+             needed_tailroom, rte_pktmbuf_tailroom(pkt));
     rte_pktmbuf_free(pkt);
     return;
   }
 
-  uint8_t* tmp_payload = rte_malloc("tmp_payload", payload_size, RTE_CACHE_LINE_SIZE);
-  if (tmp_payload == NULL) {
-    LOG_MAIN(ERR, "Failed to allocate memory for tmp_payload\n");
-    rte_pktmbuf_free(pkt);
-    return;
+  if (g_segment_count > 0) {
+    char addr_str[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6, g_segments, addr_str, sizeof(addr_str));
+    LOG_MAIN(DEBUG, "First segment address: %s\n", addr_str);
   }
-  LOG_MAIN(DEBUG, "Allocated tmp_payload: %p, size: %zu\n", tmp_payload, payload_size);
 
-  rte_memcpy(tmp_payload, payload, payload_size);
-  LOG_MAIN(DEBUG, "Copied %zu bytes of payload to tmp_payload\n", payload_size);
+  struct ipv6_srh *srh_hdr;
+  struct hmac_tlv *hmac_hdr;
+  struct pot_tlv *pot_hdr;
+  struct rte_ether_hdr *eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
+  struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
+  LOG_MAIN(DEBUG, "IPv6 header at %p, next header: %u\n", ipv6_hdr, ipv6_hdr->proto);
 
-  // Trim payload from packet
-  int trim_result = rte_pktmbuf_trim(pkt, payload_size);
-  if (trim_result != 0) {
-    LOG_MAIN(ERR, "Failed to trim packet by %zu bytes\n", payload_size);
-    rte_free(tmp_payload);
-    rte_pktmbuf_free(pkt);
-    return;
+  // Calculate the exact offset to payload based on actual header sizes
+  size_t header_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr);
+  uint8_t *payload = (uint8_t *)(ipv6_hdr + 1);
+  LOG_MAIN(DEBUG, "Payload starts at %p\n", payload);
+
+  // Safe calculation of payload size
+  size_t total_pkt_len = rte_pktmbuf_pkt_len(pkt);
+  size_t payload_size = (total_pkt_len > header_size) ? (total_pkt_len - header_size) : 0;
+  LOG_MAIN(DEBUG, "Total packet length: %zu, Header size: %zu, Payload size: %zu bytes\n", 
+           total_pkt_len, header_size, payload_size);
+  
+  // Safely allocate temporary buffer with size check
+  uint8_t *tmp_payload = NULL;
+  if (payload_size > 0) {
+    // CRITICAL FIX: Use malloc with a check for success
+    tmp_payload = malloc(payload_size);
+    if (tmp_payload == NULL) {
+      LOG_MAIN(ERR, "Failed to allocate memory for tmp_payload (size: %zu)\n", payload_size);
+      rte_pktmbuf_free(pkt);
+      return;
+    }
+    
+    // Copy payload safely
+    memcpy(tmp_payload, payload, payload_size);
+    LOG_MAIN(DEBUG, "Copied %zu bytes of payload to tmp_payload\n", payload_size);
+    
+    // Trim packet safely
+    if (rte_pktmbuf_trim(pkt, payload_size) < 0) {
+      LOG_MAIN(ERR, "Failed to trim packet\n");
+      free(tmp_payload); // Use free to match with malloc
+      rte_pktmbuf_free(pkt);
+      return;
+    }
+    LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", payload_size);
+  } else {
+    LOG_MAIN(DEBUG, "No payload to save (payload_size is 0)\n");
   }
-  LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes, new length: %u\n", payload_size, rte_pktmbuf_pkt_len(pkt));
 
-  // Append SRH header
-  LOG_MAIN(DEBUG, "Appending SRH header of size %zu bytes\n", srh_size);
-  srh_hdr = (struct ipv6_srh*)rte_pktmbuf_append(pkt, srh_size);
+  // Append headers with NULL checks
+  LOG_MAIN(DEBUG, "Appending custom headers to packet\n");
+  srh_hdr = (struct ipv6_srh *)rte_pktmbuf_append(pkt, sizeof(struct ipv6_srh));
   if (srh_hdr == NULL) {
-    LOG_MAIN(ERR, "Failed to append SRH header of size %zu bytes\n", srh_size);
-    rte_free(tmp_payload);
+    LOG_MAIN(ERR, "Failed to append SRH header\n");
+    if (tmp_payload) free(tmp_payload); // Use free to match with malloc
     rte_pktmbuf_free(pkt);
     return;
   }
   LOG_MAIN(DEBUG, "SRH header appended at %p\n", srh_hdr);
 
-  // Append HMAC TLV
-  LOG_MAIN(DEBUG, "Appending HMAC TLV of size %zu bytes\n", sizeof(struct hmac_tlv));
-  hmac_hdr = (struct hmac_tlv*)rte_pktmbuf_append(pkt, sizeof(struct hmac_tlv));
+  hmac_hdr = (struct hmac_tlv *)rte_pktmbuf_append(pkt, sizeof(struct hmac_tlv));
   if (hmac_hdr == NULL) {
-    LOG_MAIN(ERR, "Failed to append HMAC TLV\n");
-    rte_free(tmp_payload);
+    LOG_MAIN(ERR, "Failed to append HMAC header\n");
+    if (tmp_payload) free(tmp_payload); // Use free to match with malloc
     rte_pktmbuf_free(pkt);
     return;
   }
-  LOG_MAIN(DEBUG, "HMAC TLV appended at %p\n", hmac_hdr);
+  LOG_MAIN(DEBUG, "HMAC header appended at %p\n", hmac_hdr);
 
-  // Append POT TLV
-  LOG_MAIN(DEBUG, "Appending POT TLV of size %zu bytes\n", sizeof(struct pot_tlv));
-  pot_hdr = (struct pot_tlv*)rte_pktmbuf_append(pkt, sizeof(struct pot_tlv));
+  pot_hdr = (struct pot_tlv *)rte_pktmbuf_append(pkt, sizeof(struct pot_tlv));
   if (pot_hdr == NULL) {
-    LOG_MAIN(ERR, "Failed to append POT TLV\n");
-    rte_free(tmp_payload);
+    LOG_MAIN(ERR, "Failed to append POT header\n");
+    if (tmp_payload) free(tmp_payload); // Use free to match with malloc
     rte_pktmbuf_free(pkt);
     return;
   }
-  LOG_MAIN(DEBUG, "POT TLV appended at %p\n", pot_hdr);
+  LOG_MAIN(DEBUG, "POT header appended at %p\n", pot_hdr);
 
-  // Append payload back
-  LOG_MAIN(DEBUG, "Appending payload of size %zu bytes\n", payload_size);
-  payload = (uint8_t*)rte_pktmbuf_append(pkt, payload_size);
-  if (payload == NULL) {
-    LOG_MAIN(ERR, "Failed to append payload of size %zu bytes\n", payload_size);
-    rte_free(tmp_payload);
-    rte_pktmbuf_free(pkt);
-    return;
+  // Re-append payload if it exists
+  if (payload_size > 0 && tmp_payload != NULL) {
+    payload = (uint8_t *)rte_pktmbuf_append(pkt, payload_size);
+    if (payload == NULL) {
+      LOG_MAIN(ERR, "Failed to append payload\n");
+      free(tmp_payload); // Use free to match with malloc
+      rte_pktmbuf_free(pkt);
+      return;
+    }
+    LOG_MAIN(DEBUG, "New payload space appended at %p\n", payload);
+    
+    memcpy(payload, tmp_payload, payload_size);
+    free(tmp_payload); // Use free to match with malloc
+    LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
   }
-  LOG_MAIN(DEBUG, "Payload appended at %p\n", payload);
 
-  // Copy payload back - this is where the segfault was occurring
-  LOG_MAIN(DEBUG, "Copying %zu bytes from tmp_payload (%p) to payload (%p)\n", payload_size, tmp_payload,
-           payload);
-  rte_memcpy(payload, tmp_payload, payload_size);
-  rte_free(tmp_payload);
-  LOG_MAIN(DEBUG, "Successfully copied %zu bytes of payload back to packet\n", payload_size);
-
-  // Initialize POT TLV header
+  // Initialize the POT TLV header safely
   pot_hdr->type = 1;
   pot_hdr->length = 48;
   pot_hdr->reserved = 0;
@@ -289,42 +289,44 @@ void add_custom_header(struct rte_mbuf* pkt) {
   pot_hdr->key_set_id = rte_cpu_to_be_32(1234);
   memset(pot_hdr->nonce, 0, sizeof(pot_hdr->nonce));
   memset(pot_hdr->encrypted_hmac, 0, sizeof(pot_hdr->encrypted_hmac));
-  LOG_MAIN(DEBUG, "POT TLV header initialized\n");
+  LOG_MAIN(DEBUG, "POT TLV header added with type %u and length %u\n", pot_hdr->type, pot_hdr->length);
 
-  // Initialize HMAC TLV header
+  // Initialize the HMAC TLV header
   hmac_hdr->type = 5;
   hmac_hdr->length = 16;
   hmac_hdr->d_flag = 0;
   hmac_hdr->reserved = 0;
   hmac_hdr->hmac_key_id = rte_cpu_to_be_32(0);
   memset(hmac_hdr->hmac_value, 0, sizeof(hmac_hdr->hmac_value));
-  LOG_MAIN(DEBUG, "HMAC TLV header initialized\n");
+  LOG_MAIN(DEBUG, "HMAC TLV header added with type %u and length %u\n", hmac_hdr->type, hmac_hdr->length);
 
-  // Initialize SRH header
-  srh_hdr->next_header = 61;
+  // Initialize the SRH header
+  srh_hdr->next_header = 61;  // Example next header
+  // Only use the available segments - don't overflow
   srh_hdr->hdr_ext_len = g_segment_count * 2;
   srh_hdr->routing_type = 4;
-  srh_hdr->last_entry = g_segment_count - 1;
+  srh_hdr->segments_left = g_segment_count;   // Set to the total number of segments
+  srh_hdr->last_entry = g_segment_count - 1;  // Index of the last element
   srh_hdr->flags = 0;
-  srh_hdr->segments_left = g_segment_count;
   memset(srh_hdr->reserved, 0, 2);
-  LOG_MAIN(DEBUG, "SRH header initialized\n");
+  LOG_MAIN(DEBUG, "SRH header added with hdr_ext_len %u, segments_left %u\n", 
+           srh_hdr->hdr_ext_len, srh_hdr->segments_left);
 
-  // Copy segments to SRH
-  if (g_segment_count > 0 && g_segments != NULL) {
-    LOG_MAIN(DEBUG, "Copying %d segments to SRH\n", g_segment_count);
-    memcpy(srh_hdr->segments, g_segments, g_segment_count * sizeof(struct in6_addr));
-    LOG_MAIN(DEBUG, "Segments copied successfully\n");
-  } else {
-    LOG_MAIN(ERR, "No valid segments to copy\n");
-    rte_pktmbuf_free(pkt);
-    return;
-  }
+  // Copy the loaded segments safely - limit to max 2 segments (as per struct definition)
+  int segments_to_copy = (g_segment_count > 2) ? 2 : g_segment_count;
+  memcpy(srh_hdr->segments, g_segments, segments_to_copy * sizeof(struct in6_addr));
+  LOG_MAIN(DEBUG, "Copied %d segments into SRH\n", segments_to_copy);
+
+  // Update IPv6 next header field to point to SRH
+  uint8_t original_proto = ipv6_hdr->proto;
+  ipv6_hdr->proto = 43;  // IPv6 Routing Header
+  // Update SRH next header to point to the original protocol
+  srh_hdr->next_header = original_proto;
 
   // Update IPv6 payload length
   uint16_t new_plen = rte_pktmbuf_pkt_len(pkt) - sizeof(*eth_hdr_6) - sizeof(*ipv6_hdr);
   ipv6_hdr->payload_len = rte_cpu_to_be_16(new_plen);
   LOG_MAIN(DEBUG, "Updated IPv6 payload length to %u\n", new_plen);
-
-  LOG_MAIN(DEBUG, "Custom headers added successfully, final packet length: %u\n", rte_pktmbuf_pkt_len(pkt));
+  
+  LOG_MAIN(DEBUG, "Custom headers added to packet successfully\n");
 }

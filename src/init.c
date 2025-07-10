@@ -37,45 +37,6 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) 
   }
 }
 
-int init_logging(const char* log_dir, const char* component_name, int log_level) {
-  struct stat st = {0};
-  if (stat(log_dir, &st) == -1) {
-    if (mkdir(log_dir, 0700) != 0) {
-      perror("Failed to create log directory");
-      return -1;
-    }
-  }
-
-  time_t t = time(NULL);
-  struct tm tm = *localtime(&t);
-
-  char log_file_path[256];
-  snprintf(log_file_path, sizeof(log_file_path), "%s/%s-%d-%02d-%02d_%02d%02d%02d.log", log_dir,
-           component_name, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-
-  int fd = open(log_file_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
-  if (fd < 0) {
-    fprintf(stderr, "Error opening log file %s: %s\n", log_file_path, strerror(errno));
-    return -1;
-  }
-
-  rte_log_set_global_level(log_level);
-  rte_openlog_stream(fdopen(fd, "a"));
-
-  dpdk_pot_logtype_main = rte_log_register("main");
-  if (dpdk_pot_logtype_main < 0) {
-    fprintf(stderr, "Error registering main log type\n");
-    return -1;
-  }
-
-  rte_log_set_level(dpdk_pot_logtype_main, log_level);
-
-  printf("Logging initialized: %s\n", log_file_path);
-  LOG_MAIN(INFO, "Logging initialized: %s\n", log_file_path);
-
-  return 0;
-}
-
 struct rte_mempool* init_mempool() {
   LOG_MAIN(DEBUG, "Creating mbuf pool\n");
 
@@ -167,13 +128,9 @@ void init_lookup_table() {
   printf("DEBUG: Starting init_lookup_table\n");
   LOG_MAIN(DEBUG, "Initializing lookup table for next hops\n");
   
-  printf("DEBUG: Adding first next hop\n");
   add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
-  
-  printf("DEBUG: First next hop added successfully\n");
-  
-  printf("DEBUG: Adding second next hop\n");
   add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
+  add_next_hop("2001:db8:1::", "aa:bb:cc:dd:ee:ff");
   
   printf("DEBUG: Second next hop added successfully\n");
   

@@ -14,8 +14,17 @@ typedef struct {
 } NodeConfig;
 
 typedef struct {
-  TopologyConfig topology;
-  NodeConfig node;
+  struct {
+    char *type;
+    char *log_level;
+    char *log_file;
+  } node;
+  struct {
+    char *segment_list;
+    char *key_locations;
+    int num_transit;
+  } topology;
+  int follow_flag;
 } AppConfig;
 
 int load_app_config(AppConfig* config);
