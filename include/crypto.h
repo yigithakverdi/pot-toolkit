@@ -32,7 +32,7 @@ void encrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t* nonce, uint
 int decrypt_pvf(uint8_t k_pot_in[SID_NO][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t pvf_out[32]);
 int compare_hmac(struct hmac_tlv* hmac, uint8_t* hmac_out, struct rte_mbuf* mbuf);
 int load_pot_keys(const char* filepath, int keys_to_load);
-
+void log_hex_data(const char* label, const uint8_t* data, size_t len);
 /**
  * Reads an encryption key corresponding to a given IPv6 address from a key-value store file.
  *
