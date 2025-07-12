@@ -58,12 +58,19 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
       // and simply return.
       if (srh->next_header == 61) {
         LOG_MAIN(DEBUG, "SRH detected, processing packet\n");
-        // size_t srh_bytes = sizeof(struct ipv6_srh);
         size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
-            
-        // uint8_t* hmac_ptr = (uint8_t*)srh + srh_bytes;
+        size_t min_packet_size = sizeof(struct rte_ether_hdr) +
+                                sizeof(struct rte_ipv6_hdr) +
+                                actual_srh_size +
+                                sizeof(struct hmac_tlv) +
+                                sizeof(struct pot_tlv);
+        if (rte_pktmbuf_pkt_len(mbuf) < min_packet_size) {
+          LOG_MAIN(WARNING, "Egress: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n",
+                   rte_pktmbuf_pkt_len(mbuf), min_packet_size);
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
         uint8_t* hmac_ptr = (uint8_t*)srh + actual_srh_size;
-
         struct hmac_tlv* hmac = (struct hmac_tlv*)hmac_ptr;
         uint8_t* pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
         struct pot_tlv* pot = (struct pot_tlv*)pot_ptr;
