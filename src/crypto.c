@@ -283,6 +283,7 @@ int decrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t pvf
 
   // Decrypt onion-style: loop from 0 to num_transit_nodes (egress to last transit)
   memcpy(plaintext, pvf_out, cipher_len);
+  LOG_MAIN(DEBUG, "Number of transit nodes: %d\n", num_transit_nodes);
   for (int i = 0; i <= num_transit_nodes; i++) {
     int dec_len = decrypt(plaintext, cipher_len, k_pot_in[i], nonce, pvf_out);
     if (dec_len < 0) {
