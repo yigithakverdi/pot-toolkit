@@ -156,6 +156,23 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
            mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);
   struct rte_ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
 
+  struct rte_ether_addr src_mac;
+  int ret = rte_eth_macaddr_get(tx_port_id, &src_mac);
+  if (ret != 0) {
+      LOG_MAIN(ERR, "Failed to get MAC address for port %u: %s\n", tx_port_id, strerror(-ret));
+      rte_pktmbuf_free(mbuf);
+      return;
+  }  
+
+  rte_ether_addr_copy(&src_mac, &eth_hdr->src_addr);
+  rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);  
+
+  LOG_MAIN(DEBUG, "Final MACs -> Src: %02x:%02x:%02x:%02x:%02x:%02x, Dst: %02x:%02x:%02x:%02x:%02x:%02x\n",
+        src_mac.addr_bytes[0], src_mac.addr_bytes[1], src_mac.addr_bytes[2],
+        src_mac.addr_bytes[3], src_mac.addr_bytes[4], src_mac.addr_bytes[5],
+        mac_addr.addr_bytes[0], mac_addr.addr_bytes[1], mac_addr.addr_bytes[2],
+        mac_addr.addr_bytes[3], mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);  
+  
   // Check if the Ethernet frame's EtherType field indicates that the payload
   // is an IPv6 packet.
   // rte_be_to_cpu_16() converts a 16-bit value from big-endian (network byte order)
@@ -178,18 +195,18 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
   // Check if the destination MAC address of the Ethernet frame is NOT a broadcast address.
   // rte_is_broadcast_ether_addr() returns 1 if the address is a broadcast address (FF:FF:FF:FF:FF:FF),
   // and 0 otherwise.
-  if (rte_is_broadcast_ether_addr(&eth_hdr->dst_addr) != 1) {
-    LOG_MAIN(DEBUG, "Packet is not broadcast, MAC addresses\n");
-    rte_ether_addr_copy(&eth_hdr->dst_addr, &eth_hdr->src_addr);
-    rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);
+  // if (rte_is_broadcast_ether_addr(&eth_hdr->dst_addr) != 1) {
+  //   LOG_MAIN(DEBUG, "Packet is not broadcast, MAC addresses\n");
+  //   rte_ether_addr_copy(&eth_hdr->dst_addr, &eth_hdr->src_addr);
+  //   rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);
 
-    LOG_MAIN(
-        DEBUG, "New MAC Source: %02x:%02x:%02x:%02x:%02x:%02x, Destination: %02x:%02x:%02x:%02x:%02x:%02x\n",
-        eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1], eth_hdr->src_addr.addr_bytes[2],
-        eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5],
-        eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2],
-        eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
-  }
+  //   LOG_MAIN(
+  //       DEBUG, "New MAC Source: %02x:%02x:%02x:%02x:%02x:%02x, Destination: %02x:%02x:%02x:%02x:%02x:%02x\n",
+  //       eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1], eth_hdr->src_addr.addr_bytes[2],
+  //       eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5],
+  //       eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2],
+  //       eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+  // }
 
   // Check if the packet length is less than the size of an Ethernet header.
   // If it is, free the mbuf and return early to avoid sending an invalid packet
