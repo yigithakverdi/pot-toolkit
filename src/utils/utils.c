@@ -4,8 +4,7 @@
 #include <stdlib.h>
 
 #include "utils/config.h"
-#include "utils/logging.h"
-#include "utils/role.h"
+#include "node/controller.h"
 
 int tsc_dynfield_offset = 0;
 
@@ -35,6 +34,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       {"segment-list", required_argument, 0, 's'},
       {"key-locations", required_argument, 0, 'k'},
       {"num-transit", required_argument, 0, 'n'},
+      {"node-index", required_argument, 0, 'i'},
       {"help", no_argument, 0, 'h'},
       {0, 0, 0, 0} // Dizi sonunu belirtir
   };
@@ -74,6 +74,13 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       free(config->topology.key_locations);
       config->topology.key_locations = strdup(optarg);
       break;
+
+    case 'i': // --node-index veya -i
+      g_node_index = atoi(optarg);
+      if (g_node_index < 0) {
+        fprintf(stderr, "Invalid node index: %s\n", optarg);
+        exit(EXIT_FAILURE);
+      }
 
     case 'n': // --num-transit veya -n
       config->topology.num_transit = atoi(optarg);
