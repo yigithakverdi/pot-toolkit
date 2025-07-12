@@ -66,7 +66,7 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   LOG_MAIN(DEBUG, "--- HMAC Input Verification ---\n");
   char addr_str[INET6_ADDRSTRLEN];
   inet_ntop(AF_INET6, src_addr, addr_str, sizeof(addr_str));
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s", "Source Addr", addr_str);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s\n", "Source Addr", addr_str);
 
   // 2. Log the critical SRH fields
   LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u\n", "SRH Last Entry", srh->last_entry);
