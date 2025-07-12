@@ -156,8 +156,10 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             // srh->last_entry is the total number of segments.
             // srh->segments_left is the number of remaining segments to visit.
             // The next SID is (last_entry - segments_left + 1) index into the segments array.
-            int next_sid_index = srh->last_entry - srh->segments_left + 1;
-            //  int next_sid_index = srh->segments_left - 1;
+            // int next_sid_index = srh->last_entry - srh->segments_left + 1;
+            int next_sid_index = srh->segments_left - 1;
+            LOG_MAIN(DEBUG, "SID calculation: last_entry=%u, segments_left=%u, next_sid_index=%d\n", 
+                    srh->last_entry, srh->segments_left, next_sid_index);             
             
             // Add bounds check for segment array access
             if (next_sid_index < 0 || next_sid_index > srh->last_entry) {
@@ -166,6 +168,12 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
               rte_pktmbuf_free(mbuf);
               return;
             }
+            
+            // Debug the segment we're about to use
+            char debug_seg_str[INET6_ADDRSTRLEN];
+            inet_ntop(AF_INET6, &segments[next_sid_index], debug_seg_str, sizeof(debug_seg_str));
+            LOG_MAIN(DEBUG, "About to use segment[%d]: %s\n", next_sid_index, debug_seg_str);
+
             
             // memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
             // LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s\n",
