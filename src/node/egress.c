@@ -117,6 +117,11 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         uint8_t* k_hmac_ie = k_pot_in[0];
         uint8_t expected_hmac[HMAC_MAX_LENGTH];
         LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n", HMAC_MAX_LENGTH);
+        
+        // Log the inputs to HMAC calculations for verifications
+        LOG_MAIN(DEBUG, "Calculating HMAC with src_addr: %s, srh: %p, hmac: %p, k_hmac_ie: %p, expected_hmac: %p\n",
+                 inet_ntop(AF_INET6, &ipv6_hdr->src_addr, NULL, 0),
+                 srh, hmac, k_hmac_ie, expected_hmac);
         if (calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
                            expected_hmac) != 0) {
           LOG_MAIN(ERR, "Egress: HMAC calculation failed\n");
