@@ -155,12 +155,12 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
         }
 
         // Add bounds check for segments_left
-        if (srh->segments_left > srh->last_entry) {
-          LOG_MAIN(ERR, "Transit: segments_left (%u) > last_entry (%u), dropping packet\n", 
-                   srh->segments_left, srh->last_entry);
-          rte_pktmbuf_free(mbuf);
-          return;
-        }
+        // if (srh->segments_left > srh->last_entry) {
+        //   LOG_MAIN(ERR, "Transit: segments_left (%u) > last_entry (%u), dropping packet\n", 
+        //            srh->segments_left, srh->last_entry);
+        //   rte_pktmbuf_free(mbuf);
+        //   return;
+        // }
 
         srh->segments_left--;
         int next_sid_index = srh->last_entry - srh->segments_left + 1;
