@@ -183,7 +183,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
 
         struct rte_ether_addr* next_mac = lookup_mac_for_ipv6(&segments[next_sid_index]);        
         if (next_mac) {
-          send_packet_to(*next_mac, mbuf, 1);
+          send_packet_to(*next_mac, mbuf, 0);
           LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
                    next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                    next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
@@ -216,4 +216,14 @@ void process_transit(struct rte_mbuf** pkts, uint16_t nb_rx) {
     // LOG_MAIN(DEBUG, "Processing transit packet %u with length %u", i, rte_pktmbuf_pkt_len(pkts[i]));
     process_transit_packet(pkts[i], i);
   }
+
+  // Print DPDK RX/TX stats for port 0
+  struct rte_eth_stats stats;
+  int ret = rte_eth_stats_get(0, &stats);
+  if (ret == 0) {
+    LOG_MAIN(INFO, "[DPDK Port 0 Stats] RX: %" PRIu64 ", TX: %" PRIu64 ", RX dropped: %" PRIu64 ", TX dropped: %" PRIu64 ", RX errors: %" PRIu64 ", TX errors: %" PRIu64,
+      stats.ipackets, stats.opackets, stats.imissed, stats.oerrors, stats.ierrors, stats.oerrors);
+  } else {
+    LOG_MAIN(ERR, "[DPDK Port 0 Stats] Failed to get stats (ret=%d)", ret);
+  }  
 }
