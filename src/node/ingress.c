@@ -4,10 +4,18 @@
 #include "headers.h"
 #include "crypto.h"
 #include "utils/logging.h"
+#include "node/controller.h"
 #include "headers.h"
 #include "forward.h"
 
 static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_port_id) {
+  // Add bounds checking before accessing headers
+  if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr)) {
+    LOG_MAIN(WARNING, "Ingress: Packet too small for basic headers, dropping\n");
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
   struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
@@ -42,11 +50,43 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.\n");
 
           add_custom_header(mbuf);
+          
+          // Add bounds checking after custom header addition
+          size_t min_ingress_size = sizeof(struct rte_ether_hdr) + 
+                                   sizeof(struct rte_ipv6_hdr) + 
+                                   sizeof(struct ipv6_srh) + 
+                                   sizeof(struct hmac_tlv) + 
+                                   sizeof(struct pot_tlv);
+          
+          if (rte_pktmbuf_pkt_len(mbuf) < min_ingress_size) {
+            LOG_MAIN(ERR, "Ingress: Packet too small after adding headers (%u bytes), expected (%zu bytes)\n", 
+                     rte_pktmbuf_pkt_len(mbuf), min_ingress_size);
+            rte_pktmbuf_free(mbuf);
+            return;
+          }
+          
           struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr6 + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
           struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
-          struct pot_tlv *pot = (struct pot_tlv *)(hmac + 1);
+          
+          // Add bounds check for POT TLV access
+          uint8_t* pot_ptr = (uint8_t*)(hmac + 1);
+          if (pot_ptr + sizeof(struct pot_tlv) > 
+              (uint8_t*)rte_pktmbuf_mtod(mbuf, void*) + rte_pktmbuf_pkt_len(mbuf)) {
+            LOG_MAIN(ERR, "Ingress: POT TLV extends beyond packet boundary, dropping\n");
+            rte_pktmbuf_free(mbuf);
+            return;
+          }
+          
+          struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
+          
+          // Add NULL pointer checks
+          if (!eth_hdr6 || !ipv6_hdr || !srh || !hmac || !pot) {
+            LOG_MAIN(ERR, "Ingress: NULL pointer detected in headers after adding custom headers\n");
+            rte_pktmbuf_free(mbuf);
+            return;
+          }
 
           char dst_ip_str[INET6_ADDRSTRLEN];
 
@@ -56,6 +96,13 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             break;
           }
           LOG_MAIN(DEBUG, "Packet Destination IPv6: %s\n", dst_ip_str);
+
+          // Add bounds check for k_pot_in array access
+          if (0 >= MAX_POT_NODES) {
+            LOG_MAIN(ERR, "Ingress: Invalid key index (0), dropping packet\n");
+            rte_pktmbuf_free(mbuf);
+            return;
+          }
 
           uint8_t *k_hmac_ie = k_pot_in[0];
           size_t key_len = HMAC_MAX_LENGTH;
@@ -96,12 +143,29 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             LOG_MAIN(DEBUG, "SRH segments_left is 0, dropping packet.\n");
             rte_pktmbuf_free(mbuf);
           } else {
+            // Add bounds check for segments_left
+            if (srh->segments_left > srh->last_entry) {
+              LOG_MAIN(ERR, "Ingress: segments_left (%u) > last_entry (%u), dropping packet\n", 
+                       srh->segments_left, srh->last_entry);
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+            
             // If segments_left is not 0, the packet needs to be forwarded to the next segment ID.
             // Calculate the index of the next segment ID (SID) in the SRH segment list.
             // srh->last_entry is the total number of segments.
             // srh->segments_left is the number of remaining segments to visit.
             // The next SID is (last_entry - segments_left + 1) index into the segments array.
             int next_sid_index = srh->last_entry - srh->segments_left + 1;
+            
+            // Add bounds check for segment array access
+            if (next_sid_index < 0 || next_sid_index > srh->last_entry) {
+              LOG_MAIN(ERR, "Ingress: Invalid next_sid_index (%d), last_entry (%u), dropping packet\n", 
+                       next_sid_index, srh->last_entry);
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+            
             memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
             LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s\n",
                      inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));

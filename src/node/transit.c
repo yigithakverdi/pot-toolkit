@@ -11,6 +11,20 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
   if (dump_len > 64) dump_len = 64;
   // LOG_DP(DEBUG, "Processing transit packet %u with length %u.", i, rte_pktmbuf_pkt_len(mbuf));
 
+  // Enhanced bounds checking - check for ALL expected headers
+  size_t min_packet_size = sizeof(struct rte_ether_hdr) + 
+                          sizeof(struct rte_ipv6_hdr) + 
+                          sizeof(struct ipv6_srh) + 
+                          sizeof(struct hmac_tlv) + 
+                          sizeof(struct pot_tlv);
+  
+  if (rte_pktmbuf_pkt_len(mbuf) < min_packet_size) {
+    LOG_MAIN(WARNING, "Transit: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n", 
+             rte_pktmbuf_pkt_len(mbuf), min_packet_size);
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
   struct rte_ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
@@ -43,6 +57,13 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
       struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
       struct ipv6_srh* srh = (struct ipv6_srh*)(ipv6_hdr + 1);
 
+      // Add NULL pointer checks
+      if (!ipv6_hdr || !srh) {
+        LOG_MAIN(ERR, "Transit: NULL pointer detected in headers\n");
+        rte_pktmbuf_free(mbuf);
+        return;
+      }
+
       // Verify that the SRH's next header is 61 (Destination Options Header)
       // and its routing type is 4 (SRH). If not, the packet is not a valid SRv6 packet
       // for this transit node, so it's dropped.
@@ -58,6 +79,15 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
 
         uint8_t* hmac_ptr = (uint8_t*)srh + srh_bytes;
         uint8_t* pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
+        
+        // Add bounds check for POT TLV access
+        if ((uint8_t*)pot_ptr + sizeof(struct pot_tlv) > 
+            (uint8_t*)rte_pktmbuf_mtod(mbuf, void*) + rte_pktmbuf_pkt_len(mbuf)) {
+          LOG_MAIN(ERR, "Transit: POT TLV extends beyond packet boundary, dropping\n");
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
+        
         struct pot_tlv* pot = (struct pot_tlv*)pot_ptr;
         LOG_MAIN(DEBUG, "Transit: SRH detected. POT TLV address: %p\n", (void*)pot);
 
@@ -74,6 +104,13 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
         uint8_t pvf_out[HMAC_MAX_LENGTH];
 
         memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
+
+        // Add bounds check for g_node_index
+        if (g_node_index < 0 || g_node_index >= MAX_POT_NODES) {
+          LOG_MAIN(ERR, "Transit: Invalid g_node_index (%d), dropping packet\n", g_node_index);
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
 
         int curr_index = g_node_index;
         uint8_t decrypted_once[HMAC_MAX_LENGTH];
@@ -98,8 +135,24 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
           return;
         }
 
+        // Add bounds check for segments_left
+        if (srh->segments_left > srh->last_entry) {
+          LOG_MAIN(ERR, "Transit: segments_left (%u) > last_entry (%u), dropping packet\n", 
+                   srh->segments_left, srh->last_entry);
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
+
         srh->segments_left--;
         int next_sid_index = srh->last_entry - srh->segments_left + 1;
+        
+        // Add bounds check for segment array access
+        if (next_sid_index < 0 || next_sid_index > srh->last_entry) {
+          LOG_MAIN(ERR, "Transit: Invalid next_sid_index (%d), last_entry (%u), dropping packet\n", 
+                   next_sid_index, srh->last_entry);
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
         memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
         LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s\n",
                  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));

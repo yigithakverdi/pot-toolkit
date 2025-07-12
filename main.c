@@ -1,6 +1,7 @@
 #include "crypto.h"
 #include "forward.h"
 #include "headers.h"
+#include "utils/config.h"
 #include "init.h"
 #include "node/controller.h"
 #include "port.h"

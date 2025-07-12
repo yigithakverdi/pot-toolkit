@@ -1,5 +1,6 @@
 #include "headers.h"
 #include "utils/logging.h"
+#include <rte_malloc.h>
 
 // Global segment list pointer to store IPv6 addresses read from file
 struct in6_addr* g_segments = NULL;
@@ -89,13 +90,23 @@ int load_srh_segments(const char* filepath) {
 // Function to free the allocated memory when the application shuts down
 void free_srh_segments(void) {
   if (g_segments != NULL) {
-    rte_free(g_segments);
+    free(g_segments);
     g_segments = NULL;
     g_segment_count = 0;
   }
 }
 
 void remove_headers(struct rte_mbuf* pkt) {
+  // Add bounds checking before accessing headers
+  size_t expected_headers_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) + 
+                                sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
+  
+  if (rte_pktmbuf_pkt_len(pkt) < expected_headers_size) {
+    LOG_MAIN(ERR, "Packet too small for header removal, expected %zu bytes, got %u\n", 
+             expected_headers_size, rte_pktmbuf_pkt_len(pkt));
+    rte_pktmbuf_free(pkt);
+    return;
+  }
 
   struct rte_ether_hdr* eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
   struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr_6 + 1);
@@ -119,9 +130,10 @@ void remove_headers(struct rte_mbuf* pkt) {
   uint8_t* tmp_payload = malloc(payload_size);
   if (tmp_payload == NULL) {
     LOG_MAIN(ERR, "Failed to allocate memory for tmp_payload\n");
+    rte_pktmbuf_free(pkt);
     return;
   }
-  memcpy(tmp_payload, payload, payload_size);
+  rte_memcpy(tmp_payload, payload, payload_size);
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload to tmp_payload\n", payload_size);
 
   size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
@@ -135,7 +147,7 @@ void remove_headers(struct rte_mbuf* pkt) {
     LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
     return;
   }
-  memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
+  rte_memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
   LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
            inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
 
@@ -145,7 +157,7 @@ void remove_headers(struct rte_mbuf* pkt) {
     LOG_MAIN(ERR, "Failed to append payload back to packet, freeing tmp_payload\n");
     return;
   }
-  memcpy(new_payload, tmp_payload, payload_size);
+  rte_memcpy(new_payload, tmp_payload, payload_size);
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
 
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
@@ -221,7 +233,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
     }
     
     // Copy payload safely
-    memcpy(tmp_payload, payload, payload_size);
+    rte_memcpy(tmp_payload, payload, payload_size);
     LOG_MAIN(DEBUG, "Copied %zu bytes of payload to tmp_payload\n", payload_size);
     
     // Trim packet safely
@@ -276,7 +288,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
     }
     LOG_MAIN(DEBUG, "New payload space appended at %p\n", payload);
     
-    memcpy(payload, tmp_payload, payload_size);
+    rte_memcpy(payload, tmp_payload, payload_size);
     free(tmp_payload); // Use free to match with malloc
     LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
   }
@@ -314,7 +326,7 @@ void add_custom_header(struct rte_mbuf *pkt) {
 
   // Copy the loaded segments safely - limit to max 2 segments (as per struct definition)
   int segments_to_copy = (g_segment_count > 2) ? 2 : g_segment_count;
-  memcpy(srh_hdr->segments, g_segments, segments_to_copy * sizeof(struct in6_addr));
+  rte_memcpy(srh_hdr->segments, g_segments, segments_to_copy * sizeof(struct in6_addr));
   LOG_MAIN(DEBUG, "Copied %d segments into SRH\n", segments_to_copy);
 
   // Update IPv6 next header field to point to SRH
@@ -327,6 +339,5 @@ void add_custom_header(struct rte_mbuf *pkt) {
   uint16_t new_plen = rte_pktmbuf_pkt_len(pkt) - sizeof(*eth_hdr_6) - sizeof(*ipv6_hdr);
   ipv6_hdr->payload_len = rte_cpu_to_be_16(new_plen);
   LOG_MAIN(DEBUG, "Updated IPv6 payload length to %u\n", new_plen);
-  
   LOG_MAIN(DEBUG, "Custom headers added to packet successfully\n");
 }

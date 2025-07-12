@@ -8,6 +8,14 @@
 static inline void process_egress_packet(struct rte_mbuf* mbuf) {
   // LOG_MAIN(NOTICE, "Processing egress packet with length %u", rte_pktmbuf_pkt_len(mbuf));
   // LOG_MAIN(NOTICE, "Egress packet nb_segs: %u", mbuf->nb_segs);
+  
+  // Add bounds checking before accessing headers
+  if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr)) {
+    LOG_MAIN(WARNING, "Egress: Packet too small for basic headers, dropping\n");
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
   struct rte_ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
   uint16_t ether_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 
