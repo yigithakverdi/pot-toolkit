@@ -66,15 +66,15 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   LOG_MAIN(DEBUG, "--- HMAC Input Verification ---\n");
   char addr_str[INET6_ADDRSTRLEN];
   inet_ntop(AF_INET6, src_addr, addr_str, sizeof(addr_str));
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s", "Source Addr\n", addr_str);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s", "Source Addr", addr_str);
 
   // 2. Log the critical SRH fields
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Last Entry\n", srh->last_entry);
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Flags\n", srh->flags);
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Segments Left\n", srh->segments_left);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u\n", "SRH Last Entry", srh->last_entry);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u\n", "SRH Flags", srh->flags);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u\n", "SRH Segments Left", srh->segments_left);
 
   // 3. Log the HMAC Key ID
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: 0x%08x", "HMAC Key ID\n", rte_be_to_cpu_32(hmac_tlv->hmac_key_id));  
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: 0x%08x\n", "HMAC Key ID\n", rte_be_to_cpu_32(hmac_tlv->hmac_key_id));  
 
 
   size_t total_srh_size = (srh->hdr_ext_len * 8) + 8;
