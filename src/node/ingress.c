@@ -52,36 +52,34 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
 
           add_custom_header(mbuf);
           
-          // Add bounds checking after custom header addition
-          size_t min_ingress_size = sizeof(struct rte_ether_hdr) + 
-                                   sizeof(struct rte_ipv6_hdr) + 
-                                   sizeof(struct ipv6_srh) + 
-                                   sizeof(struct hmac_tlv) + 
-                                   sizeof(struct pot_tlv);
-          
-          if (rte_pktmbuf_pkt_len(mbuf) < min_ingress_size) {
-            LOG_MAIN(ERR, "Ingress: Packet too small after adding headers (%u bytes), expected (%zu bytes)\n", 
-                     rte_pktmbuf_pkt_len(mbuf), min_ingress_size);
-            rte_pktmbuf_free(mbuf);
-            return;
-          }
           
           struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr6 + 1);
           struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
-          struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
+          // struct hmac_tlv *hmac = (struct hmac_tlv *)(srh + 1);
           
-          // Add bounds check for POT TLV access
-          uint8_t* pot_ptr = (uint8_t*)(hmac + 1);
-          if (pot_ptr + sizeof(struct pot_tlv) > 
-              (uint8_t*)rte_pktmbuf_mtod(mbuf, void*) + rte_pktmbuf_pkt_len(mbuf)) {
-            LOG_MAIN(ERR, "Ingress: POT TLV extends beyond packet boundary, dropping\n");
+          
+          // struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
+          size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+          size_t min_ingress_size = sizeof(struct rte_ether_hdr) + 
+                                  sizeof(struct rte_ipv6_hdr) + 
+                                  actual_srh_size +  // Use dynamic size instead of sizeof(struct ipv6_srh)
+                                  sizeof(struct hmac_tlv) + 
+                                  sizeof(struct pot_tlv);
+
+          if (rte_pktmbuf_pkt_len(mbuf) < min_ingress_size) {
+            LOG_MAIN(ERR, "Ingress: Packet too small after adding headers (%u bytes), expected (%zu bytes)\n", 
+                    rte_pktmbuf_pkt_len(mbuf), min_ingress_size);
             rte_pktmbuf_free(mbuf);
             return;
-          }
-          
+          }     
+
+          uint8_t* hmac_ptr = (uint8_t*)srh + actual_srh_size;
+          struct hmac_tlv *hmac = (struct hmac_tlv *)hmac_ptr;
+          uint8_t* pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
           struct pot_tlv *pot = (struct pot_tlv *)pot_ptr;
-          
+
+
           // Add NULL pointer checks
           if (!eth_hdr6 || !ipv6_hdr || !srh || !hmac || !pot) {
             LOG_MAIN(ERR, "Ingress: NULL pointer detected in headers after adding custom headers\n");
@@ -157,7 +155,9 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             // srh->segments_left is the number of remaining segments to visit.
             // The next SID is (last_entry - segments_left + 1) index into the segments array.
             // int next_sid_index = srh->last_entry - srh->segments_left + 1;
-            int next_sid_index = srh->segments_left - 1;
+            // int next_sid_index = srh->segments_left - 1;
+            int next_sid_index = 0;
+
             LOG_MAIN(DEBUG, "SID calculation: last_entry=%u, segments_left=%u, next_sid_index=%d\n", 
                     srh->last_entry, srh->segments_left, next_sid_index);             
             
@@ -168,7 +168,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
               rte_pktmbuf_free(mbuf);
               return;
             }
-            
+
             // Debug the segment we're about to use
             char debug_seg_str[INET6_ADDRSTRLEN];
             inet_ntop(AF_INET6, &segments[next_sid_index], debug_seg_str, sizeof(debug_seg_str));
