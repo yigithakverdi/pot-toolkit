@@ -12,17 +12,16 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
   // LOG_DP(DEBUG, "Processing transit packet %u with length %u.", i, rte_pktmbuf_pkt_len(mbuf));
 
   // Enhanced bounds checking - check for ALL expected headers
-  size_t min_packet_size = sizeof(struct rte_ether_hdr) + 
-                          sizeof(struct rte_ipv6_hdr) + 
-                          sizeof(struct ipv6_srh) + 
-                          sizeof(struct hmac_tlv) + 
-                          sizeof(struct pot_tlv);
+  // size_t min_packet_size = sizeof(struct rte_ether_hdr) + 
+  //                         sizeof(struct rte_ipv6_hdr) + 
+  //                         sizeof(struct ipv6_srh) + 
+  //                         sizeof(struct hmac_tlv) + 
+  //                         sizeof(struct pot_tlv);
   
-  if (rte_pktmbuf_pkt_len(mbuf) < min_packet_size) {
-    LOG_MAIN(WARNING, "Transit: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n", 
-             rte_pktmbuf_pkt_len(mbuf), min_packet_size);
-    rte_pktmbuf_free(mbuf);
-    return;
+  if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr)) {
+      LOG_MAIN(WARNING, "Transit: Packet too small for basic headers, dropping\n");
+      rte_pktmbuf_free(mbuf);
+      return;
   }
 
   struct rte_ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
@@ -40,6 +39,22 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
   // Check if the packet is IPv6, if not drop it
   if (ether_type != RTE_ETHER_TYPE_IPV6) {
     LOG_MAIN(NOTICE, "Non-IPv6 packet received in transit (EtherType: %u), dropping.\n", ether_type);
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
+
+  struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+  struct ipv6_srh* srh = (struct ipv6_srh*)(ipv6_hdr + 1);
+  size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+  size_t min_packet_size = sizeof(struct rte_ether_hdr) + 
+                          sizeof(struct rte_ipv6_hdr) + 
+                          actual_srh_size + 
+                          sizeof(struct hmac_tlv) + 
+                          sizeof(struct pot_tlv);  
+
+  if (rte_pktmbuf_pkt_len(mbuf) < min_packet_size) {
+    LOG_MAIN(WARNING, "Transit: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n", 
+             rte_pktmbuf_pkt_len(mbuf), min_packet_size);
     rte_pktmbuf_free(mbuf);
     return;
   }
