@@ -116,8 +116,12 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // This key is used to calculate the expected HMAC for the packet.
         uint8_t* k_hmac_ie = k_pot_in[0];
         uint8_t expected_hmac[HMAC_MAX_LENGTH];
-        LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n", HMAC_MAX_LENGTH);
+        LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n", HMAC_MAX_LENGTH);\
         // Log the inputs to HMAC calculations for verifications
+        //
+        // Increase segment_left by 1 to temporarly test if it is the root cause of 
+        // HMAC verification failure
+        srh->segments_left += 1;
         if (calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
                            expected_hmac) != 0) {
           LOG_MAIN(ERR, "Egress: HMAC calculation failed\n");
@@ -127,6 +131,10 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
 
         LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC\n");
         if (memcmp(final_hmac, expected_hmac, HMAC_MAX_LENGTH) != 0) {
+          LOG_MAIN(DEBUG, "Final HMAC: ");
+          log_hex_data("Final HMAC", final_hmac, HMAC_MAX_LENGTH);
+          LOG_MAIN(DEBUG, "Expected HMAC: ");
+          log_hex_data("Expected HMAC", expected_hmac, HMAC_MAX_LENGTH);
           LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
           rte_pktmbuf_free(mbuf);
           return;
