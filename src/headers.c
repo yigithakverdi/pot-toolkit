@@ -347,6 +347,13 @@ void add_custom_header(struct rte_mbuf *pkt) {
   rte_memcpy(segments_ptr, g_segments, srh_segments_size);
   LOG_MAIN(DEBUG, "Copied %d segments (%zu bytes) into SRH\n", g_segment_count, srh_segments_size);
 
+  // Add verification logging
+  struct in6_addr *copied_segments = (struct in6_addr *)segments_ptr;
+  for (int i = 0; i < g_segment_count; i++) {
+    char seg_str[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6, &copied_segments[i], seg_str, sizeof(seg_str));
+    LOG_MAIN(DEBUG, "Copied segment [%d]: %s\n", i, seg_str);
+  }
 
   // Update IPv6 next header field to point to SRH
   uint8_t original_proto = ipv6_hdr->proto;
