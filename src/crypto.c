@@ -61,7 +61,10 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   // Calculate the length of the segment list within the SRH.
   // This is crucial for determining how much data to include in the HMAC calculation.
   // size_t segment_list_len = sizeof(srh->segments);
-  size_t segment_list_len = srh->hdr_ext_len * 8;
+  // size_t segment_list_len = srh->hdr_ext_len * 8;
+  // LOG_MAIN(DEBUG, "Calculating HMAC: Segment list length = %zu bytes.\n", segment_list_len);
+  size_t total_srh_size = (srh->hdr_ext_len * 8) + 8;
+  size_t segment_list_len = total_srh_size - sizeof(struct ipv6_srh);
   LOG_MAIN(DEBUG, "Calculating HMAC: Segment list length = %zu bytes.\n", segment_list_len);
 
   // Calculate the total length of the input data for the HMAC function.
@@ -98,10 +101,15 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   LOG_MAIN(DEBUG, "Calculating HMAC: Copied HMAC Key ID (%zu bytes). Offset: %zu\n",
            sizeof(hmac_tlv->hmac_key_id), offset);
 
-  memcpy(input + offset, srh->segments, segment_list_len);
+  // memcpy(input + offset, srh->segments, segment_list_len);
+  // offset += segment_list_len;
+  // LOG_MAIN(DEBUG, "Calculating HMAC: Copied SRH Segments (%zu bytes). Offset: %zu\n", segment_list_len,
+  //          offset);
+  const struct in6_addr *segments = (const struct in6_addr *)((const uint8_t *)srh + sizeof(struct ipv6_srh));
+  memcpy(input + offset, segments, segment_list_len);
   offset += segment_list_len;
   LOG_MAIN(DEBUG, "Calculating HMAC: Copied SRH Segments (%zu bytes). Offset: %zu\n", segment_list_len,
-           offset);
+           offset);  
 
   // Perform the actual HMAC calculation using OpenSSL's HMAC function.
   // EVP_sha256() specifies SHA-256 as the hash algorithm.
