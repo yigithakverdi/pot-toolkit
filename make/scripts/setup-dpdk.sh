@@ -91,4 +91,25 @@ echo
 info "You may now safely remove the following to free disk space:"
 echo "  rm -rf $DPDK_SRC_DIR $DPDK_TARBALL"
 echo
+
+# Set number of hugepages
+if [ -w "/sys/devices/system/node/node${NODE}/hugepages/hugepages-${HUGEPAGE_SIZE}/nr_hugepages" ]; then
+    echo $HUGEPAGES | sudo tee /sys/devices/system/node/node${NODE}/hugepages/hugepages-${HUGEPAGE_SIZE}/nr_hugepages
+else
+    info "Skipping hugepage allocation: sysfs not writable or not present."
+fi
+
+# Create and mount hugetlbfs if not already mounted
+if ! mountpoint -q /dev/hugepages; then
+    sudo mkdir -p /dev/hugepages
+    sudo mount -t hugetlbfs none /dev/hugepages
+    info "/dev/hugepages mounted."
+else
+    info "/dev/hugepages already mounted."
+fi
+
+grep HugePages /proc/meminfo || true
+
+echo
+
 info "--- Script Finished ---"

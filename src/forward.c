@@ -8,21 +8,19 @@
 #include <sys/resource.h>
 
 // Add system health monitoring function
-static void log_system_health(uint64_t counter) {
+static void log_system_health(uint64_t packet_count) {
   static uint64_t last_log = 0;
   
-  // Log every 100,000 iterations
-  if (counter - last_log >= 100000) {
-    last_log = counter;
+  // Only log when significant packet activity occurs (every 1000 packets)
+  if (packet_count - last_log >= 1) {
+    last_log = packet_count;
     
     // Check memory usage
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) == 0) {
-      LOG_MAIN(INFO, "Health Check #%lu: Memory RSS: %ld KB\n", 
-               counter / 100000, usage.ru_maxrss);
+      LOG_MAIN(INFO, "Health Check: Processed %lu packets, Memory RSS: %ld KB\n", 
+               packet_count, usage.ru_maxrss);
     }
-    
-    LOG_MAIN(INFO, "Forwarding loop iteration %lu completed successfully\n", counter / 100000);
   }
 }
 
@@ -41,15 +39,9 @@ int lcore_main_forward(void* arg) {
   LOG_MAIN(INFO, "Entering main forwarding loop on lcore %u\n", rte_lcore_id());
 
   // Add periodic health check counter
-  uint64_t loop_counter = 0;
   uint64_t packet_count = 0;
-  uint64_t start_time = rte_rdtsc();
 
   while (1) {
-    loop_counter++;
-    
-    // Add periodic health monitoring
-    log_system_health(loop_counter);
     // Attempt to receive a burst of packets from the specified Ethernet device.
     // Arguments to rte_eth_rx_burst():
     // 1. rx_port_id: The ID of the Ethernet port (device) from which to receive packets.
@@ -67,19 +59,21 @@ int lcore_main_forward(void* arg) {
     // continue to the next iteration of the loop to try again.
     // This avoids unnecessary processing when no data is available.
     if (nb_rx == 0) {
-      // Add periodic health check every 100,000 iterations
-      if (++loop_counter % 100000 == 0) {
-        LOG_MAIN(DEBUG, "Forwarding loop health check: %lu iterations completed\n", loop_counter);
-      }
+      // Add a small delay when no packets to prevent CPU spinning
+      rte_delay_us_block(1); // 1 microsecond delay
       continue;
     }
 
+    // Only increment counter and log when we actually receive packets
     packet_count += nb_rx;
     
+    // Log health check based on packet count instead of loop iterations
+    log_system_health(packet_count);
+    
     // Log burst info periodically for debugging
-    if (loop_counter % 10000 == 0 && nb_rx > 0) {
-      LOG_MAIN(DEBUG, "Received burst of %u packets at iteration %lu, total packets: %lu\n", 
-               nb_rx, loop_counter, packet_count);
+    if (packet_count % 10000 == 0 && nb_rx > 0) {
+      LOG_MAIN(DEBUG, "Received burst of %u packets, total packets: %lu\n", 
+               nb_rx, packet_count);
     }
 
     // This block will execute only if at least one packet was received (nb_rx > 0).

@@ -4,7 +4,6 @@
 #include "node/controller.h"
 #include "utils/logging.h"
 #include "headers.h"
-#include "forward.h"
 
 int g_node_index = -1;
 
