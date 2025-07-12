@@ -12,8 +12,6 @@ extern int dpdk_pot_logtype_security;
 
 void print_system_info();
 
-// Initialize logging to a file in log_dir with component_name and level
-int init_logging(const char* log_dir, const char* component_name, int log_level);
 // Get the path of the last created log file
 const char* get_log_file_path(void);
 

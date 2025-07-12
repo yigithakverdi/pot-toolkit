@@ -143,13 +143,6 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             LOG_MAIN(DEBUG, "SRH segments_left is 0, dropping packet.\n");
             rte_pktmbuf_free(mbuf);
           } else {
-            // Add bounds check for segments_left
-            if (srh->segments_left > srh->last_entry) {
-              LOG_MAIN(ERR, "Ingress: segments_left (%u) > last_entry (%u), dropping packet\n", 
-                       srh->segments_left, srh->last_entry);
-              rte_pktmbuf_free(mbuf);
-              return;
-            }
             
             // If segments_left is not 0, the packet needs to be forwarded to the next segment ID.
             // Calculate the index of the next segment ID (SID) in the SRH segment list.
@@ -157,6 +150,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             // srh->segments_left is the number of remaining segments to visit.
             // The next SID is (last_entry - segments_left + 1) index into the segments array.
             int next_sid_index = srh->last_entry - srh->segments_left + 1;
+            //  int next_sid_index = srh->segments_left - 1;
             
             // Add bounds check for segment array access
             if (next_sid_index < 0 || next_sid_index > srh->last_entry) {
