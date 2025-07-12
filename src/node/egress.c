@@ -119,9 +119,22 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n", HMAC_MAX_LENGTH);
         
         // Log the inputs to HMAC calculations for verifications
-        LOG_MAIN(DEBUG, "Calculating HMAC with src_addr: %s, srh: %p, hmac: %p, k_hmac_ie: %p, expected_hmac: %p\n",
-                 inet_ntop(AF_INET6, &ipv6_hdr->src_addr, NULL, 0),
-                 srh, hmac, k_hmac_ie, expected_hmac);
+        // LOG_MAIN(DEBUG, "Calculating HMAC for ingress packet with ingress_addr: %s\n",
+        //          inet_ntop(AF_INET6, &ingress_addr, dst_ip_str, sizeof(dst_ip_str)));
+        // LOG_MAIN(DEBUG, "HMAC key length: %zu\n", key_len); 
+        // LOG_MAIN(DEBUG, "HMAC key (first 16 bytes): ");
+        // for (size_t i = 0; i < 16 && i < key_len; i++) {
+        //   LOG_MAIN(DEBUG, "%02x ", k_hmac_ie[i]);
+        // }
+        // LOG_MAIN(DEBUG, "\n");
+        LOG_MAIN(DEBUG, "Calculating HMAC for egress packet with src_addr: %s\n",
+                 inet_ntop(AF_INET6, &ipv6_hdr->src_addr, NULL, 0));
+        LOG_MAIN(DEBUG, "HMAC key length: %zu\n", HMAC_MAX_LENGTH);
+        LOG_MAIN(DEBUG, "HMAC key (first 16 bytes): ");
+        for (size_t i = 0; i < 16 && i < HMAC_MAX_LENGTH; i++) {
+          LOG_MAIN(DEBUG, "%02x ", k_hmac_ie[i]);
+        }
+        LOG_MAIN(DEBUG, "\n");                 
         if (calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
                            expected_hmac) != 0) {
           LOG_MAIN(ERR, "Egress: HMAC calculation failed\n");

@@ -119,9 +119,15 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           // This HMAC is computed over specific packet fields (source address, SRH, HMAC TLV, etc.)
           // using the ingress_addr and the HMAC key.
           // 
-          // Log the inputs the HMAC calculation for verification
+          // Log the inputs to HMAC calculations for verifications
           LOG_MAIN(DEBUG, "Calculating HMAC for ingress packet with ingress_addr: %s\n",
                    inet_ntop(AF_INET6, &ingress_addr, dst_ip_str, sizeof(dst_ip_str)));
+          LOG_MAIN(DEBUG, "HMAC key length: %zu\n", key_len); 
+          LOG_MAIN(DEBUG, "HMAC key (first 16 bytes): ");
+          for (size_t i = 0; i < 16 && i < key_len; i++) {
+            LOG_MAIN(DEBUG, "%02x ", k_hmac_ie[i]);
+          }
+          LOG_MAIN(DEBUG, "\n");                   
           if (calculate_hmac((uint8_t *)&ingress_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
             rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
             LOG_MAIN(DEBUG, "HMAC calculated and copied to packet.\n");
