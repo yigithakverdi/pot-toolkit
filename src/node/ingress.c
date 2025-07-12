@@ -120,14 +120,30 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           // using the ingress_addr and the HMAC key.
           // 
           // Log the inputs to HMAC calculations for verifications
-          LOG_MAIN(DEBUG, "Calculating HMAC for ingress packet with ingress_addr: %s\n",
-                   inet_ntop(AF_INET6, &ingress_addr, dst_ip_str, sizeof(dst_ip_str)));
-          LOG_MAIN(DEBUG, "HMAC key length: %zu\n", key_len); 
-          LOG_MAIN(DEBUG, "HMAC key (first 16 bytes): ");
-          for (size_t i = 0; i < 16 && i < key_len; i++) {
-            LOG_MAIN(DEBUG, "%02x ", k_hmac_ie[i]);
+          LOG_MAIN(DEBUG, "HMAC input: ingress_addr=%s, srh_ptr=%p, hmac_ptr=%p, k_hmac_ie_ptr=%p, key_len=%zu",
+               inet_ntop(AF_INET6, &ingress_addr, dst_ip_str, sizeof(dst_ip_str)),
+               (void *)srh, (void *)hmac, (void *)k_hmac_ie, key_len);
+
+          LOG_MAIN(DEBUG, "SRH dump (first 32 bytes):");
+          for (size_t i = 0; i < 32 && i < actual_srh_size; i++) {
+            // LOG_MAIN(DEBUG, "%02x ", ((uint8_t *)srh)[i]);
+            printf("%02x ", ((uint8_t *)srh)[i]);
           }
-          LOG_MAIN(DEBUG, "\n");                   
+          LOG_MAIN(DEBUG, "\n");
+
+          LOG_MAIN(DEBUG, "HMAC TLV dump (first 32 bytes):");
+          for (size_t i = 0; i < 32 && i < sizeof(struct hmac_tlv); i++) {
+            // LOG_MAIN(DEBUG, "%02x ", ((uint8_t *)hmac)[i]);
+            printf("%02x ", ((uint8_t *)hmac)[i]);
+          }
+          LOG_MAIN(DEBUG, "\n");
+
+          LOG_MAIN(DEBUG, "HMAC key (first 32 bytes):");
+          for (size_t i = 0; i < 32 && i < key_len; i++) {
+            // LOG_MAIN(DEBUG, "%02x ", k_hmac_ie[i]);
+            printf("%02x ", k_hmac_ie[i]);
+          }
+          LOG_MAIN(DEBUG, "\n");
           if (calculate_hmac((uint8_t *)&ingress_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
             rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
             LOG_MAIN(DEBUG, "HMAC calculated and copied to packet.\n");
