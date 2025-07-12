@@ -74,7 +74,7 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u\n", "SRH Segments Left", srh->segments_left);
 
   // 3. Log the HMAC Key ID
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: 0x%08x\n", "HMAC Key ID\n", rte_be_to_cpu_32(hmac_tlv->hmac_key_id));  
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: 0x%08x\n", "HMAC Key ID", rte_be_to_cpu_32(hmac_tlv->hmac_key_id));  
 
 
   size_t total_srh_size = (srh->hdr_ext_len * 8) + 8;
@@ -191,7 +191,7 @@ void log_hex_data(const char* label, const uint8_t* data, size_t len) {
         sprintf(hex_str + i * 3, "%02x ", data[i]);
     }
     hex_str[len * 3] = '\0';
-    LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s", label, hex_str);
+    LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s\n", label, hex_str);
 }
 
 static int hex_string_to_bytes(const char* hex_str, uint8_t* buf, size_t buf_len) {
