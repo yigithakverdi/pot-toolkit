@@ -356,10 +356,10 @@ void add_custom_header(struct rte_mbuf *pkt) {
   }
 
   // Update IPv6 next header field to point to SRH
-  uint8_t original_proto = ipv6_hdr->proto;
-  ipv6_hdr->proto = 43;  // IPv6 Routing Header
+  // uint8_t original_proto = ipv6_hdr->proto;
+  // ipv6_hdr->proto = 43;  // IPv6 Routing Header
   // Update SRH next header to point to the original protocol
-  srh_hdr->next_header = original_proto;
+  // srh_hdr->next_header = original_proto;
 
   // Update IPv6 payload length
   uint16_t new_plen = rte_pktmbuf_pkt_len(pkt) - sizeof(*eth_hdr_6) - sizeof(*ipv6_hdr);
