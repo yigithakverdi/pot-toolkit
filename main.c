@@ -68,6 +68,13 @@ int main(int argc, char* argv[]) {
     rte_exit(EXIT_FAILURE, "Failed to initialize topology\n");
   }
 
+  // TODO set the global variable here for temporarly normaly they should be set 
+  // in their respective fields, and contexts, however, for now, we are
+  // setting them here, since we are not using the config struct in the rest of the
+  // application, we are just using the global variables.
+  num_transit_nodes = config.topology.num_transit;
+  
+
   // Initialize the lookup table, that will be used to forward the packet to destined node
   // given the IPv6 info from SRH, that is then mapped to MAC address using this lookup table.
   init_lookup_table();

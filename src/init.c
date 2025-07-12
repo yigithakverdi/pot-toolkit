@@ -112,6 +112,7 @@ int init_topology() {
 
   // For onion encryption 1 (ingress/egress) + transit
   int total_keys_needed = num_transit + 1;
+  LOG_MAIN(DEBUG, "Total keys needed: %d\n", total_keys_needed);
   if (total_keys_needed > MAX_POT_NODES + 1) {
     LOG_MAIN(ERR, "Gerekli anahtar sayısı (%d) hard limiti (%d) aşıyor!\n", total_keys_needed,
              MAX_POT_NODES + 1);
