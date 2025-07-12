@@ -63,18 +63,18 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   // size_t segment_list_len = sizeof(srh->segments);
   // size_t segment_list_len = srh->hdr_ext_len * 8;
   // LOG_MAIN(DEBUG, "Calculating HMAC: Segment list length = %zu bytes.\n", segment_list_len);
-  LOG_MAIN(DEBUG, "--- HMAC Input Verification ---");
+  LOG_MAIN(DEBUG, "--- HMAC Input Verification ---\n");
   char addr_str[INET6_ADDRSTRLEN];
   inet_ntop(AF_INET6, src_addr, addr_str, sizeof(addr_str));
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s", "Source Addr", addr_str);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s", "Source Addr\n", addr_str);
 
   // 2. Log the critical SRH fields
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Last Entry", srh->last_entry);
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Flags", srh->flags);
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Segments Left", srh->segments_left);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Last Entry\n", srh->last_entry);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Flags\n", srh->flags);
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %u", "SRH Segments Left\n", srh->segments_left);
 
   // 3. Log the HMAC Key ID
-  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: 0x%08x", "HMAC Key ID", rte_be_to_cpu_32(hmac_tlv->hmac_key_id));  
+  LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: 0x%08x", "HMAC Key ID\n", rte_be_to_cpu_32(hmac_tlv->hmac_key_id));  
 
 
   size_t total_srh_size = (srh->hdr_ext_len * 8) + 8;
@@ -93,7 +93,7 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   // Any discrepancy here will lead to incorrect HMAC calculations and verification failures.
   // 5. Log the secret key being used
   log_hex_data("Secret Key", key, key_len);
-  LOG_MAIN(DEBUG, "---------------------------------");  
+  LOG_MAIN(DEBUG, "---------------------------------\n");  
   size_t input_len = 16 + 1 + 1 + 2 + 4 + segment_list_len;
   LOG_MAIN(DEBUG, "Calculating HMAC: Total input length = %zu bytes.\n", input_len);
   uint8_t input[input_len];
@@ -128,8 +128,8 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   for (int i = 0; i < num_segments; i++) {
       inet_ntop(AF_INET6, &segments[i], addr_str, sizeof(addr_str));
       char label[32];
-      sprintf(label, "Segment[%d]", i);
-      LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s", label, addr_str);
+      sprintf(label, "Segment[%d]\n", i);
+      LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s\n", label, addr_str);
   }
 
   memcpy(input + offset, segments, segment_list_len);
