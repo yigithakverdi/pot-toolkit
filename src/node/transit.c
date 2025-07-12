@@ -75,11 +75,15 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
       }
 
       if (srh->next_header == 61) {
-        size_t srh_bytes = sizeof(struct ipv6_srh);
+        // size_t srh_bytes = sizeof(struct ipv6_srh);
+        size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+        struct in6_addr *segments = (struct in6_addr *)((uint8_t *)srh + sizeof(struct ipv6_srh));
 
-        uint8_t* hmac_ptr = (uint8_t*)srh + srh_bytes;
+        // uint8_t* hmac_ptr = (uint8_t*)srh + srh_bytes;
+        // uint8_t* pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
+        uint8_t* hmac_ptr = (uint8_t*)srh + actual_srh_size;
         uint8_t* pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
-        
+
         // Add bounds check for POT TLV access
         if ((uint8_t*)pot_ptr + sizeof(struct pot_tlv) > 
             (uint8_t*)rte_pktmbuf_mtod(mbuf, void*) + rte_pktmbuf_pkt_len(mbuf)) {
@@ -145,7 +149,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
 
         srh->segments_left--;
         int next_sid_index = srh->last_entry - srh->segments_left + 1;
-        
+
         // Add bounds check for segment array access
         if (next_sid_index < 0 || next_sid_index > srh->last_entry) {
           LOG_MAIN(ERR, "Transit: Invalid next_sid_index (%d), last_entry (%u), dropping packet\n", 
@@ -153,11 +157,16 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
           rte_pktmbuf_free(mbuf);
           return;
         }
-        memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
-        LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s\n",
-                 inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+        // memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
+        // LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s\n",
+        //          inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
 
-        struct rte_ether_addr* next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
+        // struct rte_ether_addr* next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
+        memcpy(&ipv6_hdr->dst_addr, &segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
+        LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s\n",
+                inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+
+        struct rte_ether_addr* next_mac = lookup_mac_for_ipv6(&segments[next_sid_index]);        
         if (next_mac) {
           send_packet_to(*next_mac, mbuf, 1);
           LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",

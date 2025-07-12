@@ -54,7 +54,9 @@ struct ipv6_srh {
   uint8_t last_entry;
   uint8_t flags;               // Segments yet to be visited
   uint8_t reserved[2];         // Reserved for future use
-  struct in6_addr segments[2];  // Array of IPv6 segments max 10 nodes
+  
+  // Commented out fixed segment size for making it dynamic 
+  // struct in6_addr segments[2];  // Array of IPv6 segments max 10 nodes
 };
 
 struct hmac_tlv {

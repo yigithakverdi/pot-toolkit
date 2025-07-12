@@ -9,6 +9,7 @@
 #include "forward.h"
 
 static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_port_id) {
+  
   // Add bounds checking before accessing headers
   if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr)) {
     LOG_MAIN(WARNING, "Ingress: Packet too small for basic headers, dropping\n");
@@ -144,6 +145,12 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             rte_pktmbuf_free(mbuf);
           } else {
             
+            // Calculate the dynamic SRG size to find segments
+            // size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+
+            // Get pointer to the segments array (located after the SRH header)
+            struct in6_addr *segments = (struct in6_addr *)((uint8_t *)srh + sizeof(struct ipv6_srh));
+
             // If segments_left is not 0, the packet needs to be forwarded to the next segment ID.
             // Calculate the index of the next segment ID (SID) in the SRH segment list.
             // srh->last_entry is the total number of segments.
@@ -160,11 +167,17 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
               return;
             }
             
-            memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
+            // memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
+            // LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s\n",
+            //          inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+            memcpy(&ipv6_hdr->dst_addr, &segments[next_sid_index], sizeof(struct in6_addr));
             LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s\n",
-                     inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+                    inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
 
-            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
+
+            // struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
+            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&segments[next_sid_index]);
+
             if (next_mac) {
               send_packet_to(*next_mac, mbuf, rx_port_id);
               LOG_MAIN(DEBUG, "Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
