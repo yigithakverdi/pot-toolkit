@@ -113,10 +113,15 @@ int lcore_main_forward(void* arg) {
 void launch_lcore_forwarding(uint16_t* ports) {
   LOG_MAIN(INFO, "Launching forwarding on lcore %u\n", rte_get_next_lcore(-1, 1, 0));
   unsigned lcore_id = rte_get_next_lcore(-1, 1, 0);
+  LOG_MAIN(INFO, "Selected lcore ID: %u\n", lcore_id);
 
   // Get the actual lcore ID that will execute the forwarding logic.
   // This call is the same as in the LOG_MAIN, ensuring consistency.
-  rte_eal_remote_launch(lcore_main_forward, (void*)ports, lcore_id);
+  int ret = rte_eal_remote_launch(lcore_main_forward, (void*)ports, lcore_id);
+  if (ret < 0) {
+    LOG_MAIN(ERR, "Failed to launch forwarding on lcore %u (error %d)\n", lcore_id, ret);
+    return;
+  }
   LOG_MAIN(INFO, "Waiting for all lcores to complete\n");
 
   // Remotely launch the 'lcore_main_forward' function on the selected 'lcore_id'.
