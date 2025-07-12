@@ -27,7 +27,7 @@ info "--- DPDK Setup Script Starting ---"
 if ! command -v meson &> /dev/null || ! command -v ninja &> /dev/null; then
     info "Installing Meson and Ninja build tools ..."
     sudo apt-get update
-    sudo apt install -y build-essential git gcc clang make meson ninja-build python3 python3-pip libnuma-dev pkg-config libelf-dev pciutils net-tools linux-headers-$(uname -r)    
+    sudo apt install -y build-essential git gcc clang make meson ninja-build python3 python3-pip libnuma-dev pkg-config libelf-dev pciutils net-tools linux-headers-$(uname -r)
     sudo apt install python3-pyelftools
     sudo apt-get install libssl-dev
 else
@@ -91,6 +91,13 @@ echo
 info "You may now safely remove the following to free disk space:"
 echo "  rm -rf $DPDK_SRC_DIR $DPDK_TARBALL"
 echo
+info "--- Script Finished ---"
+
+# --- Hugepages Setup ---
+info "Configuring hugepages for DPDK ..."
+HUGEPAGES=1024
+HUGEPAGE_SIZE=2048kB
+NODE=0
 
 # Set number of hugepages
 if [ -w "/sys/devices/system/node/node${NODE}/hugepages/hugepages-${HUGEPAGE_SIZE}/nr_hugepages" ]; then
@@ -109,7 +116,3 @@ else
 fi
 
 grep HugePages /proc/meminfo || true
-
-echo
-
-info "--- Script Finished ---"
