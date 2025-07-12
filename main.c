@@ -52,23 +52,7 @@ int main(int argc, char* argv[]) {
   // after that sync the config with the environment variables.
   parse_args(&config, argc, argv);
   global_role = setup_node_role(config.node.type);
-  printf("DEBUG: After parse_args, config values:\n");
-  printf("  node.type: %s\n", config.node.type ? config.node.type : "NULL");
-  printf("  node.log_level: %s\n", config.node.log_level ? config.node.log_level : "NULL");
-  printf("  topology.segment_list: %s\n", config.topology.segment_list ? config.topology.segment_list : "NULL");
-  printf("  topology.key_locations: %s\n", config.topology.key_locations ? config.topology.key_locations : "NULL");
-  printf("  topology.num_transit: %d\n", config.topology.num_transit);
-  
-
   sync_config_to_env(&config);
-
-  printf("DEBUG: After sync_config_to_env, environment variables:\n");
-  printf("  POT_NODE_TYPE: %s\n", getenv("POT_NODE_TYPE") ? getenv("POT_NODE_TYPE") : "NULL");
-  printf("  POT_SEGMENT_LIST_FILE: %s\n", getenv("POT_SEGMENT_LIST_FILE") ? getenv("POT_SEGMENT_LIST_FILE") : "NULL");
-  printf("  POT_KEYS_FILE: %s\n", getenv("POT_KEYS_FILE") ? getenv("POT_KEYS_FILE") : "NULL");
-  printf("  POT_TOPOLOGY_NUM_TRANSIT_NODES: %s\n", getenv("POT_TOPOLOGY_NUM_TRANSIT_NODES") ? getenv("POT_TOPOLOGY_NUM_TRANSIT_NODES") : "NULL");
-  printf("  POT_NODE_INDEX: %s\n", getenv("POT_NODE_INDEX") ? getenv("POT_NODE_INDEX") : "NULL");
-
 
   // TODO before initializing the topology force the index of the current node from the
   // environment variable that is supplied when running the script `setup_container_veth.sh`
@@ -132,14 +116,14 @@ int main(int argc, char* argv[]) {
   LOG_MAIN(DEBUG, "In-use mbufs in pool: %u\n", rte_mempool_in_use_count(mbuf_pool));
 
   // Verify hugepage memory is available
-  printf("DEBUG: Checking hugepage memory\n");
-  const struct rte_memseg_list *msl;
-
-  // Free the segment list in any case
-  // atexit(free_srh_segments);
+  // printf("DEBUG: Checking hugepage memory\n");
+  // const struct rte_memseg_list *msl;
 
   // Launch the packet processing loop
   launch_lcore_forwarding(ports);
+
+  // Free the segment list in any case
+  atexit(free_srh_segments);
 
   return 0;
 }

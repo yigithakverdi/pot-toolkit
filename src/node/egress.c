@@ -58,8 +58,12 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
       // and simply return.
       if (srh->next_header == 61) {
         LOG_MAIN(DEBUG, "SRH detected, processing packet\n");
-        size_t srh_bytes = sizeof(struct ipv6_srh);
-        uint8_t* hmac_ptr = (uint8_t*)srh + srh_bytes;
+        // size_t srh_bytes = sizeof(struct ipv6_srh);
+        size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+            
+        // uint8_t* hmac_ptr = (uint8_t*)srh + srh_bytes;
+        uint8_t* hmac_ptr = (uint8_t*)srh + actual_srh_size;
+
         struct hmac_tlv* hmac = (struct hmac_tlv*)hmac_ptr;
         uint8_t* pot_ptr = hmac_ptr + sizeof(struct hmac_tlv);
         struct pot_tlv* pot = (struct pot_tlv*)pot_ptr;
