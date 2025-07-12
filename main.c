@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
   // integrated through the controller node, that is responsible for Shamir Secret Sharing
   // and the key distribution, however, for now, we are forcing the node index through the
   // script `setup_container_veth.sh`
-  g_node_index = getenv_int("POT_NODE_INDEX");
+  // g_node_index = getenv_int("POT_NODE_INDEX");
 
   // Init topology after calling the default arguments load, and the parse args function, which
   // might overload the given default values
