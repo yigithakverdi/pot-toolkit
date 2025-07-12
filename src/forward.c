@@ -115,6 +115,16 @@ void launch_lcore_forwarding(uint16_t* ports) {
   unsigned lcore_id = rte_get_next_lcore(-1, 1, 0);
   LOG_MAIN(INFO, "Selected lcore ID: %u\n", lcore_id);
 
+  // If only one lcore is enabled, run on the master lcore
+  if (rte_lcore_count() == 1) {
+    LOG_MAIN(INFO, "Only one lcore available, running forwarding on master lcore %u\n", rte_lcore_id());
+    lcore_main_forward((void*)ports);
+    return;
+  }  
+
+  LOG_MAIN(INFO, "Launching forwarding on lcore %u\n", lcore_id);
+  LOG_MAIN(INFO, "Selected lcore ID: %u\n", lcore_id);
+
   // Get the actual lcore ID that will execute the forwarding logic.
   // This call is the same as in the LOG_MAIN, ensuring consistency.
   int ret = rte_eal_remote_launch(lcore_main_forward, (void*)ports, lcore_id);
