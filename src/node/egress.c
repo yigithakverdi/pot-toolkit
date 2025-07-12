@@ -126,7 +126,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
 
         LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC\n");
         if (memcmp(final_hmac, expected_hmac, HMAC_MAX_LENGTH) != 0) {
-          // LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
+          LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
           rte_pktmbuf_free(mbuf);
           return;
         }
