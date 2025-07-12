@@ -7,7 +7,8 @@
 #include <rte_ethdev.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "crypto.h"
+#include "node/controller.h"
 
 void init_eal(int argc, char* argv[]) {
   LOG_MAIN(DEBUG, "Initializing DPDK EAL\n");
@@ -130,7 +131,6 @@ void init_lookup_table() {
   
   add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
   add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
-  add_next_hop("2001:db8:1::", "aa:bb:cc:dd:ee:ff");
   
   printf("DEBUG: Second next hop added successfully\n");
   

@@ -27,6 +27,7 @@ typedef struct {
   int follow_flag;
 } AppConfig;
 
+void config_init(AppConfig* config);
 int load_app_config(AppConfig* config);
 void config_load_env(AppConfig* config);
 void load_string_from_env(char** target, const char* env_var_name);

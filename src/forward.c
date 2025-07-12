@@ -5,6 +5,26 @@
 #include "node/ingress.h"
 #include "node/transit.h"
 #include "node/egress.h"
+#include <sys/resource.h>
+
+// Add system health monitoring function
+static void log_system_health(uint64_t counter) {
+  static uint64_t last_log = 0;
+  
+  // Log every 100,000 iterations
+  if (counter - last_log >= 100000) {
+    last_log = counter;
+    
+    // Check memory usage
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == 0) {
+      LOG_MAIN(INFO, "Health Check #%lu: Memory RSS: %ld KB\n", 
+               counter / 100000, usage.ru_maxrss);
+    }
+    
+    LOG_MAIN(INFO, "Forwarding loop iteration %lu completed successfully\n", counter / 100000);
+  }
+}
 
 int lcore_main_forward(void* arg) {
   LOG_MAIN(INFO, "Lcore %u started for forwarding\n", rte_lcore_id());
@@ -20,7 +40,16 @@ int lcore_main_forward(void* arg) {
            cur_role == ROLE_INGRESS ? "INGRESS" : (cur_role == ROLE_TRANSIT ? "TRANSIT" : "EGRESS"));
   LOG_MAIN(INFO, "Entering main forwarding loop on lcore %u\n", rte_lcore_id());
 
+  // Add periodic health check counter
+  uint64_t loop_counter = 0;
+  uint64_t packet_count = 0;
+  uint64_t start_time = rte_rdtsc();
+
   while (1) {
+    loop_counter++;
+    
+    // Add periodic health monitoring
+    log_system_health(loop_counter);
     // Attempt to receive a burst of packets from the specified Ethernet device.
     // Arguments to rte_eth_rx_burst():
     // 1. rx_port_id: The ID of the Ethernet port (device) from which to receive packets.
@@ -37,7 +66,21 @@ int lcore_main_forward(void* arg) {
     // If no packets were received in this burst (nb_rx is 0),
     // continue to the next iteration of the loop to try again.
     // This avoids unnecessary processing when no data is available.
-    if (nb_rx == 0) continue;
+    if (nb_rx == 0) {
+      // Add periodic health check every 100,000 iterations
+      if (++loop_counter % 100000 == 0) {
+        LOG_MAIN(DEBUG, "Forwarding loop health check: %lu iterations completed\n", loop_counter);
+      }
+      continue;
+    }
+
+    packet_count += nb_rx;
+    
+    // Log burst info periodically for debugging
+    if (loop_counter % 10000 == 0 && nb_rx > 0) {
+      LOG_MAIN(DEBUG, "Received burst of %u packets at iteration %lu, total packets: %lu\n", 
+               nb_rx, loop_counter, packet_count);
+    }
 
     // This block will execute only if at least one packet was received (nb_rx > 0).
     // Note: The original code only processes pkts[0] if nb_rx > 0.
@@ -46,22 +89,28 @@ int lcore_main_forward(void* arg) {
     if (nb_rx > 0) {
       // LOG_MAIN(INFO, "Processing %u packets on port %u", nb_rx, rx_port_id);
 
-      // Get a pointer to the Ethernet header of the first received packet (pkts[0]).
-      // rte_pktmbuf_mtod() is a macro that converts an mbuf pointer to a data pointer
-      // of a specified type, pointing to the start of the packet's data buffer.
-      struct rte_ether_hdr* eth_hdr = rte_pktmbuf_mtod(pkts[0], struct rte_ether_hdr*);
-
-      // Get a generic byte pointer to the start of the data buffer of the first packet.
-      // This 'data' pointer would be used if you need to access the raw bytes
-      // of the packet payload without knowing its specific protocol headers yet.
-      uint8_t* data = rte_pktmbuf_mtod(pkts[0], uint8_t*);
+      // Remove unused variable declarations to avoid warnings
+      // struct rte_ether_hdr* eth_hdr = rte_pktmbuf_mtod(pkts[0], struct rte_ether_hdr*);
+      // uint8_t* data = rte_pktmbuf_mtod(pkts[0], uint8_t*);
     }
 
     switch (cur_role) {
-    case ROLE_INGRESS: process_ingress(pkts, nb_rx, rx_port_id); break;
-    case ROLE_TRANSIT: process_transit(pkts, nb_rx); break;
-    case ROLE_EGRESS: process_egress(pkts, nb_rx); break;
-    default: break;
+    case ROLE_INGRESS: 
+      process_ingress(pkts, nb_rx, rx_port_id); 
+      break;
+    case ROLE_TRANSIT: 
+      process_transit(pkts, nb_rx); 
+      break;
+    case ROLE_EGRESS: 
+      process_egress(pkts, nb_rx); 
+      break;
+    default: 
+      // Free unprocessed packets to prevent memory leaks
+      for (uint16_t i = 0; i < nb_rx; i++) {
+        rte_pktmbuf_free(pkts[i]);
+      }
+      LOG_MAIN(WARNING, "Unknown role, dropped %u packets\n", nb_rx);
+      break;
     }
   }
   return 0;
