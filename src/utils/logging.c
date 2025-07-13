@@ -15,10 +15,11 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <arpa/inet.h>       // Add this for inet_ntop
+#include <arpa/inet.h>       
 
 // global storage for the current log file path
 static char g_log_file_path[256] = {0};
+int g_logging_enabled = 1; 
 
 // new helper to retrieve the last created log file
 const char* get_log_file_path(void) {
