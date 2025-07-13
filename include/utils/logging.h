@@ -9,6 +9,7 @@ extern int dpdk_pot_logtype_main;
 extern int dpdk_pot_logtype_data;
 extern int dpdk_pot_logtype_control;
 extern int dpdk_pot_logtype_security;
+extern int g_logging_enabled;
 
 void print_system_info();
 
@@ -16,7 +17,11 @@ void print_system_info();
 const char* get_log_file_path(void);
 
 #define LOG_MAIN(level, fmt, args...) \
-  rte_log(RTE_LOG_##level, dpdk_pot_logtype_main, "%s: " fmt, __func__, ##args)
+  do { \
+    if (g_logging_enabled) { \
+      rte_log(RTE_LOG_##level, dpdk_pot_logtype_main, "%s: " fmt, __func__, ##args); \ 
+    } \
+  } while (0)
 
 #define LOG_DP(level, fmt, args...) \
   rte_log(RTE_LOG_##level, dpdk_pot_logtype_data, "%s: " fmt, __func__, ##args)

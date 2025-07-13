@@ -5,6 +5,7 @@
 
 #include "utils/config.h"
 #include "node/controller.h"
+#include "utils/logging.h"
 
 int tsc_dynfield_offset = 0;
 
@@ -35,6 +36,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       {"key-locations", required_argument, 0, 'k'},
       {"num-transit", required_argument, 0, 'n'},
       {"node-index", required_argument, 0, 'i'},
+      {"no-logging", required_argument, 0, 'I'},
       {"help", no_argument, 0, 'h'},
       {0, 0, 0, 0} // Dizi sonunu belirtir
   };
@@ -73,6 +75,10 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
     case 'k': // --key-locations veya -k
       free(config->topology.key_locations);
       config->topology.key_locations = strdup(optarg);
+      break;
+
+    case 'I': // --no-logging
+      g_logging_enabled = 0;
       break;
 
     case 'i': // --node-index veya -i

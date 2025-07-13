@@ -128,7 +128,9 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   for (int i = 0; i < num_segments; i++) {
       inet_ntop(AF_INET6, &segments[i], addr_str, sizeof(addr_str));
       char label[32];
-      sprintf(label, "Segment[%d]\n", i);
+      if(g_logging_enabled) {
+        sprintf(label, "Segment[%d]\n", i);
+      }
       LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s\n", label, addr_str);
   }
 
@@ -188,7 +190,9 @@ static int hex_char_to_int(char c) {
 void log_hex_data(const char* label, const uint8_t* data, size_t len) {
     char hex_str[len * 3 + 1];
     for (size_t i = 0; i < len; i++) {
+      if(g_logging_enabled) {
         sprintf(hex_str + i * 3, "%02x ", data[i]);
+      }
     }
     hex_str[len * 3] = '\0';
     LOG_MAIN(DEBUG, "HMAC INPUT | %-18s: %s\n", label, hex_str);
@@ -222,7 +226,7 @@ int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, u
   // If creation fails, it's a fatal error as decryption cannot proceed.
   if (!(ctx = EVP_CIPHER_CTX_new())) {
     LOG_MAIN(ERR, "Decryption context creation failed.\n");
-    printf("Context creation failed\n");
+    LOG_MAIN(ERR, "Context creation failed\n");
     return -1;
   }
   LOG_MAIN(DEBUG, "Decryption context created successfully.\n");
@@ -248,7 +252,6 @@ int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, u
   // ciphertext_len: The length of the input ciphertext.
   if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) {
     LOG_MAIN(ERR, "Decryption update failed.\n");
-    printf("Decryption update failed\n");
     EVP_CIPHER_CTX_free(ctx);
     return -1;
   }
@@ -307,7 +310,7 @@ int encrypt(unsigned char* plaintext, int plaintext_len, unsigned char* key, uns
   // If `EVP_CIPHER_CTX_new()` returns NULL, it indicates a failure (e.g., out of memory).
   if (!(ctx = EVP_CIPHER_CTX_new())) {
     LOG_MAIN(ERR, "Encryption context creation failed.\n");
-    printf("Context creation failed\n");
+    LOG_MAIN(ERR, "Context creation failed\n");
     return -1;
   }
   LOG_MAIN(DEBUG, "Encryption context created successfully.\n");
