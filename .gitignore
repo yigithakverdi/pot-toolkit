@@ -2,6 +2,11 @@
 /docs/notes/*.md
 /docs/experiment.md
 
+# Ignore clangd cache
+.clangd/
+./.clangd
+
+
 # Ignore build artifacts
 ./vscode/*
 ./vscode/
