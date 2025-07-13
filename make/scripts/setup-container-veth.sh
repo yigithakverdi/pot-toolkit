@@ -17,6 +17,12 @@ SEGMENT_LIST_FILE="/etc/segment/segment_list.txt"
 SOCKET_MEM="128"
 START_LCORE=1
 
+IPERF_CLIENT_NODE="pot-iperf-client"
+IPERF_SERVER_NODE="pot-iperf-server"
+IPERF_CLIENT_IPV6="2001:db8:1::c1"
+IPERF_SERVER_IPV6="2001:db8:1::d1"
+IPERF_IMAGE_NAME="yigithak/ubuntu-iperf:latest"
+
 # --- Helper Functions ---
 info() { echo "[INFO] $1" >&2; }
 error_exit() { echo "[ERROR] $1" >&2; exit 1; }
@@ -68,20 +74,17 @@ verify_connections() {
     for i in $(seq 0 $((total_nodes - 2))); do
         local source_node="${names[$i]}"
         local target_node="${names[$i+1]}"
+        # The target IP is the IP of the *right* side of the veth pair
         local target_ip="${IPV6_PREFIX}$((i + 1))"
 
-        # Determine the correct outgoing interface for the ping.
-        # The first node (ingress) uses eth0.
-        # Transit nodes use eth1 to connect to the *next* node in the chain.
-        local source_interface="eth0"
-        if [ "$i" -gt 0 ]; then
-            source_interface="eth1"
-        fi
+        # The outgoing interface from any node in the DPDK chain to the NEXT node is always eth1.
+        # The ingress node (i=0) uses eth1.
+        # A transit node (i>0) also uses its eth1 to reach the next node.
+        local source_interface="eth1"
 
         info "Pinging from $source_node ($source_interface) to $target_node ($target_ip)..."
         
-        # Use ping's -I flag to specify the outgoing interface, removing routing ambiguity.
-        if sudo docker exec "$source_node" ping -6 -c 3 -I "$source_interface" "$target_ip" >/dev/null 2>&1; then
+        if sudo docker exec "$source_node" ping -6 -c 3 -I "$source_interface" "$target_ip"; then
             info "✅ Success: $source_node can reach $target_node"
         else
             error_exit "❌ Failure: $source_node cannot reach $target_node. Aborting."
@@ -93,44 +96,37 @@ verify_connections() {
 # --- Container and Network Setup ---
 launch_container() {
     local name="$1"
-    info "Launching container: $name"
+    local image_to_use="${2:-$IMAGE_NAME}" # Use 2nd arg, or default to IMAGE_NAME
+
+    info "Launching container: $name (using image $image_to_use)"
     sudo docker run -d --name="$name" --hostname="$name" --privileged --network=none \
         --entrypoint sleep -v /dev/hugepages:/dev/hugepages \
         -v "$GEN_KEYS_FILE":/etc/secret/pot_keys.txt \
         -v "$SEGMENT_LIST_FILE":/etc/segment/segment_list.txt \
         -v "$(pwd)/build/dpdk-pot":/usr/local/bin/dpdk-pot \
-        "$IMAGE_NAME" infinity >/dev/null
+        "$image_to_use" infinity >/dev/null
     sleep 1
     sudo docker inspect -f '{{.State.Pid}}' "$name"
 }
 
 create_and_assign_veth() {
-    local left_veth="$1" right_veth="$2" left_pid="$3" right_pid="$4" left_idx="$5" right_idx="$6"
-    info "Creating veth pair: $left_veth <-> $right_veth"
+    local left_veth=$1 right_veth=$2 left_pid=$3 right_pid=$4
+    local left_ip=$5 right_ip=$6 left_iface=$7 right_iface=$8
+
+    info "Creating veth pair: $1 ($left_ip on $left_iface) <-> $2 ($right_ip on $right_iface)"
     sudo ip link add "$left_veth" type veth peer name "$right_veth"
-    
-    # Correct interface naming:
-    # Ingress (idx 0) uses eth0.
-    # Transit (idx > 0) uses eth1 to connect to the "right".
-    local left_if_name="eth0"
-    if [ "$left_idx" -gt 0 ]; then
-        left_if_name="eth1"
-    fi
-    # The node on the right of the pair always gets connected on its "left" interface, which is eth0.
-    local right_if_name="eth0"
 
     sudo ip link set "$left_veth" netns "$left_pid"
-    sudo nsenter -t "$left_pid" -n ip link set "$left_veth" name "$left_if_name"
-    sudo nsenter -t "$left_pid" -n ip addr add "${IPV6_PREFIX}${left_idx}/64" dev "$left_if_name"
-    sudo nsenter -t "$left_pid" -n ip link set "$left_if_name" up
+    sudo nsenter -t "$left_pid" -n ip link set "$left_veth" name "$left_iface"
+    sudo nsenter -t "$left_pid" -n ip addr add "${left_ip}/64" dev "$left_iface"
+    sudo nsenter -t "$left_pid" -n ip link set "$left_iface" up
 
     sudo ip link set "$right_veth" netns "$right_pid"
-    sudo nsenter -t "$right_pid" -n ip link set "$right_veth" name "$right_if_name"
-    sudo nsenter -t "$right_pid" -n ip addr add "${IPV6_PREFIX}${right_idx}/64" dev "$right_if_name"
-    sudo nsenter -t "$right_pid" -n ip link set "$right_if_name" up
+    sudo nsenter -t "$right_pid" -n ip link set "$right_veth" name "$right_iface"
+    sudo nsenter -t "$right_pid" -n ip addr add "${right_ip}/64" dev "$right_iface"
+    sudo nsenter -t "$right_pid" -n ip link set "$right_iface" up
 }
 
-# --- NEW: Automated DPDK App Launcher ---
 launch_dpdk_app() {
     local name="$1"
     local role="$2"
@@ -140,14 +136,8 @@ launch_dpdk_app() {
 
     info "Starting DPDK app in $name (role: $role, index: $node_index, lcore: $lcore)"
     
-    local vdevs=""
-    if [ "$role" == "transit" ]; then
-        # Transit nodes have two interfaces
-        vdevs="--vdev=net_af_packet0,iface=eth0 --vdev=net_af_packet1,iface=eth1"
-    else
-        # Ingress and Egress have one
-        vdevs="--vdev=net_af_packet0,iface=eth0"
-    fi
+    # All DPDK nodes in the chain (ingress, transit, egress) have two interfaces.
+    local vdevs="--vdev=net_af_packet0,iface=eth0 --vdev=net_af_packet1,iface=eth1"
     
     # Construct the full command to be executed inside the container
     local cmd="dpdk-pot -l $lcore -n 4 --no-pci --iova-mode=va --socket-mem $SOCKET_MEM $vdevs -- \
@@ -160,57 +150,82 @@ launch_dpdk_app() {
     sudo docker exec -d --user root "$name" bash -c "$cmd"
 }
 
-
 # --- Main Execution ---
 cleanup
 generate_keys_file
 generate_segment_list
 
-info "--- Creating POT Network with Ingress, $NUM_TRANSIT_NODES Transit Nodes, and Egress ---"
+info "--- Launching All Containers ---"
+# Launch DPDK nodes
+launch_container "$INGRESS_NODE"
+for i in $(seq 1 $NUM_TRANSIT_NODES); do launch_container "${TRANSIT_NODE_PREFIX}-${i}"; done
+launch_container "$EGRESS_NODE"
 
-declare -a container_pids
-declare -a container_names
+# --- ADD THESE TWO LINES ---
+info "Launching iperf containers..."
+launch_container "$IPERF_CLIENT_NODE" "$IPERF_IMAGE_NAME"
+launch_container "$IPERF_SERVER_NODE" "$IPERF_IMAGE_NAME"
+# ---------------------------
 
-# 1. Launch Ingress
-pid=$(launch_container "$INGRESS_NODE")
-container_pids+=( "$pid" ); container_names+=( "$INGRESS_NODE" )
+# Collect PIDs
+declare -A pids
+pids["$INGRESS_NODE"]=$(sudo docker inspect -f '{{.State.Pid}}' "$INGRESS_NODE")
+for i in $(seq 1 $NUM_TRANSIT_NODES); do pids["${TRANSIT_NODE_PREFIX}-${i}"]=$(sudo docker inspect -f '{{.State.Pid}}' "${TRANSIT_NODE_PREFIX}-${i}"); done
+pids["$EGRESS_NODE"]=$(sudo docker inspect -f '{{.State.Pid}}' "$EGRESS_NODE")
+pids["$IPERF_CLIENT_NODE"]=$(sudo docker inspect -f '{{.State.Pid}}' "$IPERF_CLIENT_NODE")
+pids["$IPERF_SERVER_NODE"]=$(sudo docker inspect -f '{{.State.Pid}}' "$IPERF_SERVER_NODE")
 
-# 2. Launch Transit Nodes
-for i in $(seq 1 $NUM_TRANSIT_NODES); do
-    name="${TRANSIT_NODE_PREFIX}-${i}"
-    pid=$(launch_container "$name")
-    container_pids+=( "$pid" ); container_names+=( "$name" )
+info "--- Creating Network Topology ---"
+# 1. Connect the DPDK chain: ingress -> transit -> ... -> egress
+dpdk_nodes=("$INGRESS_NODE")
+for i in $(seq 1 $NUM_TRANSIT_NODES); do dpdk_nodes+=("${TRANSIT_NODE_PREFIX}-${i}"); done
+dpdk_nodes+=("$EGRESS_NODE")
+
+# The main chain will connect eth1 on the left node to eth0 on the right node
+for i in $(seq 0 $((${#dpdk_nodes[@]} - 2))); do
+    node1=${dpdk_nodes[$i]}
+    node2=${dpdk_nodes[$i+1]}
+    create_and_assign_veth "veth_chain_${i}a" "veth_chain_${i}b" "${pids[$node1]}" "${pids[$node2]}" \
+                           "${IPV6_PREFIX}${i}" "${IPV6_PREFIX}$((i+1))" \
+                           "eth1" "eth0"
 done
 
-# 3. Launch Egress
-pid=$(launch_container "$EGRESS_NODE")
-container_pids+=( "$pid" ); container_names+=( "$EGRESS_NODE" )
+# 2. Connect iperf-client to ingress (on eth0)
+create_and_assign_veth "veth_clia" "veth_clib" "${pids[$IPERF_CLIENT_NODE]}" "${pids[$INGRESS_NODE]}" \
+                       "$IPERF_CLIENT_IPV6" "${IPV6_PREFIX}100" \
+                       "eth0" "eth0"
 
-# 4. Connect nodes with veth pairs
-total_nodes=${#container_names[@]}
-for i in $(seq 0 $((total_nodes - 2))); do
-    left_idx=$i; right_idx=$((i + 1))
-    left_pid="${container_pids[$left_idx]}"; right_pid="${container_pids[$right_idx]}"
-    left_veth="${VETH_PREFIX}_${left_idx}l"; right_veth="${VETH_PREFIX}_${left_idx}r"
-    create_and_assign_veth "$left_veth" "$right_veth" "$left_pid" "$right_pid" "$left_idx" "$right_idx"
-done
+# 3. Connect egress (eth1) to iperf-server (eth0)
+create_and_assign_veth "veth_srva" "veth_srvb" "${pids[$EGRESS_NODE]}" "${pids[$IPERF_SERVER_NODE]}" \
+                       "${IPV6_PREFIX}200" "$IPERF_SERVER_IPV6" \
+                       "eth1" "eth0" # <-- Corrected from "eth0" to "eth1" for egress
 
-# 5. VERIFY THE CONNECTIONS
-# Pass the container_names array as a single, quoted string
-verify_connections "${container_names[*]}"
+info "--- Verifying Connections ---"
+info "Pinging from iperf-client to ingress..."
+sudo docker exec "$IPERF_CLIENT_NODE" ping -6 -c 2 "${IPV6_PREFIX}100" || error_exit "Client to Ingress ping failed!"
 
-info "--- Network Setup Complete. Starting DPDK Applications... ---"
+info "Pinging from egress to iperf-server..."
+# Note: Egress needs iproute2 for ping. Assuming it's in the DPDK image.
+# We must specify eth1 as the outgoing interface.
+sudo docker exec "$EGRESS_NODE" ping -6 -c 2 -I eth1 "$IPERF_SERVER_IPV6" || error_exit "Egress to Server ping failed!"
 
-# 5. NEW: Automatically start the DPDK app in each container
-# Ingress
-launch_dpdk_app "${container_names[0]}" "ingress" 0 "$NUM_TRANSIT_NODES"
-# Transit
-for i in $(seq 1 $NUM_TRANSIT_NODES); do
-    launch_dpdk_app "${container_names[$i]}" "transit" "$i" "$NUM_TRANSIT_NODES"
-done
-# Egress
-launch_dpdk_app "${container_names[-1]}" "egress" $((NUM_TRANSIT_NODES + 1)) "$NUM_TRANSIT_NODES"
+info "Verifying DPDK chain connections..."
+# Pass the correct dpdk_nodes array as a single, quoted string
+verify_connections "${dpdk_nodes[*]}"
 
-info "--- All applications started. Network is live. ---"
-echo "To view logs for a node, run: sudo docker logs -f ${NODE_PREFIX}-<type>-<number>"
-echo "To clean up all resources, run: $0"
+# info "--- Starting DPDK Applications ---"
+# launch_dpdk_app "$INGRESS_NODE" "ingress" 0 "$NUM_TRANSIT_NODES"
+# for i in $(seq 1 $NUM_TRANSIT_NODES); do launch_dpdk_app "${TRANSIT_NODE_PREFIX}-${i}" "transit" "$i" "$NUM_TRANSIT_NODES"; done
+# launch_dpdk_app "$EGRESS_NODE" "egress" $((NUM_TRANSIT_NODES + 1)) "$NUM_TRANSIT_NODES"
+
+info "--- ✅ Network is live. Ready for iperf test. ---"
+echo "Your DPDK application must be configured to forward packets arriving at Ingress"
+echo "from source ${IPERF_CLIENT_IPV6} to the final destination ${IPERF_SERVER_IPV6}"
+echo ""
+echo "To start the iperf server, run:"
+echo "  sudo docker exec ${IPERF_SERVER_NODE} iperf -s -u -V"
+echo ""
+echo "To start the iperf client, run:"
+echo "  sudo docker exec ${IPERF_CLIENT_NODE} iperf -c ${IPERF_SERVER_IPV6} -u -V -l 128 -b 10M"
+echo ""
+echo "To view DPDK logs, run: sudo docker logs -f ${INGRESS_NODE}"
