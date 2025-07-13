@@ -10,7 +10,7 @@
 #include "crypto.h"
 #include "node/controller.h"
 
-void init_eal(int argc, char* argv[]) {
+int init_eal(int argc, char* argv[]) {
   LOG_MAIN(DEBUG, "Initializing DPDK EAL\n");
 
   // Initialize the Environment Abstraction Layer (EAL) for DPDK.
@@ -19,6 +19,7 @@ void init_eal(int argc, char* argv[]) {
   // arguments to configure itself (e.g., --lcores, --socket-mem, -c, -n).
   int ret = rte_eal_init(argc, argv);
   if (ret < 0) rte_exit(EXIT_FAILURE, "Error with EAL initialization\n");
+  return ret;
 }
 
 void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) {

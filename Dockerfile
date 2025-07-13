@@ -11,5 +11,5 @@ RUN chmod +x /usr/local/bin/${BINARY_NAME}
 
 WORKDIR ${APP_HOME}
 
-ENTRYPOINT ["/usr/local/bin/dpdk-pot --help"]
+ENTRYPOINT ["/usr/local/bin/dpdk-pot"]
 CMD ["--help"]

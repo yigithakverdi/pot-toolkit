@@ -4,7 +4,7 @@
 set -e
 
 # --- Configuration ---
-IMAGE_NAME="dpdk-pot:latest"
+IMAGE_NAME="yigithak/dpdk-pot:latest"
 NUM_TRANSIT_NODES=${1:-3}  # Default to 3 transit nodes
 NODE_PREFIX="pot-node"
 INGRESS_NODE="${NODE_PREFIX}-ingress"
@@ -12,8 +12,8 @@ EGRESS_NODE="${NODE_PREFIX}-egress"
 TRANSIT_NODE_PREFIX="${NODE_PREFIX}-transit"
 VETH_PREFIX="veth"
 IPV6_PREFIX="2001:db8:1::"
-GEN_KEYS_FILE="$(pwd)/container_keys.txt"
-SEGMENT_LIST_FILE="$(pwd)/segment_list.txt"
+GEN_KEYS_FILE="/etc/secret/pot_keys.txt"
+SEGMENT_LIST_FILE="/etc/segment/segment_list.txt"
 SOCKET_MEM="128"
 START_LCORE=1
 
@@ -56,6 +56,38 @@ generate_segment_list() {
         echo "${IPV6_PREFIX}${i}" >> "$SEGMENT_LIST_FILE"
     done
     echo "${IPV6_PREFIX}$((NUM_TRANSIT_NODES + 1))" >> "$SEGMENT_LIST_FILE"
+}
+
+# --- Connection Verification Function ---
+# --- NEW: Connection Verification Function (Corrected) ---
+verify_connections() {
+    info "--- Verifying Network Connections ---"
+    local -a names=($1)
+    local total_nodes=${#names[@]}
+
+    for i in $(seq 0 $((total_nodes - 2))); do
+        local source_node="${names[$i]}"
+        local target_node="${names[$i+1]}"
+        local target_ip="${IPV6_PREFIX}$((i + 1))"
+
+        # Determine the correct outgoing interface for the ping.
+        # The first node (ingress) uses eth0.
+        # Transit nodes use eth1 to connect to the *next* node in the chain.
+        local source_interface="eth0"
+        if [ "$i" -gt 0 ]; then
+            source_interface="eth1"
+        fi
+
+        info "Pinging from $source_node ($source_interface) to $target_node ($target_ip)..."
+        
+        # Use ping's -I flag to specify the outgoing interface, removing routing ambiguity.
+        if sudo docker exec "$source_node" ping -6 -c 3 -I "$source_interface" "$target_ip" >/dev/null 2>&1; then
+            info "✅ Success: $source_node can reach $target_node"
+        else
+            error_exit "❌ Failure: $source_node cannot reach $target_node. Aborting."
+        fi
+    done
+    info "--- All direct connections verified successfully ---"
 }
 
 # --- Container and Network Setup ---
@@ -162,6 +194,10 @@ for i in $(seq 0 $((total_nodes - 2))); do
     left_veth="${VETH_PREFIX}_${left_idx}l"; right_veth="${VETH_PREFIX}_${left_idx}r"
     create_and_assign_veth "$left_veth" "$right_veth" "$left_pid" "$right_pid" "$left_idx" "$right_idx"
 done
+
+# 5. VERIFY THE CONNECTIONS
+# Pass the container_names array as a single, quoted string
+verify_connections "${container_names[*]}"
 
 info "--- Network Setup Complete. Starting DPDK Applications... ---"
 
