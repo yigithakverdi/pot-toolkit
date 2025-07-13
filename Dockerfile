@@ -4,7 +4,7 @@
 # Use your pre-built DPDK base image.
 # Replace 'your-dpdk-base-image:latest' with the actual tag of your base image,
 # e.g., 'photon-dpdk-base:latest' or 'dpdk-runtime-base:latest'.
-FROM ubuntu-dpdk-base:latest
+FROM yigithak/dpdk-pot-base:latest
 
 # Arguments for flexibility
 ARG APP_USER=dpdk
