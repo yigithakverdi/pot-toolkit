@@ -15,15 +15,19 @@ ARG BINARY_SOURCE_PATH=./build
 
 # Create application directory and set ownership.
 # The base image should have created the APP_USER.
-RUN mkdir -p ${APP_HOME}/config/profiles && chown -R ${APP_USER}:${APP_GROUP} ${APP_HOME}
+# RUN mkdir -p ${APP_HOME}/config/profiles \
+#     && mkdir -p ${APP_HOME}/config/segment \
+#     && mkdir -p ${APP_HOME}/config/secret \
+#     && chown -R ${APP_USER}:${APP_GROUP} ${APP_HOME}
 
 # Copy the compiled DPDK application binary from your project's build directory
 # into a standard location within the image.
-COPY --chown=${APP_USER}:${APP_GROUP} ${BINARY_SOURCE_PATH}/${BINARY_NAME} /usr/local/bin/${BINARY_NAME}
+# COPY --chown=${APP_USER}:${APP_GROUP} ${BINARY_SOURCE_PATH}/${BINARY_NAME} /usr/local/bin/${BINARY_NAME}
+COPY --chown=dpdk:dpdk build/dpdk-pot /usr/local/bin/dpdk-pot
 
 # Copy default application configuration files.
 # The structure config/profiles/*.yaml from your project will be copied to ${APP_HOME}/config/profiles/
-COPY --chown=${APP_USER}:${APP_GROUP} config/profiles ${APP_HOME}/config/profiles/
+# COPY --chown=${APP_USER}:${APP_GROUP} config/profiles ${APP_HOME}/config/profiles/
 
 # Ensure the binary is executable
 RUN chmod +x /usr/local/bin/${BINARY_NAME}
