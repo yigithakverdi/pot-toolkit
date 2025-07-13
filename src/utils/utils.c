@@ -36,7 +36,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       {"key-locations", required_argument, 0, 'k'},
       {"num-transit", required_argument, 0, 'n'},
       {"node-index", required_argument, 0, 'i'},
-      {"no-logging", required_argument, 0, 'I'},
+      {"no-logging", required_argument, 0, 1},
       {"help", no_argument, 0, 'h'},
       {0, 0, 0, 0} // Dizi sonunu belirtir
   };
@@ -77,7 +77,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       config->topology.key_locations = strdup(optarg);
       break;
 
-    case 'I': // --no-logging
+    case 1: // --no-logging
       g_logging_enabled = 0;
       break;
 
