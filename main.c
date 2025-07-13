@@ -21,7 +21,13 @@ int main(int argc, char* argv[]) {
   // it sets up the infrastructure configurations that our DPDK apps needed to run, so it is
   // important to call this function first, in terms of both making sure everything is set up
   // correctly on EAL without any side effects caused by our app.
-  init_eal(argc, argv);
+  int ret = init_eal(argc, argv);
+  if(ret < 0) {
+    rte_exit(EXIT_FAILURE, "Failed to initialize EAL\n");
+  }
+
+  argc -= ret; // Adjust argc to account for EAL arguments
+  argv += ret; // Adjust argv to point to the application-specific arguments
 
   // Given the EAL, and configurations are set up, we check the available ports
   // and make sure that we have at least one port available to use, otherwise we exit the
