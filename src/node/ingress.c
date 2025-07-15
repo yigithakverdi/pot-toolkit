@@ -32,7 +32,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
   // If the least significant bit of the first byte is set, it's multicast/broadcast.
   // Such packets are not processed by this specific logic and are dropped.
   if ((eth_hdr->dst_addr.addr_bytes[0] & 0x01) != 0) {
-    // LOG_MAIN(NOTICE, "Multicast/Broadcast packet received, dropping.");
+    LOG_MAIN(NOTICE, "Multicast/Broadcast packet received, dropping.");
     rte_pktmbuf_free(mbuf);
     return;
   }
