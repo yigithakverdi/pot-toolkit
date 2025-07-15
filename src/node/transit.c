@@ -31,7 +31,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
   // If the least significant bit of the first byte is set, it's multicast/broadcast.
   // Such packets are not processed by this specific logic and are dropped.
   if ((eth_hdr->dst_addr.addr_bytes[0] & 0x01) != 0) {
-    // LOG_DP(NOTICE, "Multicast/Broadcast packet received in transit, dropping.");
+    LOG_MAIN(NOTICE, "Multicast/Broadcast packet received in transit, dropping.");
     rte_pktmbuf_free(mbuf);
     return;
   }
@@ -183,7 +183,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
 
         struct rte_ether_addr* next_mac = lookup_mac_for_ipv6(&segments[next_sid_index]);        
         if (next_mac) {
-          send_packet_to(*next_mac, mbuf, 0);
+          send_packet_to(*next_mac, mbuf, 1);
           LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
                    next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                    next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);

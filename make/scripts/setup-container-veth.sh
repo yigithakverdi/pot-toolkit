@@ -131,6 +131,51 @@ launch_container() {
     sudo docker inspect -f '{{.State.Pid}}' "$name"
 }
 
+# create_and_assign_veth() {
+#     local left_veth=$1 right_veth=$2 left_pid=$3 right_pid=$4
+#     local left_ip=$5 right_ip=$6 left_iface=$7 right_iface=$8
+
+#     info "Creating veth pair: $1 ($left_ip on $left_iface) <-> $2 ($right_ip on $right_iface)"
+#     sudo ip link add "$left_veth" type veth peer name "$right_veth"
+
+#     # Deterministic MAC generation for all veths except veth_srvb
+#     if [[ "$right_veth" == "veth_srvb" ]]; then
+#         sudo ip link set "$right_veth" address 02:cc:ef:38:4b:25
+#         # 02:bc:84:2b:49:7c
+#         # Hardcoded MAC address --> 02:cc:ef:38:4b:25
+#     else
+#         # Deterministic MAC generation based on veth name (hash)
+#         mac_from_name() {
+#             local name="$1"
+#             # Use md5sum to hash the name, take first 5 bytes for uniqueness
+#             local hash=$(echo -n "$name" | md5sum | awk '{print $1}')
+#             # Always use 02 as the first byte (locally administered, unicast)
+#             printf '02:%s:%s:%s:%s:%s' \
+#                 "${hash:0:2}" "${hash:2:2}" "${hash:4:2}" "${hash:6:2}" "${hash:8:2}"
+#         }
+#         left_mac=$(mac_from_name "$left_veth")
+#         right_mac=$(mac_from_name "$right_veth")
+#         sudo ip link set "$left_veth" address "$left_mac"
+#         sudo ip link set "$right_veth" address "$right_mac"
+#     fi
+
+#     sudo ip link set "$left_veth" netns "$left_pid"
+#     sudo nsenter -t "$left_pid" -n ip link set "$left_veth" name "$left_iface"
+    
+#     # Set MAC inside the namespace after renaming
+#     sudo nsenter -t "$left_pid" -n ip link set "$left_iface" address "$left_mac"
+#     sudo nsenter -t "$left_pid" -n ip addr add "${left_ip}/64" dev "$left_iface"
+#     sudo nsenter -t "$left_pid" -n ip link set "$left_iface" up
+
+#     sudo ip link set "$right_veth" netns "$right_pid"
+#     sudo nsenter -t "$right_pid" -n ip link set "$right_veth" name "$right_iface"
+    
+#     # Set MAC inside the namespace after renaming
+#     sudo nsenter -t "$right_pid" -n ip link set "$right_iface" address "$right_mac"
+#     sudo nsenter -t "$right_pid" -n ip addr add "${right_ip}/64" dev "$right_iface"
+#     sudo nsenter -t "$right_pid" -n ip link set "$right_iface" up
+# }
+
 create_and_assign_veth() {
     local left_veth=$1 right_veth=$2 left_pid=$3 right_pid=$4
     local left_ip=$5 right_ip=$6 left_iface=$7 right_iface=$8
@@ -138,41 +183,44 @@ create_and_assign_veth() {
     info "Creating veth pair: $1 ($left_ip on $left_iface) <-> $2 ($right_ip on $right_iface)"
     sudo ip link add "$left_veth" type veth peer name "$right_veth"
 
-    # Deterministic MAC generation for all veths except veth_srvb
+    # Define mac_from_name locally for other interfaces
+    mac_from_name_local() {
+        local name="$1"
+        local hash=$(echo -n "$name" | md5sum | awk '{print $1}')
+        printf '02:%s:%s:%s:%s:%s' \
+            "${hash:0:2}" "${hash:2:2}" "${hash:4:2}" "${hash:6:2}" "${hash:8:2}"
+    }
+
+    local left_mac=""
+    local right_mac=""
+
+    # Special handling for veth_srvb's MAC
     if [[ "$right_veth" == "veth_srvb" ]]; then
-        sudo ip link set "$right_veth" address 02:cc:ef:38:4b:25
+        right_mac="02:cc:ef:38:4b:25" # The desired hardcoded MAC for iperf-server's eth0
+        left_mac=$(mac_from_name_local "$left_veth") # Left side still uses deterministic MAC
+        sudo ip link set "$right_veth" address "$right_mac" # Set on host before moving to netns
     else
-        # Deterministic MAC generation based on veth name (hash)
-        mac_from_name() {
-            local name="$1"
-            # Use md5sum to hash the name, take first 5 bytes for uniqueness
-            local hash=$(echo -n "$name" | md5sum | awk '{print $1}')
-            # Always use 02 as the first byte (locally administered, unicast)
-            printf '02:%s:%s:%s:%s:%s' \
-                "${hash:0:2}" "${hash:2:2}" "${hash:4:2}" "${hash:6:2}" "${hash:8:2}"
-        }
-        left_mac=$(mac_from_name "$left_veth")
-        right_mac=$(mac_from_name "$right_veth")
+        left_mac=$(mac_from_name_local "$left_veth")
+        right_mac=$(mac_from_name_local "$right_veth")
         sudo ip link set "$left_veth" address "$left_mac"
         sudo ip link set "$right_veth" address "$right_mac"
     fi
 
+    # Assign left veth to its namespace and configure
     sudo ip link set "$left_veth" netns "$left_pid"
     sudo nsenter -t "$left_pid" -n ip link set "$left_veth" name "$left_iface"
-    
-    # Set MAC inside the namespace after renaming
     sudo nsenter -t "$left_pid" -n ip link set "$left_iface" address "$left_mac"
     sudo nsenter -t "$left_pid" -n ip addr add "${left_ip}/64" dev "$left_iface"
     sudo nsenter -t "$left_pid" -n ip link set "$left_iface" up
 
+    # Assign right veth to its namespace and configure
     sudo ip link set "$right_veth" netns "$right_pid"
     sudo nsenter -t "$right_pid" -n ip link set "$right_veth" name "$right_iface"
-    
-    # Set MAC inside the namespace after renaming
-    sudo nsenter -t "$right_pid" -n ip link set "$right_iface" address "$right_mac"
+    sudo nsenter -t "$right_pid" -n ip link set "$right_iface" address "$right_mac" # <-- This is CRUCIAL
     sudo nsenter -t "$right_pid" -n ip addr add "${right_ip}/64" dev "$right_iface"
     sudo nsenter -t "$right_pid" -n ip link set "$right_iface" up
 }
+
 launch_dpdk_app() {
     local name="$1"
     local role="$2"

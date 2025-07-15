@@ -102,10 +102,11 @@ int main(int argc, char* argv[]) {
 
   // If the role of the node is transit then initialize the second port since it might
   // be used for the veth pairing in case of container setup, besides the VM setup
-  if (global_role == ROLE_TRANSIT) {
+  if (global_role == ROLE_INGRESS || global_role == ROLE_TRANSIT) { // Ingress also needs a TX port for the chain
     if (tx_port != rx_port) {
-      printf("[INFO] Setting up second port %u for transit role\n", tx_port);
-      init_ports(tx_port, mbuf_pool, 1);
+      LOG_MAIN(INFO, "[INFO] Setting up second port %u for %s role\n", tx_port, 
+               global_role == ROLE_INGRESS ? "ingress" : "transit");
+      init_ports(tx_port, mbuf_pool, 1); // Pass 1 for TX role if you have TX callbacks
     } else {
       LOG_MAIN(INFO, "Single-port loopback mode: skipping init of port %u for TX", tx_port);
     }
