@@ -23,6 +23,7 @@ IPERF_CLIENT_IPV6="2001:db8:1::c1"
 IPERF_SERVER_IPV6="2001:db8:1::d1"
 IPERF_IMAGE_NAME="yigithak/ubuntu-iperf:latest"
 
+
 # --- Helper Functions ---
 info() { echo "[INFO] $1" >&2; }
 error_exit() { echo "[ERROR] $1" >&2; exit 1; }
@@ -54,18 +55,36 @@ generate_keys_file() {
     done
 }
 
+# generate_segment_list() {
+#     info "Generating segment list: $SEGMENT_LIST_FILE"
+#     > "$SEGMENT_LIST_FILE"
+#     # Path is: ingress -> transit-1 -> ... -> transit-N -> egress
+#     for i in $(seq 1 $NUM_TRANSIT_NODES); do
+#         echo "${IPV6_PREFIX}${i}" >> "$SEGMENT_LIST_FILE"
+#     done
+#     echo "${IPV6_PREFIX}$((NUM_TRANSIT_NODES + 1))" >> "$SEGMENT_LIST_FILE"
+# }
+
 generate_segment_list() {
     info "Generating segment list: $SEGMENT_LIST_FILE"
     > "$SEGMENT_LIST_FILE"
+    
+    # --- FIX ---
+    # The segment list must contain the IP addresses of the *receiving* interfaces
+    # of the transit and egress nodes. These are the 'right' side IPs from our loop.
+    # For a path ingress -> transit-1 -> egress:
+    # - transit-1's receiving IP is ::2
+    # - egress's receiving IP is ::4
+    
     # Path is: ingress -> transit-1 -> ... -> transit-N -> egress
-    for i in $(seq 1 $NUM_TRANSIT_NODES); do
-        echo "${IPV6_PREFIX}${i}" >> "$SEGMENT_LIST_FILE"
+    for i in $(seq 0 $((NUM_TRANSIT_NODES))); do
+        # The receiving IP for the node at link 'i' is (i * 2 + 2)
+        local segment_ip_suffix=$((i * 2 + 2))
+        echo "${IPV6_PREFIX}${segment_ip_suffix}" >> "$SEGMENT_LIST_FILE"
     done
-    echo "${IPV6_PREFIX}$((NUM_TRANSIT_NODES + 1))" >> "$SEGMENT_LIST_FILE"
 }
 
 # --- Connection Verification Function ---
-# --- NEW: Connection Verification Function (Corrected) ---
 verify_connections() {
     info "--- Verifying Network Connections ---"
     local -a names=($1)
@@ -74,12 +93,14 @@ verify_connections() {
     for i in $(seq 0 $((total_nodes - 2))); do
         local source_node="${names[$i]}"
         local target_node="${names[$i+1]}"
-        # The target IP is the IP of the *right* side of the veth pair
-        local target_ip="${IPV6_PREFIX}$((i + 1))"
+        
+        # --- FIX ---
+        # The target IP must match the logic from the main loop.
+        # It's the 'right' side of the veth pair for link 'i'.
+        local target_ip_suffix=$((i * 2 + 2))
+        local target_ip="${IPV6_PREFIX}${target_ip_suffix}"
 
-        # The outgoing interface from any node in the DPDK chain to the NEXT node is always eth1.
-        # The ingress node (i=0) uses eth1.
-        # A transit node (i>0) also uses its eth1 to reach the next node.
+        # The outgoing interface is always eth1 for nodes in the DPDK chain.
         local source_interface="eth1"
 
         info "Pinging from $source_node ($source_interface) to $target_node ($target_ip)..."
@@ -103,6 +124,7 @@ launch_container() {
         --entrypoint sleep -v /dev/hugepages:/dev/hugepages \
         -v "$GEN_KEYS_FILE":/etc/secret/pot_keys.txt \
         -v "$SEGMENT_LIST_FILE":/etc/segment/segment_list.txt \
+        -v /var/log/dpdk-pot:/var/log/dpdk-pot \
         -v "$(pwd)/build/dpdk-pot":/usr/local/bin/dpdk-pot \
         "$image_to_use" infinity >/dev/null
     sleep 1
@@ -116,17 +138,41 @@ create_and_assign_veth() {
     info "Creating veth pair: $1 ($left_ip on $left_iface) <-> $2 ($right_ip on $right_iface)"
     sudo ip link add "$left_veth" type veth peer name "$right_veth"
 
+    # Deterministic MAC generation for all veths except veth_srvb
+    if [[ "$right_veth" == "veth_srvb" ]]; then
+        sudo ip link set "$right_veth" address 02:cc:ef:38:4b:25
+    else
+        # Deterministic MAC generation based on veth name (hash)
+        mac_from_name() {
+            local name="$1"
+            # Use md5sum to hash the name, take first 5 bytes for uniqueness
+            local hash=$(echo -n "$name" | md5sum | awk '{print $1}')
+            # Always use 02 as the first byte (locally administered, unicast)
+            printf '02:%s:%s:%s:%s:%s' \
+                "${hash:0:2}" "${hash:2:2}" "${hash:4:2}" "${hash:6:2}" "${hash:8:2}"
+        }
+        left_mac=$(mac_from_name "$left_veth")
+        right_mac=$(mac_from_name "$right_veth")
+        sudo ip link set "$left_veth" address "$left_mac"
+        sudo ip link set "$right_veth" address "$right_mac"
+    fi
+
     sudo ip link set "$left_veth" netns "$left_pid"
     sudo nsenter -t "$left_pid" -n ip link set "$left_veth" name "$left_iface"
+    
+    # Set MAC inside the namespace after renaming
+    sudo nsenter -t "$left_pid" -n ip link set "$left_iface" address "$left_mac"
     sudo nsenter -t "$left_pid" -n ip addr add "${left_ip}/64" dev "$left_iface"
     sudo nsenter -t "$left_pid" -n ip link set "$left_iface" up
 
     sudo ip link set "$right_veth" netns "$right_pid"
     sudo nsenter -t "$right_pid" -n ip link set "$right_veth" name "$right_iface"
+    
+    # Set MAC inside the namespace after renaming
+    sudo nsenter -t "$right_pid" -n ip link set "$right_iface" address "$right_mac"
     sudo nsenter -t "$right_pid" -n ip addr add "${right_ip}/64" dev "$right_iface"
     sudo nsenter -t "$right_pid" -n ip link set "$right_iface" up
 }
-
 launch_dpdk_app() {
     local name="$1"
     local role="$2"
@@ -136,17 +182,13 @@ launch_dpdk_app() {
 
     info "Starting DPDK app in $name (role: $role, index: $node_index, lcore: $lcore)"
     
-    # All DPDK nodes in the chain (ingress, transit, egress) have two interfaces.
     local vdevs="--vdev=net_af_packet0,iface=eth0 --vdev=net_af_packet1,iface=eth1"
-    
-    # Construct the full command to be executed inside the container
-    local cmd="dpdk-pot -l $lcore -n 4 --no-pci --iova-mode=va --socket-mem $SOCKET_MEM $vdevs -- \
+    local pmd_dir="-d /usr/local/lib/x86_64-linux-gnu/dpdk/pmds-24.1/"
+    local cmd="dpdk-pot -l $lcore -n 4 --no-pci --iova-mode=va --socket-mem $SOCKET_MEM $pmd_dir $vdevs -- \
         --type $role \
         --node-index $node_index \
         --num-transit $num_transit \
         --log-level debug"
-        
-    # Execute the command in the background inside the container
     sudo docker exec -d --user root "$name" bash -c "$cmd"
 }
 
@@ -175,6 +217,7 @@ pids["$EGRESS_NODE"]=$(sudo docker inspect -f '{{.State.Pid}}' "$EGRESS_NODE")
 pids["$IPERF_CLIENT_NODE"]=$(sudo docker inspect -f '{{.State.Pid}}' "$IPERF_CLIENT_NODE")
 pids["$IPERF_SERVER_NODE"]=$(sudo docker inspect -f '{{.State.Pid}}' "$IPERF_SERVER_NODE")
 
+
 info "--- Creating Network Topology ---"
 # 1. Connect the DPDK chain: ingress -> transit -> ... -> egress
 dpdk_nodes=("$INGRESS_NODE")
@@ -182,11 +225,28 @@ for i in $(seq 1 $NUM_TRANSIT_NODES); do dpdk_nodes+=("${TRANSIT_NODE_PREFIX}-${
 dpdk_nodes+=("$EGRESS_NODE")
 
 # The main chain will connect eth1 on the left node to eth0 on the right node
+# for i in $(seq 0 $((${#dpdk_nodes[@]} - 2))); do
+#     node1=${dpdk_nodes[$i]}
+#     node2=${dpdk_nodes[$i+1]}
+#     create_and_assign_veth "veth_chain_${i}a" "veth_chain_${i}b" "${pids[$node1]}" "${pids[$node2]}" \
+#                            "${IPV6_PREFIX}${i}" "${IPV6_PREFIX}$((i+1))" \
+#                            "eth1" "eth0"
+# done
+# for i in $(seq 0 $((${#dpdk_nodes[@]} - 2))); do
+#     node1=${dpdk_nodes[$i]}
+#     node2=${dpdk_nodes[$i+1]}
+#     ipv6=$((i+1))
+#     create_and_assign_veth "veth_chain_${i}a" "veth_chain_${i}b" "${pids[$node1]}" "${pids[$node2]}" \
+#                            "${IPV6_PREFIX}${ipv6}" "${IPV6_PREFIX}${ipv6}" \
+#                            "eth1" "eth0"
+# done
 for i in $(seq 0 $((${#dpdk_nodes[@]} - 2))); do
     node1=${dpdk_nodes[$i]}
     node2=${dpdk_nodes[$i+1]}
+    left_ipv6="2001:db8:1::$(($i*2+1))"
+    right_ipv6="2001:db8:1::$(($i*2+2))"
     create_and_assign_veth "veth_chain_${i}a" "veth_chain_${i}b" "${pids[$node1]}" "${pids[$node2]}" \
-                           "${IPV6_PREFIX}${i}" "${IPV6_PREFIX}$((i+1))" \
+                           "$left_ipv6" "$right_ipv6" \
                            "eth1" "eth0"
 done
 
@@ -198,7 +258,10 @@ create_and_assign_veth "veth_clia" "veth_clib" "${pids[$IPERF_CLIENT_NODE]}" "${
 # 3. Connect egress (eth1) to iperf-server (eth0)
 create_and_assign_veth "veth_srva" "veth_srvb" "${pids[$EGRESS_NODE]}" "${pids[$IPERF_SERVER_NODE]}" \
                        "${IPV6_PREFIX}200" "$IPERF_SERVER_IPV6" \
-                       "eth1" "eth0" # <-- Corrected from "eth0" to "eth1" for egress
+                       "eth1" "eth0"
+
+info "Will sleep for 5 seconds to allow network setup to stabilize..."
+sleep 5
 
 info "--- Verifying Connections ---"
 info "Pinging from iperf-client to ingress..."
@@ -213,10 +276,12 @@ info "Verifying DPDK chain connections..."
 # Pass the correct dpdk_nodes array as a single, quoted string
 verify_connections "${dpdk_nodes[*]}"
 
-# info "--- Starting DPDK Applications ---"
-# launch_dpdk_app "$INGRESS_NODE" "ingress" 0 "$NUM_TRANSIT_NODES"
-# for i in $(seq 1 $NUM_TRANSIT_NODES); do launch_dpdk_app "${TRANSIT_NODE_PREFIX}-${i}" "transit" "$i" "$NUM_TRANSIT_NODES"; done
-# launch_dpdk_app "$EGRESS_NODE" "egress" $((NUM_TRANSIT_NODES + 1)) "$NUM_TRANSIT_NODES"
+info "--- Starting DPDK Applications ---"
+launch_dpdk_app "$INGRESS_NODE" "ingress" 0 "$NUM_TRANSIT_NODES"
+for i in $(seq 1 $NUM_TRANSIT_NODES); do
+    launch_dpdk_app "${TRANSIT_NODE_PREFIX}-${i}" "transit" "$i" "$NUM_TRANSIT_NODES"
+done
+launch_dpdk_app "$EGRESS_NODE" "egress" $((NUM_TRANSIT_NODES + 1)) "$NUM_TRANSIT_NODES"
 
 info "--- ✅ Network is live. Ready for iperf test. ---"
 echo "Your DPDK application must be configured to forward packets arriving at Ingress"
@@ -229,3 +294,7 @@ echo "To start the iperf client, run:"
 echo "  sudo docker exec ${IPERF_CLIENT_NODE} iperf -c ${IPERF_SERVER_IPV6} -u -V -l 128 -b 10M"
 echo ""
 echo "To view DPDK logs, run: sudo docker logs -f ${INGRESS_NODE}"
+
+# Command to run
+# dpdk-pot -l 1 -n 4 --no-pci --iova-mode=va --socket-mem 128 -d /usr/local/lib/x86_64-linux-gnu/dpdk/pmds-24.1/ --vdev="net_af_packet0,iface=eth0" --vdev="net_af_packet1,iface=eth1" -- --node-index 1 --num-transit 1 --type transit --log-level debug &
+# echo "your_message" | nc -u -w1 2a05:d014:dc7:128f:6f72:fa2a:cd2b:29fc 5001
