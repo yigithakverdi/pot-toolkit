@@ -152,7 +152,8 @@ void remove_headers(struct rte_mbuf* pkt) {
   LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
 
   struct in6_addr iperf_server_ipv6;
-  if (inet_pton(AF_INET6, "2a05:d014:dc7:12ef:2dc:bf79:a352:6efe", &iperf_server_ipv6) != 1) {
+  // if (inet_pton(AF_INET6, "2a05:d014:dc7:12ef:2dc:bf79:a352:6efe", &iperf_server_ipv6) != 1) {
+  if (inet_pton(AF_INET6, "2001:db8:1::d1", &iperf_server_ipv6) != 1) {
     free(tmp_payload);
     LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
     return;
