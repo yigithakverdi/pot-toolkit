@@ -219,8 +219,8 @@ void mac_from_name(const char* name, char* mac_str, size_t mac_str_len) {
 
 void init_lookup_table() {
   LOG_MAIN(DEBUG, "[DEBUG] Initializing lookup table for next hops...\n");
-  add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
-  add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
+  // add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
+  // add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
 
   int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
   if (num_transit < 0) {
