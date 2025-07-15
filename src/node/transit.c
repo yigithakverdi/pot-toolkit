@@ -221,9 +221,9 @@ void process_transit(struct rte_mbuf** pkts, uint16_t nb_rx) {
   struct rte_eth_stats stats;
   int ret = rte_eth_stats_get(0, &stats);
   if (ret == 0) {
-    LOG_MAIN(INFO, "[DPDK Port 0 Stats] RX: %" PRIu64 ", TX: %" PRIu64 ", RX dropped: %" PRIu64 ", TX dropped: %" PRIu64 ", RX errors: %" PRIu64 ", TX errors: %" PRIu64,
+    LOG_MAIN(INFO, "[DPDK Port 0 Stats] RX: %" PRIu64 ", TX: %" PRIu64 ", RX dropped: %" PRIu64 ", TX dropped: %" PRIu64 ", RX errors: %" PRIu64 ", TX errors: %\n" PRIu64,
       stats.ipackets, stats.opackets, stats.imissed, stats.oerrors, stats.ierrors, stats.oerrors);
   } else {
-    LOG_MAIN(ERR, "[DPDK Port 0 Stats] Failed to get stats (ret=%d)", ret);
+    LOG_MAIN(ERR, "[DPDK Port 0 Stats] Failed to get stats (ret=%d)\n", ret);
   }  
 }

@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include "crypto.h"
 #include "node/controller.h"
+#include <unistd.h>
+#include <openssl/md5.h>
 
 int init_eal(int argc, char* argv[]) {
   LOG_MAIN(DEBUG, "Initializing DPDK EAL\n");
@@ -139,10 +141,13 @@ int init_logging(const char* log_dir, const char* component_name, int log_level)
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
 
+  char hostname[128] = {0};
+  gethostname(hostname, sizeof(hostname) - 1);
+
   char log_file_path[256];
   if(g_logging_enabled) {
-    snprintf(log_file_path, sizeof(log_file_path), "%s/%s-%d-%02d-%02d_%02d%02d%02d.log", log_dir,
-            component_name, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);    
+    snprintf(log_file_path, sizeof(log_file_path), "%s/%s-%s-%d-%02d-%02d_%02d%02d%02d.log", log_dir,
+            component_name, hostname, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
   }
 
   int fd = open(log_file_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
@@ -167,10 +172,86 @@ int init_logging(const char* log_dir, const char* component_name, int log_level)
   return 0;
 }
 
+void mac_from_name(const char* name, char* mac_str, size_t mac_str_len) {
+    unsigned char hash[MD5_DIGEST_LENGTH];
+    MD5((const unsigned char*)name, strlen(name), hash);
+    snprintf(mac_str, mac_str_len, "02:%02x:%02x:%02x:%02x:%02x",
+             hash[0], hash[1], hash[2], hash[3], hash[4]);
+}
+
+// void init_lookup_table() {
+//   LOG_MAIN(DEBUG, "Initializing lookup table for next hops\n");
+//   add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
+//   add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
+
+//   int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
+//   for (int i = 1; i <= num_transit; ++i) {
+//       char ipv6[64], mac[32], veth_name[32];
+//       snprintf(ipv6, sizeof(ipv6), "2001:db8:1::%x", i);
+//       snprintf(veth_name, sizeof(veth_name), "veth_chain_%db", i-1); // match right_veth in script
+//       mac_from_name(veth_name, mac, sizeof(mac));
+//       add_next_hop(ipv6, mac);
+//       LOG_MAIN(INFO, "Added next hop: IPv6 %s, MAC %s (veth: %s)\n", ipv6, mac, veth_name);
+//   }
+//   // Add iperf client/egress/server if needed
+//   // Example for iperf client <-> ingress
+//   char mac[32];
+//   mac_from_name("veth_clib", mac, sizeof(mac));
+//   add_next_hop("2001:db8:1::100", mac);
+//   LOG_MAIN(INFO, "Added next hop: IPv6 2001:db8:1::100, MAC %s (veth: veth_clib)\n", mac);
+//   // Example for egress <-> iperf server
+//   mac_from_name("veth_srva", mac, sizeof(mac));
+//   add_next_hop("2001:db8:1::200", mac);
+//   LOG_MAIN(INFO, "Added next hop: IPv6 2001:db8:1::200, MAC %s (veth: veth_srva)\n", mac);
+//   LOG_MAIN(DEBUG, "Lookup table initialization completed\n");  
+
+//   // add_next_hop("2001:db8:1::100", "56:2a:1a:a3:0c:30");
+//   // add_next_hop("2001:db8:1::", "da:71:02:ee:a0:a3"); 
+
+//   // add_next_hop("2001:db8:1::1", "02:b0:e0:ec:6e:a7"); 
+//   // add_next_hop("2001:db8:1::1", "4a:b7:f6:b8:4c:fe"); 
+
+//   // add_next_hop("2001:db8:1::2", "8e:a6:41:71:19:5c"); 
+//   // add_next_hop("2001:db8:1::200", "b2:58:54:70:36:16"); 
+
+//   LOG_MAIN(DEBUG, "Lookup table initialization completed\n");
+// }
+
 void init_lookup_table() {
-  LOG_MAIN(DEBUG, "Initializing lookup table for next hops\n");
+  LOG_MAIN(DEBUG, "[DEBUG] Initializing lookup table for next hops...\n");
   add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
   add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
+
+  int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
+  if (num_transit < 0) {
+      num_transit = 1; 
+  }
+
+  for (int i = 0; i < num_transit + 1; ++i) { 
+      char ipv6[64], mac[32], veth_name[32];
+      
+      // The IP suffix for the receiving end of link 'i' is (i * 2 + 2)
+      int ip_suffix = (i * 2) + 2;
+      snprintf(ipv6, sizeof(ipv6), "2001:db8:1::%x", ip_suffix);
+
+      // The MAC address is based on the veth name 'veth_chain_{i}b'
+      snprintf(veth_name, sizeof(veth_name), "veth_chain_%db", i);
+      mac_from_name(veth_name, mac, sizeof(mac));
+      
+      add_next_hop(ipv6, mac);
+      LOG_MAIN(INFO, "Added next hop: IPv6 %s, MAC %s (veth: %s)\n", ipv6, mac, veth_name);
+  }
+
+  // Add iperf client and server connections
+  char mac[32];
+  mac_from_name("veth_clib", mac, sizeof(mac));
+  add_next_hop("2001:db8:1::100", mac);
+  LOG_MAIN(INFO, "Added next hop: IPv6 2001:db8:1::100, MAC %s (veth: veth_clib)\n", mac);
+
+  mac_from_name("veth_srvb", mac, sizeof(mac));
+  add_next_hop("2001:db8:1::d1", mac);
+  LOG_MAIN(INFO, "Added next hop: IPv6 2001:db8:1::d1, MAC %s (veth: veth_srvb)\n", mac);
+  
   LOG_MAIN(DEBUG, "Lookup table initialization completed\n");
 }
 
