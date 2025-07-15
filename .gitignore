@@ -6,6 +6,8 @@
 .clangd/
 ./.clangd
 
+# Ignore results
+/results/
 
 # Ignore build artifacts
 ./vscode/*

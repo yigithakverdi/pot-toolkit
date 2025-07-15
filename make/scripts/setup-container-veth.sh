@@ -221,14 +221,36 @@ create_and_assign_veth() {
     sudo nsenter -t "$right_pid" -n ip link set "$right_iface" up
 }
 
+# launch_dpdk_app() {
+#     local name="$1"
+#     local role="$2"
+#     local node_index="$3"
+#     local num_transit="$4"
+#     local lcore=$((START_LCORE + node_index % $(nproc)))
+
+#     info "Starting DPDK app in $name (role: $role, index: $node_index, lcore: $lcore)"
+    
+#     local vdevs="--vdev=net_af_packet0,iface=eth0 --vdev=net_af_packet1,iface=eth1"
+#     local pmd_dir="-d /usr/local/lib/x86_64-linux-gnu/dpdk/pmds-24.1/"
+#     local cmd="dpdk-pot -l $lcore -n 4 --no-pci --iova-mode=va --socket-mem $SOCKET_MEM $pmd_dir $vdevs -- \
+#         --type $role \
+#         --node-index $node_index \
+#         --num-transit $num_transit \
+#         --log-level debug"
+#     sudo docker exec -d --user root "$name" bash -c "$cmd"
+# }
+
 launch_dpdk_app() {
     local name="$1"
     local role="$2"
     local node_index="$3"
     local num_transit="$4"
-    local lcore=$((START_LCORE + node_index % $(nproc)))
+    
+    local num_available_lcores=$(nproc)
+    local lcore_offset=$((node_index % num_available_lcores))
+    local lcore=$lcore_offset
 
-    info "Starting DPDK app in $name (role: $role, index: $node_index, lcore: $lcore)"
+    info "Starting DPDK app in $name (role: $role, index: $node_index, assigned lcore: $lcore)"
     
     local vdevs="--vdev=net_af_packet0,iface=eth0 --vdev=net_af_packet1,iface=eth1"
     local pmd_dir="-d /usr/local/lib/x86_64-linux-gnu/dpdk/pmds-24.1/"
@@ -236,7 +258,7 @@ launch_dpdk_app() {
         --type $role \
         --node-index $node_index \
         --num-transit $num_transit \
-        --log-level debug"
+        --no-logging"
     sudo docker exec -d --user root "$name" bash -c "$cmd"
 }
 
