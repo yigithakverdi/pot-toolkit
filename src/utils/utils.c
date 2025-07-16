@@ -1,5 +1,6 @@
 #include "utils/utils.h"
 #include "headers.h"
+#include "utils/role.h"
 
 #include <stdlib.h>
 
@@ -127,12 +128,15 @@ uint16_t add_timestamps(uint16_t port __rte_unused, uint16_t qidx __rte_unused, 
 }
 
 struct latency_numbers_t latency_numbers = {0, 0, 0};
+
+#define LATENCY_BATCH_SIZE 1000
+static double latency_buffer[LATENCY_BATCH_SIZE];
+static int latency_buffer_index = 0;
+
 uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf** pkts, uint16_t nb_pkts,
                       void* _ __rte_unused) {
   uint64_t cycles = 0;
-  uint64_t queue_ticks = 0;
   uint64_t now = rte_rdtsc();
-  uint64_t ticks;
   unsigned i;
 
   for (i = 0; i < nb_pkts; i++) {
@@ -142,10 +146,28 @@ uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf
   latency_numbers.total_cycles += cycles;
   latency_numbers.total_pkts += nb_pkts;
 
-  double latency_us = (double)latency_numbers.total_cycles / rte_get_tsc_hz() * 1e6;
-  latency_numbers.total_cycles = 0;
-  latency_numbers.total_queue_cycles = 0;
-  latency_numbers.total_pkts = 0;
+  if (latency_numbers.total_pkts > 0) {
+    double latency_us = (double)latency_numbers.total_cycles / rte_get_tsc_hz() * 1e6;
+    // Buffer the average latency
+    latency_buffer[latency_buffer_index++] = latency_us / latency_numbers.total_pkts;
+    // Reset counters
+    latency_numbers.total_cycles = 0;
+    latency_numbers.total_queue_cycles = 0;
+    latency_numbers.total_pkts = 0;
+    // Write to file in batches
+    if (latency_buffer_index >= LATENCY_BATCH_SIZE) {
+      char log_path[128];
+      snprintf(log_path, sizeof(log_path), "/tmp/latency_%s.log", get_role_name(global_role));
+      FILE *f = fopen(log_path, "a");
+      if (f) {
+        for (int j = 0; j < LATENCY_BATCH_SIZE; ++j) {
+          fprintf(f, "%.3f\n", latency_buffer[j]);
+        }
+        fclose(f);
+      }
+      latency_buffer_index = 0;
+    }
+  }
 
   return nb_pkts;
 }

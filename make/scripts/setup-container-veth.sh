@@ -125,6 +125,7 @@ launch_container() {
         -v "$GEN_KEYS_FILE":/etc/secret/pot_keys.txt \
         -v "$SEGMENT_LIST_FILE":/etc/segment/segment_list.txt \
         -v /var/log/dpdk-pot:/var/log/dpdk-pot \
+        -v /home/ubuntu/dpdk-pot/results/latency:/tmp \
         -v "$(pwd)/build/dpdk-pot":/usr/local/bin/dpdk-pot \
         "$image_to_use" infinity >/dev/null
     sleep 1
