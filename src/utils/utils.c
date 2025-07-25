@@ -39,6 +39,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       {"node-index", required_argument, 0, 'i'},
       {"no-logging", no_argument, 0, 1},
       {"help", no_argument, 0, 'h'},
+      {"virtual-machine", no_argument, 0, 'v'},
       {0, 0, 0, 0} // Dizi sonunu belirtir
   };
 
@@ -76,6 +77,11 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
     case 'k': // --key-locations veya -k
       free(config->topology.key_locations);
       config->topology.key_locations = strdup(optarg);
+      break;
+
+    case 'v': // --virtual-machine veya -v
+      config->virtual_machine = 1;
+      g_is_virtual_machine = 1;
       break;
 
     case 1: // --no-logging

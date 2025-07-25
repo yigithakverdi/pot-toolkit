@@ -25,7 +25,11 @@ typedef struct {
     int num_transit;
   } topology;
   int follow_flag;
+  int virtual_machine; // Flag to indicate if running in a virtual machine
 } AppConfig;
+
+// Virtual machine global variable
+extern int g_is_virtual_machine;
 
 void config_init(AppConfig* config);
 int load_app_config(AppConfig* config);
