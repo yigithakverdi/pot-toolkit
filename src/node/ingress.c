@@ -194,7 +194,11 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
             struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&segments[next_sid_index]);
 
             if (next_mac) {
-              send_packet_to(*next_mac, mbuf, 1);
+              if(g_is_virtual_machine == 0) {
+                send_packet_to(*next_mac, mbuf, 1);
+              } else {
+                send_packet_to(*next_mac, mbuf, 0);
+              }
               LOG_MAIN(DEBUG, "Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
                        next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
                        next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);

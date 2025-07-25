@@ -3,6 +3,7 @@
 #include "crypto.h"
 #include "forward.h"
 #include "headers.h"
+#include "utils/config.h"
 #include "utils/logging.h"
 
 static inline void process_egress_packet(struct rte_mbuf* mbuf) {
@@ -164,7 +165,11 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // Forward the packet to the iperf server
         // The MAC address of the iperf server is hardcoded here.
         struct rte_ether_addr iperf_mac = {{0x02, 0xcc, 0xef, 0x38, 0x4b, 0x25}};
-        send_packet_to(iperf_mac, mbuf, 1);
+        if(g_is_virtual_machine == 0) {
+          send_packet_to(iperf_mac, mbuf, 1);
+        } else {
+          send_packet_to(iperf_mac, mbuf, 0);
+        }
         LOG_MAIN(DEBUG, "Packet sent to iperf server with MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
                  iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2],
                  iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
