@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 
   // Init topology after calling the default arguments load, and the parse args function, which
   // might overload the given default values
-  if (init_topology() < 0) {
+  if (init_topology(&config) < 0) {
     rte_exit(EXIT_FAILURE, "Failed to initialize topology\n");
   }
 
@@ -143,3 +143,4 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
+

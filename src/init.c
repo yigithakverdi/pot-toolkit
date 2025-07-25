@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "crypto.h"
 #include "node/controller.h"
+#include "node/controller.h"
 #include <unistd.h>
 #include <openssl/md5.h>
 
@@ -62,14 +63,19 @@ struct rte_mempool* init_mempool() {
   return mbuf_pool;
 }
 
-int init_topology() {
+int init_topology(AppConfig* app_config) {
 
   // Guard, check if the environment variable POT_NODE_INDEX is set.
-  if (getenv("POT_NODE_INDEX") == NULL) {
-    LOG_MAIN(ERR, "Environment variable POT_NODE_INDEX is not set\n");
-    setenv("POT_NODE_INDEX", "0", 1); // Set a default value
-    LOG_MAIN(INFO, "Setting default POT_NODE_INDEX=0\n");
-  }
+  // if (getenv("POT_NODE_INDEX") == NULL) {
+  //   LOG_MAIN(ERR, "Environment variable POT_NODE_INDEX is not set\n");
+  //   setenv("POT_NODE_INDEX", "0", 1); // Set a default value
+  //   LOG_MAIN(INFO, "Setting default POT_NODE_INDEX=0\n");
+  // }
+  // Forcing the POT_NODE_INDEX from the global node index here regarding
+  // the if it is set or not
+  char node_index_str[16];
+  snprintf(node_index_str, sizeof(node_index_str), "%d", g_node_index);
+  setenv("POT_NODE_INDEX", node_index_str, 1);
 
   LOG_MAIN(DEBUG, "Initializing topology\n");
 
@@ -82,7 +88,8 @@ int init_topology() {
   // TODO instead of calling it and assigning it with a environment variable,
   // just use config_load_env to first load the environment as it is done
   // on the main.c then use global variables directly
-  int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
+  // int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
+  int num_transit = app_config->topology.num_transit;
   if (num_transit <= 0) {
     LOG_MAIN(ERR, "Invalid number of transit nodes: %d\n", num_transit);
     return -1;
