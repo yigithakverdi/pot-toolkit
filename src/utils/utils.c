@@ -94,6 +94,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
         fprintf(stderr, "Invalid node index: %s\n", optarg);
         exit(EXIT_FAILURE);
       }
+      break;
 
     case 'n': // --num-transit veya -n
       config->topology.num_transit = atoi(optarg);
