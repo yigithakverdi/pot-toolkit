@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 
   // If the role of the node is transit then initialize the second port since it might
   // be used for the veth pairing in case of container setup, besides the VM setup
-  LOG_MAIN(INFO, "Virtual machine mode is %s", config.virtual_machine ? "enabled" : "disabled");
+  LOG_MAIN(INFO, "Virtual machine mode is %s\n", config.virtual_machine ? "enabled" : "disabled");
   if (config.virtual_machine == 0 && (global_role == ROLE_INGRESS || global_role == ROLE_TRANSIT || global_role == ROLE_EGRESS)) { // Ingress also needs a TX port for the chain
     LOG_MAIN(INFO, "[INFO] Virtual machine mode is disabled shifting to container mode\n");
     if (tx_port != rx_port) {
