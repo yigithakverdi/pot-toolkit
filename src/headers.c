@@ -1,4 +1,5 @@
 #include "headers.h"
+#include "utils/config.h"
 #include "utils/logging.h"
 #include <rte_malloc.h>
 
@@ -152,12 +153,20 @@ void remove_headers(struct rte_mbuf* pkt) {
   LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
 
   struct in6_addr iperf_server_ipv6;
-  // if (inet_pton(AF_INET6, "2a05:d014:dc7:12ef:2dc:bf79:a352:6efe", &iperf_server_ipv6) != 1) {
-  if (inet_pton(AF_INET6, "2001:db8:1::d1", &iperf_server_ipv6) != 1) {
-    free(tmp_payload);
-    LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
-    return;
+  if(g_is_virtual_machine == 0) {
+    if (inet_pton(AF_INET6, "2001:db8:1::d1", &iperf_server_ipv6) != 1) {
+      free(tmp_payload);
+      LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
+      return;
+    }
+  } else {
+    if (inet_pton(AF_INET6, "2a05:d014:dc7:12ef:2dc:bf79:a352:6efe", &iperf_server_ipv6) != 1) {
+      free(tmp_payload);
+      LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
+      return;
+    }    
   }
+
   rte_memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
   LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
            inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
