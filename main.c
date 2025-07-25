@@ -92,6 +92,7 @@ int main(int argc, char* argv[]) {
   uint16_t rx_port = 0;
   uint16_t tx_port = 1;
   if (global_role == ROLE_TRANSIT && port_count < 2 && config.virtual_machine == 1) {
+    printf("[INFO] Virtual machine mode is set up\n");
     LOG_MAIN(WARNING, "Transit mode with only %u port(s): using port %u for both RX and TX",
              port_count, rx_port);
     tx_port = rx_port;
