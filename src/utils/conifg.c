@@ -15,6 +15,9 @@
 #include "utils/config.h"
 #include "utils/logging.h"
 
+// Global variable to indicate if running in a virtual machine
+int g_is_virtual_machine = 0; 
+
 void config_init(AppConfig* config) {
   config->node.log_level = NULL;
   config->node.type = NULL;
@@ -23,7 +26,8 @@ void config_init(AppConfig* config) {
 
   // Sayısal değerleri sıfırla
   config->topology.num_transit = 0;
-  config->follow_flag = 0;  // default: do not follow log
+  config->virtual_machine = 0;     // Default: not running in a VM
+  config->follow_flag = 0;         // Default: do not follow log
 }
 
 // AppConfig tarafından ayrılan tüm dinamik belleği serbest bırakır.

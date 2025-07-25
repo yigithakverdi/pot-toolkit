@@ -5,6 +5,7 @@
 #include "crypto.h"
 #include "utils/logging.h"
 #include "node/controller.h"
+#include "utils/config.h"
 #include "headers.h"
 #include "forward.h"
 
@@ -107,8 +108,11 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           size_t key_len = HMAC_MAX_LENGTH;
 
           struct in6_addr ingress_addr;
-          // inet_pton(AF_INET6, "2a05:d014:dc7:127a:fe22:97ab:a0a8:ff18", &ingress_addr);
-          inet_pton(AF_INET6, "2001:db8:1::c1", &ingress_addr);
+          if(g_is_virtual_machine) {
+            inet_pton(AF_INET6, "2a05:d014:dc7:127a:fe22:97ab:a0a8:ff18", &ingress_addr);
+          } else {
+            inet_pton(AF_INET6, "2001:db8:1::c1", &ingress_addr);
+          }
 
           size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
           if (dump_len > 128) dump_len = 128;
