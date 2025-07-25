@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
   uint16_t rx_port = 0;
   uint16_t tx_port = 1;
   if (global_role == ROLE_TRANSIT && port_count < 2 && config.virtual_machine == 1) {
-    printf("[INFO] Virtual machine mode is set up\n");
+    LOG_MAIN(INFO, "[INFO] Virtual machine mode is set up\n");
     LOG_MAIN(WARNING, "Transit mode with only %u port(s): using port %u for both RX and TX",
              port_count, rx_port);
     tx_port = rx_port;
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
   // If the role of the node is transit then initialize the second port since it might
   // be used for the veth pairing in case of container setup, besides the VM setup
   if (config.virtual_machine == 0 && (global_role == ROLE_INGRESS || global_role == ROLE_TRANSIT || global_role == ROLE_EGRESS)) { // Ingress also needs a TX port for the chain
-    printf("[INFO] Virtual machine mode is disabled shifting to container mode\n");
+    LOG_MAIN(INFO, "[INFO] Virtual machine mode is disabled shifting to container mode\n");
     if (tx_port != rx_port) {
       LOG_MAIN(INFO, "[INFO] Setting up second port %u for %s role\n", tx_port, 
                global_role == ROLE_INGRESS ? "ingress" : "transit");
