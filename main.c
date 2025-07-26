@@ -7,6 +7,7 @@
 #include "utils/config.h"
 #include "utils/role.h"
 #include "utils/utils.h"
+#include <rte_ethdev.h>
 
 int main(int argc, char* argv[]) {
 
@@ -98,8 +99,13 @@ int main(int argc, char* argv[]) {
     tx_port = rx_port;
   }
   uint16_t ports[2] = {rx_port, tx_port};
-    init_ports(0, mbuf_pool, PORT_ROLE_LATENCY_RX);
-    init_ports(0, mbuf_pool, PORT_ROLE_LATENCY_TX);
+  init_ports(rx_port, mbuf_pool, 0);
+
+  // After initializing the port with ID-0, we can set up the RX and TX queues
+  // for the port. This is important for ensuring that packets can be received
+  // and transmitted correctly.
+  // rte_eth_add_rx_callback(0, 0, add_timestamps, NULL);
+  // rte_eth_add_tx_callback(0, 0, calc_latency, NULL);
 
   // If the role of the node is transit then initialize the second port since it might
   // be used for the veth pairing in case of container setup, besides the VM setup
