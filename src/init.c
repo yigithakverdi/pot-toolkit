@@ -33,7 +33,7 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) 
   switch (role) {
   case PORT_ROLE_LATENCY_RX:
     rte_eth_add_rx_callback(port_id, 0, add_timestamps, NULL);
-    rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
+    // rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
     LOG_MAIN(INFO, "Added RX timestamp callback to port %u\n", port_id);
     break;
   case PORT_ROLE_LATENCY_TX:

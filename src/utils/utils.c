@@ -164,7 +164,7 @@ uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf
     // Write to file in batches
     if (latency_buffer_index >= LATENCY_BATCH_SIZE) {
       char log_path[128];
-      snprintf(log_path, sizeof(log_path), "/tmp/latency_%s.log", get_role_name(global_role));
+      snprintf(log_path, sizeof(log_path), "/tmp/latency_%s-%d.log", get_role_name(global_role), g_node_index);
       FILE *f = fopen(log_path, "a");
       if (f) {
         for (int j = 0; j < LATENCY_BATCH_SIZE; ++j) {
