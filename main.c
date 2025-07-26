@@ -98,7 +98,8 @@ int main(int argc, char* argv[]) {
     tx_port = rx_port;
   }
   uint16_t ports[2] = {rx_port, tx_port};
-  init_ports(rx_port, mbuf_pool, 0);
+    init_ports(0, mbuf_pool, PORT_ROLE_LATENCY_RX);
+    init_ports(0, mbuf_pool, PORT_ROLE_LATENCY_TX);
 
   // If the role of the node is transit then initialize the second port since it might
   // be used for the veth pairing in case of container setup, besides the VM setup
