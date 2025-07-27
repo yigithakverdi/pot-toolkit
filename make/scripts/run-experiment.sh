@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the number of transit nodes for this experiment
-TRANSIT_NODES=1  # Change this to 4, 5, etc. as needed
+TRANSIT_NODES=4  # Change this to 4, 5, etc. as needed
 
 # Directory to store results
 RESULTS_DIR="/home/ubuntu/dpdk-pot/results/transit-${TRANSIT_NODES}"
