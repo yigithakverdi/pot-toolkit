@@ -259,7 +259,7 @@ launch_dpdk_app() {
         --type $role \
         --node-index $node_index \
         --num-transit $num_transit \
-        --no-logging"
+        --logging-level debug"
     sudo docker exec -d --user root "$name" bash -c "$cmd"
 }
 

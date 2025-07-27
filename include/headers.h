@@ -28,7 +28,7 @@
 #define HMAC_MAX_LENGTH 32
 #define MAX_SEGMENTS 50
 #define MAX_POT_NODES 50
-#define MAX_NEXT_HOPS 8
+#define MAX_NEXT_HOPS 50
 
 // Global segment array and count
 extern struct in6_addr *g_segments;

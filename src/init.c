@@ -243,7 +243,7 @@ void init_lookup_table() {
       
       // The IP suffix for the receiving end of link 'i' is (i * 2 + 2)
       int ip_suffix = (i * 2) + 2;
-      snprintf(ipv6, sizeof(ipv6), "2001:db8:1::%x", ip_suffix);
+      snprintf(ipv6, sizeof(ipv6), "2001:db8:1::%d", ip_suffix);
 
       // The MAC address is based on the veth name 'veth_chain_{i}b'
       snprintf(veth_name, sizeof(veth_name), "veth_chain_%db", i);
