@@ -27,7 +27,7 @@ info "--- DPDK Setup Script Starting ---"
 if ! command -v meson &> /dev/null || ! command -v ninja &> /dev/null; then
     info "Installing Meson and Ninja build tools ..."
     sudo apt-get update
-    sudo apt install -y build-essential git gcc clang make meson ninja-build python3 python3-pip libnuma-dev pkg-config libelf-dev pciutils net-tools linux-headers-$(uname -r)    
+    sudo apt install -y build-essential git gcc clang make meson ninja-build python3 python3-pip libnuma-dev pkg-config libelf-dev pciutils net-tools linux-headers-$(uname -r)
     sudo apt install python3-pyelftools
     sudo apt-get install libssl-dev
 else
@@ -116,5 +116,8 @@ else
 fi
 
 grep HugePages /proc/meminfo || true
+<<<<<<< HEAD
 
 echo
+=======
+>>>>>>> origin/refactor/major

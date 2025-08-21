@@ -9,11 +9,6 @@ deps/*/build
 deps/dpdk/build
 deps/openssl/build
 
-# Build artifacts (local)
-# Commenting out build/** to allow copying the binary
-# build/**
-builddir/
-
 # OS / IDE specific
 .DS_Store
 *.pyc

@@ -2,6 +2,22 @@
 /docs/notes/*.md
 /docs/experiment.md
 
+# Ignore clangd cache
+.clangd/
+./.clangd
+
+# Ignore results
+/results/
+
+# Ignore build artifacts
+./vscode/*
+./vscode/
+./vscode
+.vscode
+
+# Ignore build directories
+/build
+
 # Ignore dependency files since they are git submodules
 /deps
 
