@@ -227,11 +227,13 @@ void mac_from_name(const char* name, char* mac_str, size_t mac_str_len) {
 
 void init_lookup_table() {
   LOG_MAIN(DEBUG, "[DEBUG] Initializing lookup table for next hops...\n");
-  add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
-  add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
-  add_next_hop("2a05:d014:dc7:12a5:daf9:c563:8971:16f8", "02:f0:e2:02:7e:f3");
-  add_next_hop("2a05:d014:dc7:1201:4dbc:54b8:7649:1699", "02:c4:7f:5a:2f:bd");
-  add_next_hop("2a05:d014:dc7:1252:d3b9:c07f:f5a5:f25", "02:72:c1:67:18:b1");
+  // add_next_hop("2a05:d014:dc7:1209:8169:d7d9:3bcb:d2b3", "02:5f:68:c7:cc:cd");
+  // add_next_hop("2a05:d014:dc7:12dc:9648:6bf3:e182:c7b4", "02:f5:27:51:bc:1d");
+  // add_next_hop("2a05:d014:dc7:12a5:daf9:c563:8971:16f8", "02:f0:e2:02:7e:f3");
+  // add_next_hop("2a05:d014:dc7:1201:4dbc:54b8:7649:1699", "02:c4:7f:5a:2f:bd");
+  // add_next_hop("2a05:d014:dc7:1252:d3b9:c07f:f5a5:f25", "02:72:c1:67:18:b1");
+  add_next_hop("2a05:d014:dc7:1281:7aa5:aa66:e3d1:d8a5", "02:56:e6:d5:57:05");
+  add_next_hop("2a05:d014:dc7:1210:818e:dec3:7ed3:a935", "02:63:a9:59:f8:8f");
 
   int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
   if (num_transit < 0) {
