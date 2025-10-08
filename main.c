@@ -58,6 +58,7 @@ int main(int argc, char* argv[]) {
   // after that sync the config with the environment variables.
   parse_args(&config, argc, argv);
   global_role = setup_node_role(config.node.type);
+  operation_bypass_bit = g_simple_forward;
   sync_config_to_env(&config);
 
   // TODO before initializing the topology force the index of the current node from the
