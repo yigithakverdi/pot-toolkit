@@ -213,7 +213,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
         case 1: {
           LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.\n");
 
-          add_custom_header(mbuf);
+          add_custom_header_only_srh(mbuf);
           
           struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
           struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr6 + 1);
