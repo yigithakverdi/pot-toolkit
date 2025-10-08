@@ -174,7 +174,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
       }
       break;
     }
-    case 1 {
+    case 1: {
       LOG_MAIN(DEBUG, "Processing packet with SRH\n");
       struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
       struct ipv6_srh* srh = (struct ipv6_srh*)(ipv6_hdr + 1);
@@ -200,7 +200,9 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // If inet_ntop fails, log an error, free the packet, and exit processing.
         char dst_ip_str[INET6_ADDRSTRLEN];
         if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
-          LOG_MAIN(ERR, "inet_ntop failed for destination address\n"); rte_pktmbuf_free(mbuf); return;
+          LOG_MAIN(ERR, "inet_ntop failed for destination address\n");
+          rte_pktmbuf_free(mbuf);
+          return;
         }
 
         LOG_MAIN(DEBUG, "Destination IPv6 address: %s\n", dst_ip_str);
@@ -235,20 +237,13 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
           send_packet_to(iperf_mac, mbuf, 1);
         } else {
           send_packet_to(iperf_mac, mbuf, 0);
-        } LOG_MAIN(DEBUG, "Packet sent to iperf server with MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
-                   iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2],
-                   iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
-      } break;
+        }
+        LOG_MAIN(DEBUG, "Packet sent to iperf server with MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+                 iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2],
+                 iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
+      }
+    } break;
     }
-
-    LOG_MAIN(DEBUG, "Bypassing all operations for egress packet\n");
-        break;
-
-        LOG_MAIN(DEBUG, "Removing headers only for egress packet\n"); default:
-      break;
-    }
-    break;
-  default: break;
   }
 }
 
