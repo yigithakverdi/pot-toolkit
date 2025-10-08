@@ -201,8 +201,99 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
       }
       break;
     }
-    case 1: LOG_MAIN(DEBUG, "Transit: Bypassing all operations.\n"); break;
+    case 1: {
+      LOG_MAIN(DEBUG, "Processing transit packet with SRH.\n");
 
+      // Get pointers to the IPv6 header and Segment Routing Header (SRH).
+      // This assumes fixed header order: Ethernet -> IPv6 -> SRH.
+      struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+      struct ipv6_srh* srh = (struct ipv6_srh*)(ipv6_hdr + 1);
+
+      // Add NULL pointer checks
+      if (!ipv6_hdr || !srh) {
+        LOG_MAIN(ERR, "Transit: NULL pointer detected in headers\n");
+        rte_pktmbuf_free(mbuf);
+        return;
+      }
+
+      // Verify that the SRH's next header is 61 (Destination Options Header)
+      // and its routing type is 4 (SRH). If not, the packet is not a valid SRv6 packet
+      // for this transit node, so it's dropped.
+      if (srh->next_header != 61 || srh->routing_type != 4) {
+        LOG_MAIN(WARNING, "Transit: SRH next_header (%u) or routing_type (%u) mismatch, dropping packet.\n",
+                 srh->next_header, srh->routing_type);
+        rte_pktmbuf_free(mbuf);
+        return;
+      }
+
+      if (srh->next_header == 61) {
+        // size_t srh_bytes = sizeof(struct ipv6_srh);
+        size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+        struct in6_addr *segments = (struct in6_addr *)((uint8_t *)srh + sizeof(struct ipv6_srh));
+
+        char dst_ip_str[INET6_ADDRSTRLEN];
+
+        if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
+          LOG_MAIN(ERR, "Transit: inet_ntop failed for destination address.\n");
+          perror("inet_ntop failed");
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
+        LOG_MAIN(DEBUG, "Transit: Destination IPv6 address: %s\n", dst_ip_str);
+
+        // Add bounds check for g_node_index
+        if (g_node_index < 0 || g_node_index >= MAX_POT_NODES) {
+          LOG_MAIN(ERR, "Transit: Invalid g_node_index (%d), dropping packet\n", g_node_index);
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
+
+        int curr_index = g_node_index;
+
+        // Check if 'segments_left' is 0. If it is, the packet has reached
+        // its final segment in the SRH path at this node, but this is a transit node.
+        // This indicates a routing error or misconfiguration, so the packet is dropped.
+        if (srh->segments_left == 0) {
+          LOG_MAIN(WARNING, "Transit: segments_left is 0, but packet still in transit, dropping.\n");
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
+
+        srh->segments_left--;
+        int next_sid_index = srh->last_entry - srh->segments_left + 1;
+
+        // Add bounds check for segment array access
+        if (next_sid_index < 0 || next_sid_index > srh->last_entry) {
+          LOG_MAIN(ERR, "Transit: Invalid next_sid_index (%d), last_entry (%u), dropping packet\n", 
+                   next_sid_index, srh->last_entry);
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
+
+        memcpy(&ipv6_hdr->dst_addr, &segments[next_sid_index], sizeof(ipv6_hdr->dst_addr));
+        LOG_MAIN(DEBUG, "Transit: Decremented segments_left. Next SID: %s\n",
+                inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+
+        struct rte_ether_addr* next_mac = lookup_mac_for_ipv6(&segments[next_sid_index]);        
+        if (next_mac) {
+          if(g_is_virtual_machine == 0) {
+          send_packet_to(*next_mac, mbuf, 1);
+          } else {
+            send_packet_to(*next_mac, mbuf, 0);
+          }
+          LOG_MAIN(DEBUG, "Transit: Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                   next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
+                   next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
+
+          dump_len = rte_pktmbuf_pkt_len(mbuf);
+        } else {
+          LOG_MAIN(ERR, "Transit: No MAC found for next SID, dropping packet.\n");
+          rte_pktmbuf_free(mbuf);
+        }
+      }
+      break;
+    } 
+    
     default:
       LOG_MAIN(WARNING, "Transit: Unknown operation_bypass_bit value for transit processing.\n");
       break;

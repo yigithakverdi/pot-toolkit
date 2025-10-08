@@ -197,6 +197,142 @@ void remove_headers(struct rte_mbuf* pkt) {
   LOG_MAIN(DEBUG, "Headers removed and payload restored successfully\n");
 }
 
+void add_custom_header_only_srh(struct rte_mbuf *pkt) {
+  LOG_MAIN(DEBUG, "Adding custom headers to packet\n");
+  LOG_MAIN(DEBUG, "g_segments pointer: %p, g_segment_count: %d\n", g_segments, g_segment_count);
+
+  // Check if segments are loaded properly
+  if (g_segments == NULL || g_segment_count <= 0) {
+    LOG_MAIN(ERR, "ERROR: g_segments is NULL or empty - cannot add custom headers\n");
+    rte_pktmbuf_free(pkt);
+    return;
+  }
+  
+  // Calculating the dynamic SRH size based on actual segment count
+  size_t srh_segments_size = g_segment_count * sizeof(struct in6_addr);
+  size_t total_srh_size = sizeof(struct ipv6_srh) + srh_segments_size;
+  size_t needed_tailroom = total_srh_size;
+  
+  // Check if there's enough tailroom
+  // size_t needed_tailroom = sizeof(struct ipv6_srh) + sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
+  if (rte_pktmbuf_tailroom(pkt) < needed_tailroom) {
+    LOG_MAIN(ERR, "ERROR: Not enough tailroom in mbuf (%zu needed, %u available) - cannot add custom headers\n",
+             needed_tailroom, rte_pktmbuf_tailroom(pkt));
+    rte_pktmbuf_free(pkt);
+    return;
+  }
+
+  if (g_segment_count > 0) {
+    char addr_str[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6, g_segments, addr_str, sizeof(addr_str));
+    LOG_MAIN(DEBUG, "First segment address: %s\n", addr_str);
+  }
+
+  struct ipv6_srh *srh_hdr;
+  struct rte_ether_hdr *eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
+  struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
+  LOG_MAIN(DEBUG, "IPv6 header at %p, next header: %u\n", ipv6_hdr, ipv6_hdr->proto);
+
+  // Calculate the exact offset to payload based on actual header sizes
+  size_t header_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr);
+  uint8_t *payload = (uint8_t *)(ipv6_hdr + 1);
+  LOG_MAIN(DEBUG, "Payload starts at %p\n", payload);
+
+  // Safe calculation of payload size
+  size_t total_pkt_len = rte_pktmbuf_pkt_len(pkt);
+  size_t payload_size = (total_pkt_len > header_size) ? (total_pkt_len - header_size) : 0;
+  LOG_MAIN(DEBUG, "Total packet length: %zu, Header size: %zu, Payload size: %zu bytes\n", 
+           total_pkt_len, header_size, payload_size);
+  
+  // Safely allocate temporary buffer with size check
+  uint8_t *tmp_payload = NULL;
+  if (payload_size > 0) {
+    tmp_payload = malloc(payload_size);
+    if (tmp_payload == NULL) {
+      LOG_MAIN(ERR, "Failed to allocate memory for tmp_payload (size: %zu)\n", payload_size);
+      rte_pktmbuf_free(pkt);
+      return;
+    }
+    
+    // Copy payload safely
+    rte_memcpy(tmp_payload, payload, payload_size);
+    LOG_MAIN(DEBUG, "Copied %zu bytes of payload to tmp_payload\n", payload_size);
+    
+    // Trim packet safely
+    if (rte_pktmbuf_trim(pkt, payload_size) < 0) {
+      LOG_MAIN(ERR, "Failed to trim packet\n");
+      free(tmp_payload);
+      rte_pktmbuf_free(pkt);
+      return;
+    }
+    LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", payload_size);
+  } else {
+    LOG_MAIN(DEBUG, "No payload to save (payload_size is 0)\n");
+  }
+
+  // Append headers with NULL checks
+  LOG_MAIN(DEBUG, "Appending custom headers to packet\n");
+  // srh_hdr = (struct ipv6_srh *)rte_pktmbuf_append(pkt, sizeof(struct ipv6_srh));
+  srh_hdr = (struct ipv6_srh *)rte_pktmbuf_append(pkt, total_srh_size);
+  if (srh_hdr == NULL) {
+    LOG_MAIN(ERR, "Failed to append SRH header\n");
+    if (tmp_payload) free(tmp_payload);
+    rte_pktmbuf_free(pkt);
+    return;
+  }
+  LOG_MAIN(DEBUG, "SRH header appended at %p\n", srh_hdr);
+
+  // Re-append payload if it exists
+  if (payload_size > 0 && tmp_payload != NULL) {
+    payload = (uint8_t *)rte_pktmbuf_append(pkt, payload_size);
+    if (payload == NULL) {
+      LOG_MAIN(ERR, "Failed to append payload\n");
+      free(tmp_payload); 
+      rte_pktmbuf_free(pkt);
+      return;
+    }
+    LOG_MAIN(DEBUG, "New payload space appended at %p\n", payload);
+    
+    rte_memcpy(payload, tmp_payload, payload_size);
+    free(tmp_payload); 
+    LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
+  }
+  
+  // Initialize the SRH header
+  srh_hdr->next_header = 61;  // Example next header
+  // Only use the available segments - don't overflow
+  srh_hdr->hdr_ext_len = (total_srh_size - 8) / 8;
+  srh_hdr->routing_type = 4;
+  srh_hdr->segments_left = g_segment_count;   // Set to the total number of segments
+  srh_hdr->last_entry = g_segment_count - 1;  // Index of the last element
+  srh_hdr->flags = 0;
+  memset(srh_hdr->reserved, 0, 2);
+  LOG_MAIN(DEBUG, "SRH header added with hdr_ext_len %u, segments_left %u\n", 
+           srh_hdr->hdr_ext_len, srh_hdr->segments_left);
+
+  // Copy the loaded segments safely - limit to max 2 segments (as per struct definition)
+  // int segments_to_copy = (g_segment_count > 2) ? 2 : g_segment_count;
+  // rte_memcpy(srh_hdr->segments, g_segments, segments_to_copy * sizeof(struct in6_addr));
+  // LOG_MAIN(DEBUG, "Copied %d segments into SRH\n", segments_to_copy);
+  uint8_t *segments_ptr = (uint8_t *)srh_hdr + sizeof(struct ipv6_srh);
+  rte_memcpy(segments_ptr, g_segments, srh_segments_size);
+  LOG_MAIN(DEBUG, "Copied %d segments (%zu bytes) into SRH\n", g_segment_count, srh_segments_size);
+
+  // Add verification logging
+  struct in6_addr *copied_segments = (struct in6_addr *)segments_ptr;
+  for (int i = 0; i < g_segment_count; i++) {
+    char seg_str[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6, &copied_segments[i], seg_str, sizeof(seg_str));
+    LOG_MAIN(DEBUG, "Copied segment [%d]: %s\n", i, seg_str);
+  }
+
+  // Update IPv6 payload length
+  uint16_t new_plen = rte_pktmbuf_pkt_len(pkt) - sizeof(*eth_hdr_6) - sizeof(*ipv6_hdr);
+  ipv6_hdr->payload_len = rte_cpu_to_be_16(new_plen);
+  LOG_MAIN(DEBUG, "Updated IPv6 payload length to %u\n", new_plen);
+  LOG_MAIN(DEBUG, "Custom headers added to packet successfully\n");
+}
+
 void add_custom_header(struct rte_mbuf *pkt) {
   LOG_MAIN(DEBUG, "Adding custom headers to packet\n");
   LOG_MAIN(DEBUG, "g_segments pointer: %p, g_segment_count: %d\n", g_segments, g_segment_count);

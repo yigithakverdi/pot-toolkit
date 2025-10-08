@@ -9,7 +9,7 @@
 static inline void process_egress_packet(struct rte_mbuf* mbuf) {
   // LOG_MAIN(NOTICE, "Processing egress packet with length %u", rte_pktmbuf_pkt_len(mbuf));
   // LOG_MAIN(NOTICE, "Egress packet nb_segs: %u", mbuf->nb_segs);
-  
+
   // Add bounds checking before accessing headers
   if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr)) {
     LOG_MAIN(WARNING, "Egress: Packet too small for basic headers, dropping\n");
@@ -60,13 +60,11 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
       if (srh->next_header == 61) {
         LOG_MAIN(DEBUG, "SRH detected, processing packet\n");
         size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
-        size_t min_packet_size = sizeof(struct rte_ether_hdr) +
-                                sizeof(struct rte_ipv6_hdr) +
-                                actual_srh_size +
-                                sizeof(struct hmac_tlv) +
-                                sizeof(struct pot_tlv);
+        size_t min_packet_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) +
+                                 actual_srh_size + sizeof(struct hmac_tlv) + sizeof(struct pot_tlv);
         if (rte_pktmbuf_pkt_len(mbuf) < min_packet_size) {
-          LOG_MAIN(WARNING, "Egress: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n",
+          LOG_MAIN(WARNING,
+                   "Egress: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n",
                    rte_pktmbuf_pkt_len(mbuf), min_packet_size);
           rte_pktmbuf_free(mbuf);
           return;
@@ -117,10 +115,10 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // This key is used to calculate the expected HMAC for the packet.
         uint8_t* k_hmac_ie = k_pot_in[0];
         uint8_t expected_hmac[HMAC_MAX_LENGTH];
-        LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n", HMAC_MAX_LENGTH);\
-        // Log the inputs to HMAC calculations for verifications
+        LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n",
+                 HMAC_MAX_LENGTH); // Log the inputs to HMAC calculations for verifications
         //
-        // Increase segment_left by 1 to temporarly test if it is the root cause of 
+        // Increase segment_left by 1 to temporarly test if it is the root cause of
         // HMAC verification failure
         srh->segments_left += 1;
         if (calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
@@ -165,7 +163,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // Forward the packet to the iperf server
         // The MAC address of the iperf server is hardcoded here.
         struct rte_ether_addr iperf_mac = {{0x02, 0xcc, 0xef, 0x38, 0x4b, 0x25}};
-        if(g_is_virtual_machine == 0) {
+        if (g_is_virtual_machine == 0) {
           send_packet_to(iperf_mac, mbuf, 1);
         } else {
           send_packet_to(iperf_mac, mbuf, 0);
@@ -176,13 +174,78 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
       }
       break;
     }
-    case 1:
+    case 1 {
+      LOG_MAIN(DEBUG, "Processing packet with SRH\n");
+      struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+      struct ipv6_srh* srh = (struct ipv6_srh*)(ipv6_hdr + 1);
 
-      LOG_MAIN(DEBUG, "Bypassing all operations for egress packet\n");
+      // Check if the SRH next header is 61 (SRv6). If it is, we proceed with processing.
+      // 61 is the next header type for SRv6, as per RFC 8200.
+      // If the next header is not 61, we do not process the packet further
+      // and simply return.
+      if (srh->next_header == 61) {
+        LOG_MAIN(DEBUG, "SRH detected, processing packet\n");
+        size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+        size_t min_packet_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) + actual_srh_size;
+        if (rte_pktmbuf_pkt_len(mbuf) < min_packet_size) {
+          LOG_MAIN(WARNING,
+                   "Egress: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n",
+                   rte_pktmbuf_pkt_len(mbuf), min_packet_size);
+          rte_pktmbuf_free(mbuf);
+          return;
+        }
+
+        // Create a buffer to hold the destination IPv6 address as a string
+        // Convert the destination IPv6 address from binary to text form.
+        // If inet_ntop fails, log an error, free the packet, and exit processing.
+        char dst_ip_str[INET6_ADDRSTRLEN];
+        if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
+          LOG_MAIN(ERR, "inet_ntop failed for destination address\n"); rte_pktmbuf_free(mbuf); return;
+        }
+
+        LOG_MAIN(DEBUG, "Destination IPv6 address: %s\n", dst_ip_str);
+
+        srh->segments_left += 1;
+
+        // If the HMAC verification is successful, we proceed to remove headers
+        // and forward the packet to the iperf server.
+        // This includes removing the SRH, HMAC TLV, and PoT TLV
+        // from the packet, and then sending it to the iperf server.
+        // The final packet will have the original IPv6 header and payload,
+        // but without the SRH, HMAC TLV, and PoT TLV.
+        // LOG_MAIN(INFO, "Egress: HMAC verified successfully, forwarding packet\n");
+        remove_headers(mbuf);
+
+        LOG_MAIN(DEBUG, "Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
+        struct rte_ether_hdr* eth_hdr_final = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
+        struct rte_ipv6_hdr* ipv6_hdr_final = (struct rte_ipv6_hdr*)(eth_hdr_final + 1);
+        LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s\n",
+                 inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, NULL, 0),
+                 inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, NULL, 0));
+
+        char final_src_ip[INET6_ADDRSTRLEN], final_dst_ip[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, final_src_ip, INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, final_dst_ip, INET6_ADDRSTRLEN);
+        LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s\n", final_src_ip, final_dst_ip);
+
+        // Forward the packet to the iperf server
+        // The MAC address of the iperf server is hardcoded here.
+        struct rte_ether_addr iperf_mac = {{0x02, 0xcc, 0xef, 0x38, 0x4b, 0x25}};
+        if (g_is_virtual_machine == 0) {
+          send_packet_to(iperf_mac, mbuf, 1);
+        } else {
+          send_packet_to(iperf_mac, mbuf, 0);
+        } LOG_MAIN(DEBUG, "Packet sent to iperf server with MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+                   iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2],
+                   iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
+      } break;
+    }
+
+    LOG_MAIN(DEBUG, "Bypassing all operations for egress packet\n");
+        break;
+
+        LOG_MAIN(DEBUG, "Removing headers only for egress packet\n"); default:
       break;
-
-      LOG_MAIN(DEBUG, "Removing headers only for egress packet\n");
-    default: break;
     }
     break;
   default: break;

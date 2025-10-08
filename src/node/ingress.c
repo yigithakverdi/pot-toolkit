@@ -49,7 +49,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
         // Case 0: Full processing including custom header addition, HMAC calculation, and
         // encryption.
         case 0:
-          LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.\n");
+          LOG_MAIN(DEBUG, "Processing packet with SRH for ingress.\n");
 
           add_custom_header(mbuf);
           
@@ -64,7 +64,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
           size_t min_ingress_size = sizeof(struct rte_ether_hdr) + 
                                   sizeof(struct rte_ipv6_hdr) + 
-                                  actual_srh_size +  // Use dynamic size instead of sizeof(struct ipv6_srh)
+                                  actual_srh_size + 
                                   sizeof(struct hmac_tlv) + 
                                   sizeof(struct pot_tlv);
 
@@ -209,7 +209,122 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           }
 
           break;
-        case 1:
+          case 1:
+          LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.\n");
+
+          add_custom_header(mbuf);
+          
+          struct rte_ether_hdr *eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+          struct rte_ipv6_hdr *ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr6 + 1);
+          struct ipv6_srh *srh = (struct ipv6_srh *)(ipv6_hdr + 1);
+
+          size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+          size_t min_ingress_size = sizeof(struct rte_ether_hdr) + 
+                                  sizeof(struct rte_ipv6_hdr) + 
+                                  actual_srh_size;
+
+          if (rte_pktmbuf_pkt_len(mbuf) < min_ingress_size) {
+            LOG_MAIN(ERR, "Ingress: Packet too small after adding headers (%u bytes), expected (%zu bytes)\n", 
+                    rte_pktmbuf_pkt_len(mbuf), min_ingress_size);
+            rte_pktmbuf_free(mbuf);
+            return;
+          }     
+
+          // Add NULL pointer checks
+          if (!eth_hdr6 || !ipv6_hdr || !srh) {
+            LOG_MAIN(ERR, "Ingress: NULL pointer detected in headers after adding custom headers\n");
+            rte_pktmbuf_free(mbuf);
+            return;
+          }
+
+          char dst_ip_str[INET6_ADDRSTRLEN];
+
+          if (inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)) == NULL) {
+            LOG_MAIN(ERR, "inet_ntop failed for destination address.\n");
+            perror("inet_ntop failed");
+            break;
+          }
+          LOG_MAIN(DEBUG, "Packet Destination IPv6: %s\n", dst_ip_str);
+        
+          if (0 >= MAX_POT_NODES) {
+            LOG_MAIN(ERR, "Ingress: Invalid key index (0), dropping packet\n");
+            rte_pktmbuf_free(mbuf);
+            return;
+          }
+
+          struct in6_addr ingress_addr;
+          if(g_is_virtual_machine) {
+            inet_pton(AF_INET6, "2a05:d014:dc7:127a:fe22:97ab:a0a8:ff18", &ingress_addr);
+          } else {
+            inet_pton(AF_INET6, "2001:db8:1::c1", &ingress_addr);
+          }
+
+          size_t dump_len = rte_pktmbuf_pkt_len(mbuf);
+          if (dump_len > 128) dump_len = 128;
+          LOG_MAIN(DEBUG, "Packet length for dump: %zu\n", dump_len);
+  
+          if (srh->segments_left == 0) {
+            LOG_MAIN(DEBUG, "SRH segments_left is 0, dropping packet.\n");
+            rte_pktmbuf_free(mbuf);
+          } else {
+            
+            // Calculate the dynamic SRG size to find segments
+            // size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
+
+            // Get pointer to the segments array (located after the SRH header)
+            struct in6_addr *segments = (struct in6_addr *)((uint8_t *)srh + sizeof(struct ipv6_srh));
+
+            // If segments_left is not 0, the packet needs to be forwarded to the next segment ID.
+            // Calculate the index of the next segment ID (SID) in the SRH segment list.
+            // srh->last_entry is the total number of segments.
+            // srh->segments_left is the number of remaining segments to visit.
+            // The next SID is (last_entry - segments_left + 1) index into the segments array.
+            // int next_sid_index = srh->last_entry - srh->segments_left + 1;
+            // int next_sid_index = srh->segments_left - 1;
+            int next_sid_index = 0;
+
+            LOG_MAIN(DEBUG, "SID calculation: last_entry=%u, segments_left=%u, next_sid_index=%d\n", 
+                    srh->last_entry, srh->segments_left, next_sid_index);             
+            
+            // Add bounds check for segment array access
+            if (next_sid_index < 0 || next_sid_index > srh->last_entry) {
+              LOG_MAIN(ERR, "Ingress: Invalid next_sid_index (%d), last_entry (%u), dropping packet\n", 
+                       next_sid_index, srh->last_entry);
+              rte_pktmbuf_free(mbuf);
+              return;
+            }
+
+            // Debug the segment we're about to use
+            char debug_seg_str[INET6_ADDRSTRLEN];
+            inet_ntop(AF_INET6, &segments[next_sid_index], debug_seg_str, sizeof(debug_seg_str));
+            LOG_MAIN(DEBUG, "About to use segment[%d]: %s\n", next_sid_index, debug_seg_str);
+
+            
+            // memcpy(&ipv6_hdr->dst_addr, &srh->segments[next_sid_index], sizeof(struct in6_addr));
+            // LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s\n",
+            //          inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+            memcpy(&ipv6_hdr->dst_addr, &segments[next_sid_index], sizeof(struct in6_addr));
+            LOG_MAIN(DEBUG, "Updated packet destination to next SID: %s\n",
+                    inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_ip_str, sizeof(dst_ip_str)));
+
+
+            // struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&srh->segments[next_sid_index]);
+            struct rte_ether_addr *next_mac = lookup_mac_for_ipv6(&segments[next_sid_index]);
+
+            if (next_mac) {
+              if(g_is_virtual_machine == 0) {
+                send_packet_to(*next_mac, mbuf, 1);
+              } else {
+                send_packet_to(*next_mac, mbuf, 0);
+              }
+              LOG_MAIN(DEBUG, "Packet sent to next hop with MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                       next_mac->addr_bytes[0], next_mac->addr_bytes[1], next_mac->addr_bytes[2],
+                       next_mac->addr_bytes[3], next_mac->addr_bytes[4], next_mac->addr_bytes[5]);
+            } else {
+              LOG_MAIN(ERR, "No MAC found for next SID, dropping packet.\n");
+              rte_pktmbuf_free(mbuf);
+            }
+          }
 
           // Case 1: Bypass all custom header operations.
           // The packet is not modified by this function and will proceed
