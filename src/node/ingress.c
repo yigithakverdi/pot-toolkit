@@ -48,7 +48,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
       switch (operation_bypass_bit) {
         // Case 0: Full processing including custom header addition, HMAC calculation, and
         // encryption.
-        case 0:
+        case 0: {
           LOG_MAIN(DEBUG, "Processing packet with SRH for ingress.\n");
 
           add_custom_header(mbuf);
@@ -209,7 +209,8 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           }
 
           break;
-          case 1:
+        }
+        case 1: {
           LOG_MAIN(DEBUG, "Processing packet with SRH and HMAC for ingress.\n");
 
           add_custom_header(mbuf);
@@ -333,6 +334,7 @@ static inline void process_ingress_packet(struct rte_mbuf *mbuf, uint16_t rx_por
           LOG_MAIN(DEBUG, "Bypassing custom header operations for ingress packet.\n");
           break;
 
+        }
         default: LOG_MAIN(WARNING, "Unknown operation_bypass_bit value: %d\n", operation_bypass_bit); break;
       }
       break;
