@@ -17,6 +17,7 @@
 
 // Global variable to indicate if running in a virtual machine
 int g_is_virtual_machine = 0; 
+int g_simple_forward = 0;
 
 void config_init(AppConfig* config) {
   config->node.log_level = NULL;

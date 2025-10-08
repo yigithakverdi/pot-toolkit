@@ -6,7 +6,7 @@
 // Global segment list pointer to store IPv6 addresses read from file
 struct in6_addr* g_segments = NULL;
 int g_segment_count = 0;
-int operation_bypass_bit = 0;
+int operation_bypass_bit = g_simple_forward;
 
 // Function to read segment list from a file
 int load_srh_segments(const char* filepath) {

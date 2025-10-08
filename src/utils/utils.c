@@ -40,6 +40,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       {"no-logging", no_argument, 0, 1},
       {"help", no_argument, 0, 'h'},
       {"virtual-machine", no_argument, 0, 'v'},
+      {"simple-forward", no_argument, 0, 'sf'},
       {0, 0, 0, 0} // Dizi sonunu belirtir
   };
 
@@ -83,6 +84,11 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       config->virtual_machine = 1;
       g_is_virtual_machine = 1;
       break;
+
+    case 'sf': // --virtual-machine veya -v
+      config->simple_forward = 1;
+      g_simple_forward = 1;
+      break;      
 
     case 1: // --no-logging
       g_logging_enabled = 0;
