@@ -216,62 +216,11 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // The final packet will have the original IPv6 header and payload,
         // but without the SRH, HMAC TLV, and PoT TLV.
         // LOG_MAIN(INFO, "Egress: HMAC verified successfully, forwarding packet\n");
-        remove_headers_srh_only(mbuf);
+        remove_headers(mbuf);
 
         LOG_MAIN(DEBUG, "Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
         struct rte_ether_hdr* eth_hdr_final = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
         struct rte_ipv6_hdr* ipv6_hdr_final = (struct rte_ipv6_hdr*)(eth_hdr_final + 1);
-        struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)((char*)ipv6_hdr_final + sizeof(struct rte_ipv6_hdr));
-
-        LOG_MAIN(DEBUG, "UDP payload length before sending: %u", 
-                rte_be_to_cpu_16(udp_hdr->dgram_len));
-
-        // Store original UDP ports before any modification
-        uint16_t orig_src_port = rte_be_to_cpu_16(udp_hdr->src_port);
-        uint16_t orig_dst_port = rte_be_to_cpu_16(udp_hdr->dst_port);
-
-        LOG_MAIN(DEBUG, "Original UDP ports - Source: %d, Destination: %d",
-                orig_src_port, orig_dst_port);
-
-        // Verify payload length matches IPv6 length
-        uint16_t ipv6_payload_len = rte_be_to_cpu_16(ipv6_hdr_final->payload_len);
-        uint16_t udp_total_len = rte_be_to_cpu_16(udp_hdr->dgram_len);
-
-        LOG_MAIN(DEBUG, "IPv6 payload length: %u, UDP total length: %u",
-                ipv6_payload_len, udp_total_len);
-
-        if (ipv6_payload_len != udp_total_len) {
-            LOG_MAIN(WARNING, "Mismatch between IPv6 payload length and UDP length");
-            // Fix UDP length if needed
-            udp_hdr->dgram_len = ipv6_hdr_final->payload_len;
-        }
-
-        // Set destination port to 5001 (iperf)
-        udp_hdr->dst_port = rte_cpu_to_be_16(5001);
-        LOG_MAIN(DEBUG, "Updated UDP destination port to 5001");
-
-        // Ensure source port is preserved from original packet
-        if (orig_src_port != 0) {
-            udp_hdr->src_port = rte_cpu_to_be_16(orig_src_port);
-        } else {
-            // If original source port was 0, use a default ephemeral port
-            udp_hdr->src_port = rte_cpu_to_be_16(49152); // First ephemeral port
-            LOG_MAIN(DEBUG, "Set source port to ephemeral port 49152");
-        }
-
-        // Recalculate UDP checksum after all port changes
-        udp_hdr->dgram_cksum = 0;
-        udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr_final, udp_hdr);
-
-        LOG_MAIN(DEBUG, "UDP ports - Source: %d, Destination: %d",
-                rte_be_to_cpu_16(udp_hdr->src_port),
-                rte_be_to_cpu_16(udp_hdr->dst_port));
-
-        // Log packet details before sending
-        rte_hexdump(stdout, "UDP Payload", 
-                    (void*)((char*)udp_hdr + sizeof(struct rte_udp_hdr)),
-                    rte_be_to_cpu_16(udp_hdr->dgram_len) - sizeof(struct rte_udp_hdr));
-
         LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s\n",
                  inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, NULL, 0),
                  inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, NULL, 0));
