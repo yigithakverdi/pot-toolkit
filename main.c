@@ -59,10 +59,6 @@ int main(int argc, char* argv[]) {
   parse_args(&config, argc, argv);
   global_role = setup_node_role(config.node.type);
   operation_bypass_bit = g_simple_forward;
-  if (operation_bypass_bit == 1) {
-    LOG_MAIN(INFO, "Operation bypass bit is set to 1, exiting for debug\n");
-    exit(1);
-  }
   sync_config_to_env(&config);
 
   // TODO before initializing the topology force the index of the current node from the
