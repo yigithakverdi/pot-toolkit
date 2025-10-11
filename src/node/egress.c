@@ -223,6 +223,25 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         struct rte_ipv6_hdr* ipv6_hdr_final = (struct rte_ipv6_hdr*)(eth_hdr_final + 1);
         struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)((char*)ipv6_hdr_final + sizeof(struct rte_ipv6_hdr));
 
+        LOG_MAIN(DEBUG, "UDP payload length before sending: %u", 
+                rte_be_to_cpu_16(udp_hdr->dgram_len));
+
+        // Verify payload length matches IPv6 length
+        uint16_t ipv6_payload_len = rte_be_to_cpu_16(ipv6_hdr_final->payload_len);
+        uint16_t udp_total_len = rte_be_to_cpu_16(udp_hdr->dgram_len);
+
+        LOG_MAIN(DEBUG, "IPv6 payload length: %u, UDP total length: %u",
+                ipv6_payload_len, udp_total_len);
+
+        if (ipv6_payload_len != udp_total_len) {
+            LOG_MAIN(WARNING, "Mismatch between IPv6 payload length and UDP length");
+            // Fix UDP length if needed
+            udp_hdr->dgram_len = ipv6_hdr_final->payload_len;
+            // Recalculate checksum
+            udp_hdr->dgram_cksum = 0;
+            udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr_final, udp_hdr);
+        }
+
         // Fix UDP ports - ensure destination port is 5001 (iperf)
         if (rte_be_to_cpu_16(udp_hdr->dst_port) == 0) {
             udp_hdr->dst_port = rte_cpu_to_be_16(5001);
@@ -236,6 +255,11 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         LOG_MAIN(DEBUG, "UDP ports - Source: %d, Destination: %d",
                 rte_be_to_cpu_16(udp_hdr->src_port),
                 rte_be_to_cpu_16(udp_hdr->dst_port));
+
+        // Log packet details before sending
+        rte_hexdump(stdout, "UDP Payload", 
+                    (void*)((char*)udp_hdr + sizeof(struct rte_udp_hdr)),
+                    rte_be_to_cpu_16(udp_hdr->dgram_len) - sizeof(struct rte_udp_hdr));
 
         LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s\n",
                  inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, NULL, 0),
