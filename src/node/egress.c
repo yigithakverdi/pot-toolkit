@@ -216,7 +216,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // The final packet will have the original IPv6 header and payload,
         // but without the SRH, HMAC TLV, and PoT TLV.
         // LOG_MAIN(INFO, "Egress: HMAC verified successfully, forwarding packet\n");
-        remove_headers(mbuf);
+        remove_headers_srh_only(mbuf);
 
         LOG_MAIN(DEBUG, "Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
         struct rte_ether_hdr* eth_hdr_final = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);

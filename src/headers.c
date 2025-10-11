@@ -97,6 +97,92 @@ void free_srh_segments(void) {
   }
 }
 
+void remove_headers_srh_only(struct rte_mbuf* pkt) {
+  struct rte_ether_hdr* eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr_6 + 1);
+  struct ipv6_srh* srh = (struct ipv6_srh*)(ipv6_hdr + 1);  
+
+  size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;  // Convert back from 8-byte units
+  uint8_t* payload = (uint8_t*)(actual_srh_size + 1);  
+  size_t expected_headers_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) + actual_srh_size;  
+
+  if (rte_pktmbuf_pkt_len(pkt) < expected_headers_size) {
+    LOG_MAIN(ERR, "Packet too small for header removal, expected %zu bytes, got %u\n", 
+             expected_headers_size, rte_pktmbuf_pkt_len(pkt));
+    rte_pktmbuf_free(pkt);
+    return;
+  }  
+
+  char pre_dst_str[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str));
+  LOG_MAIN(DEBUG, "Pre-modification IPv6 destination: %s\n", pre_dst_str);
+
+  size_t headers_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) + actual_srh_size;  
+  LOG_MAIN(DEBUG, "Headers size: %zu bytes\n", headers_size);
+
+  size_t payload_size = rte_pktmbuf_pkt_len(pkt) - headers_size;
+  LOG_MAIN(DEBUG, "Payload size: %zu bytes\n", payload_size);
+
+  uint8_t* tmp_payload = malloc(payload_size);
+  if (tmp_payload == NULL) {
+    LOG_MAIN(ERR, "Failed to allocate memory for tmp_payload\n");
+    rte_pktmbuf_free(pkt);
+    return;
+  }
+  rte_memcpy(tmp_payload, payload, payload_size);
+  LOG_MAIN(DEBUG, "Copied %zu bytes of payload to tmp_payload\n", payload_size);
+
+  size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
+  rte_pktmbuf_trim(pkt, trim_size);
+  ipv6_hdr->proto = 17;
+  LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
+
+  struct in6_addr iperf_server_ipv6;
+  if(g_is_virtual_machine == 0) {
+    if (inet_pton(AF_INET6, "2001:db8:1::d1", &iperf_server_ipv6) != 1) {
+      free(tmp_payload);
+      LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
+      return;
+    }
+  } else {
+    if (inet_pton(AF_INET6, "2a05:d014:dc7:12ef:2dc:bf79:a352:6efe", &iperf_server_ipv6) != 1) {
+      free(tmp_payload);
+      LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
+      return;
+    }    
+  }
+
+  rte_memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
+  LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
+           inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
+
+  uint8_t* new_payload = (uint8_t*)rte_pktmbuf_append(pkt, payload_size);
+  if (new_payload == NULL) {
+    free(tmp_payload);
+    LOG_MAIN(ERR, "Failed to append payload back to packet, freeing tmp_payload\n");
+    return;
+  }
+  rte_memcpy(new_payload, tmp_payload, payload_size);
+  LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
+
+  ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
+  if (ipv6_hdr->proto == 17 && payload_size >= sizeof(struct rte_udp_hdr)) {
+    LOG_MAIN(DEBUG, "Updating UDP header checksum\n");
+    struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)new_payload;
+    udp_hdr->dgram_len = rte_cpu_to_be_16(payload_size);
+    udp_hdr->dgram_cksum = 0;
+    udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, udp_hdr);
+    LOG_MAIN(DEBUG, "Updated UDP checksum: %04x\n", udp_hdr->dgram_cksum);
+  }
+
+  char dst_str[INET6_ADDRSTRLEN];
+  inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_str, sizeof(dst_str));
+  free(tmp_payload);
+  LOG_MAIN(DEBUG, "New destination IPv6: %s\n", dst_str);
+  LOG_MAIN(DEBUG, "Headers removed and payload restored successfully\n");
+
+}
+
 void remove_headers(struct rte_mbuf* pkt) {
   struct rte_ether_hdr* eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
   struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr_6 + 1);
