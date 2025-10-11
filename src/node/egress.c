@@ -221,6 +221,22 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         LOG_MAIN(DEBUG, "Packet after removing headers - length: %u\n", rte_pktmbuf_pkt_len(mbuf));
         struct rte_ether_hdr* eth_hdr_final = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
         struct rte_ipv6_hdr* ipv6_hdr_final = (struct rte_ipv6_hdr*)(eth_hdr_final + 1);
+        struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)((char*)ipv6_hdr_final + sizeof(struct rte_ipv6_hdr));
+
+        // Fix UDP ports - ensure destination port is 5001 (iperf)
+        if (rte_be_to_cpu_16(udp_hdr->dst_port) == 0) {
+            udp_hdr->dst_port = rte_cpu_to_be_16(5001);
+            LOG_MAIN(DEBUG, "Updated UDP destination port to 5001");
+            
+            // Recalculate UDP checksum
+            udp_hdr->dgram_cksum = 0;
+            udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr_final, udp_hdr);
+        }
+
+        LOG_MAIN(DEBUG, "UDP ports - Source: %d, Destination: %d",
+                rte_be_to_cpu_16(udp_hdr->src_port),
+                rte_be_to_cpu_16(udp_hdr->dst_port));
+
         LOG_MAIN(DEBUG, "Final packet IPv6 src: %s, dst: %s\n",
                  inet_ntop(AF_INET6, &ipv6_hdr_final->src_addr, NULL, 0),
                  inet_ntop(AF_INET6, &ipv6_hdr_final->dst_addr, NULL, 0));
