@@ -185,9 +185,6 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
       // } else {
       //   send_packet_to(iperf_mac, mbuf, 0);
       // }
-      LOG_MAIN(DEBUG, "Packet sent to iperf server with MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
-               iperf_mac.addr_bytes[0], iperf_mac.addr_bytes[1], iperf_mac.addr_bytes[2],
-               iperf_mac.addr_bytes[3], iperf_mac.addr_bytes[4], iperf_mac.addr_bytes[5]);
     } break;
     }
   }
