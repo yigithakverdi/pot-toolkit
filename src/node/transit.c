@@ -207,6 +207,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
       // add_next_hop("2a05:d014:dc7:1281:7aa5:aa66:e3d1:d8a5", "02:56:e6:d5:57:05");
       // add_next_hop("2a05:d014:dc7:1210:818e:dec3:7ed3:a935", "02:63:a9:59:f8:8f");
       struct rte_ether_addr mac = {{0x02, 0x63, 0xa9, 0x59, 0xf8, 0x8f}};
+      // 02:63:a9:59:f8:8f
       send_packet_to(mac, mbuf, 0);      
       break;
     } 
