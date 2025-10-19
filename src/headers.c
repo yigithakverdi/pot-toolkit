@@ -107,8 +107,6 @@ void remove_headers(struct rte_mbuf* pkt) {
   uint8_t original_proto = srh->next_header;
   size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
 
-  // Calculate dynamic SRH size from header
-  size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;  // Convert back from 8-byte units
   struct hmac_tlv* hmac = (struct hmac_tlv*)((uint8_t*)srh + actual_srh_size);
   struct pot_tlv* pot = (struct pot_tlv*)(hmac + 1);
   uint8_t* payload = (uint8_t*)(pot + 1);
