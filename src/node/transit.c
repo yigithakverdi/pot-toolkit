@@ -55,7 +55,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
                           sizeof(struct hmac_tlv) + 
                           sizeof(struct pot_tlv);  
 
-  if (rte_pktmbuf_pkt_len(mbuf) < min_packet_size) {
+  if (!g_simple_forward && (rte_pktmbuf_pkt_len(mbuf) < min_packet_size)) {
     LOG_MAIN(WARNING, "Transit: Packet too small (%u bytes) for expected headers (%zu bytes), dropping\n", 
              rte_pktmbuf_pkt_len(mbuf), min_packet_size);
     rte_pktmbuf_free(mbuf);
@@ -66,7 +66,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
   case RTE_ETHER_TYPE_IPV6:
     LOG_MAIN(DEBUG, "Transit packet is IPv6, processing headers.\n");
 
-    switch (0) {
+    switch (operation_bypass_bit) {
     case 0: {
       LOG_MAIN(DEBUG, "Processing transit packet with SRH.\n");
 
