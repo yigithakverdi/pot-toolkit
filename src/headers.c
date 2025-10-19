@@ -186,13 +186,19 @@ void remove_headers(struct rte_mbuf* pkt) {
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
 
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
-  if (ipv6_hdr->proto == 17 && payload_size >= sizeof(struct rte_udp_hdr)) {
+  if (ipv6_hdr->proto == IPPROTO_UDP && payload_size >= sizeof(struct rte_udp_hdr)) {
     LOG_MAIN(DEBUG, "Updating UDP header checksum\n");
     struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)new_payload;
     udp_hdr->dgram_len = rte_cpu_to_be_16(payload_size);
     udp_hdr->dgram_cksum = 0;
     udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, udp_hdr);
     LOG_MAIN(DEBUG, "Updated UDP checksum: %04x\n", udp_hdr->dgram_cksum);
+  } else if (ipv6_hdr->proto == IPPROTO_TCP && payload_size >= sizeof(struct rte_tcp_hdr)) {
+    LOG_MAIN(DEBUG, "Updating TCP header checksum\n");
+    struct rte_tcp_hdr* tcp_hdr = (struct rte_tcp_hdr*)new_payload;
+    tcp_hdr->cksum = 0;
+    tcp_hdr->cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, tcp_hdr);
+    LOG_MAIN(DEBUG, "Updated TCP checksum: %04x\n", tcp_hdr->cksum);
   }
 
   char dst_str[INET6_ADDRSTRLEN];
