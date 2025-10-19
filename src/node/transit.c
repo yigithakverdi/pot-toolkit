@@ -18,8 +18,10 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
   //                         sizeof(struct ipv6_srh) + 
   //                         sizeof(struct hmac_tlv) + 
   //                         sizeof(struct pot_tlv);
-  
-  if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr)) {
+
+  // If simple forward mode is selected then skip the size checks since it just directly forwards the packets
+  // without any modification, SRH header additions etc.
+  if (!g_simple_forward && (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr))) {
       LOG_MAIN(WARNING, "Transit: Packet too small for basic headers, dropping\n");
       rte_pktmbuf_free(mbuf);
       return;
