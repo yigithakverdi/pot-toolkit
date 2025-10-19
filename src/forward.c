@@ -190,6 +190,22 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
              inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_str, sizeof(src_str)),
              inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_str, sizeof(dst_str)));
 
+    // Recalculate transport checksum before sending
+    uint16_t payload_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
+    uint8_t* transport_ptr = (uint8_t*)(ipv6_hdr + 1);
+
+    if (ipv6_hdr->proto == IPPROTO_UDP && payload_size >= sizeof(struct rte_udp_hdr)) {
+      struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)transport_ptr;
+      udp_hdr->dgram_cksum = 0;
+      udp_hdr->dgram_cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, udp_hdr);
+      LOG_MAIN(DEBUG, "Recalculated UDP checksum before tx: %04x\n", udp_hdr->dgram_cksum);
+    } else if (ipv6_hdr->proto == IPPROTO_TCP && payload_size >= sizeof(struct rte_tcp_hdr)) {
+      struct rte_tcp_hdr* tcp_hdr = (struct rte_tcp_hdr*)transport_ptr;
+      tcp_hdr->cksum = 0;
+      tcp_hdr->cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, tcp_hdr);
+      LOG_MAIN(DEBUG, "Recalculated TCP checksum before tx: %04x\n", tcp_hdr->cksum);
+    }
+
     // inet_ntop(AF_INET6, &ipv6_hdr->src_addr, src_str, sizeof(src_str));
     // inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, dst_str, sizeof(dst_str));
   }
