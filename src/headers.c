@@ -2,6 +2,8 @@
 #include "utils/config.h"
 #include "utils/logging.h"
 #include <rte_malloc.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
 
 // Global segment list pointer to store IPv6 addresses read from file
 struct in6_addr* g_segments = NULL;

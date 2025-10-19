@@ -6,6 +6,8 @@
 #include "node/transit.h"
 #include "node/egress.h"
 #include <sys/resource.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
 
 // Add system health monitoring function
 static void log_system_health(uint64_t packet_count) {
