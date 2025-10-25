@@ -70,7 +70,6 @@ int lcore_main_forward(void* arg) {
     if (nb_rx == 0) {
       // Pure poll: keep the core hot; optional short backoff
       rte_pause();
-      rte_pause();
       continue;
     }
 
@@ -78,7 +77,7 @@ int lcore_main_forward(void* arg) {
     packet_count += nb_rx;
 
     // Log health check based on packet count instead of loop iterations
-    log_system_health(packet_count);
+    // log_system_health(packet_count);
 
     // Log burst info periodically for debugging
     if (packet_count % 10000 == 0 && nb_rx > 0) {
