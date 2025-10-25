@@ -148,6 +148,8 @@ static int latency_buffer_index = 0;
 
 uint16_t calc_latency(uint16_t port, uint16_t qidx __rte_unused, struct rte_mbuf** pkts, uint16_t nb_pkts,
                       void* _ __rte_unused) {
+
+  LOG_MAIN(DEBUG, "Transit packet is IPv6, processing headers.\n");                        
   uint64_t cycles = 0;
   uint64_t now = rte_rdtsc();
   unsigned i;

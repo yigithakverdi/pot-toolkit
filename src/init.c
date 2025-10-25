@@ -1,17 +1,16 @@
 #include "init.h"
+#include "crypto.h"
 #include "headers.h"
+#include "node/controller.h"
 #include "utils/logging.h"
 #include "utils/utils.h"
 #include <fcntl.h>
 #include <getopt.h>
+#include <openssl/md5.h>
 #include <rte_ethdev.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "crypto.h"
-#include "node/controller.h"
-#include "node/controller.h"
 #include <unistd.h>
-#include <openssl/md5.h>
 
 int init_eal(int argc, char* argv[]) {
   LOG_MAIN(DEBUG, "Initializing DPDK EAL\n");
@@ -30,24 +29,30 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) 
     rte_exit(EXIT_FAILURE, "Cannot init port %" PRIu16 "\n", port_id);
   }
 
-  switch (role) {
-  case PORT_ROLE_LATENCY_RX:
-    rte_eth_add_rx_callback(port_id, 0, add_timestamps, NULL);
-    // rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
-    LOG_MAIN(INFO, "Added RX timestamp callback to port %u\n", port_id);
-    break;
-  case PORT_ROLE_LATENCY_TX:
-    rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
-    LOG_MAIN(INFO, "Added TX latency calculation callback to port %u\n", port_id);
-    break;
-  }
+  rte_eth_add_rx_callback(port_id, 0, add_timestamps, NULL);
+  LOG_MAIN(INFO, "Added RX timestamp callback to port %u\n", port_id);
+
+  rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
+  LOG_MAIN(INFO, "Added TX latency calculation callback to port %u\n", port_id);
+
+  // switch (role) {
+  // case PORT_ROLE_LATENCY_RX:
+  //   rte_eth_add_rx_callback(port_id, 0, add_timestamps, NULL);
+  //   // rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
+  //   LOG_MAIN(INFO, "Added RX timestamp callback to port %u\n", port_id);
+  //   break;
+  // case PORT_ROLE_LATENCY_TX:
+  //   rte_eth_add_tx_callback(port_id, 0, calc_latency, NULL);
+  //   LOG_MAIN(INFO, "Added TX latency calculation callback to port %u\n", port_id);
+  //   break;
+  // }
 }
 
 struct rte_mempool* init_mempool() {
   LOG_MAIN(DEBUG, "Creating mbuf pool\n");
 
   struct rte_mempool* mbuf_pool =
-      rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS * rte_eth_dev_count_avail(), MBUF_CACHE_SIZE, 0,
+      rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0,
                               RTE_MBUF_DEFAULT_BUF_SIZE + EXTRA_SPACE, rte_socket_id());
 
   LOG_MAIN(DEBUG, "Mbuf pool created: %p\n", mbuf_pool);
@@ -153,9 +158,10 @@ int init_logging(const char* log_dir, const char* component_name, int log_level)
   gethostname(hostname, sizeof(hostname) - 1);
 
   char log_file_path[256];
-  if(g_logging_enabled) {
+  if (g_logging_enabled) {
     snprintf(log_file_path, sizeof(log_file_path), "%s/%s-%s-%d-%02d-%02d_%02d%02d%02d.log", log_dir,
-            component_name, hostname, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+             component_name, hostname, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min,
+             tm.tm_sec);
   }
 
   int fd = open(log_file_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
@@ -181,10 +187,9 @@ int init_logging(const char* log_dir, const char* component_name, int log_level)
 }
 
 void mac_from_name(const char* name, char* mac_str, size_t mac_str_len) {
-    unsigned char hash[MD5_DIGEST_LENGTH];
-    MD5((const unsigned char*)name, strlen(name), hash);
-    snprintf(mac_str, mac_str_len, "02:%02x:%02x:%02x:%02x:%02x",
-             hash[0], hash[1], hash[2], hash[3], hash[4]);
+  unsigned char hash[MD5_DIGEST_LENGTH];
+  MD5((const unsigned char*)name, strlen(name), hash);
+  snprintf(mac_str, mac_str_len, "02:%02x:%02x:%02x:%02x:%02x", hash[0], hash[1], hash[2], hash[3], hash[4]);
 }
 
 // void init_lookup_table() {
@@ -211,16 +216,16 @@ void mac_from_name(const char* name, char* mac_str, size_t mac_str_len) {
 //   mac_from_name("veth_srva", mac, sizeof(mac));
 //   add_next_hop("2001:db8:1::200", mac);
 //   LOG_MAIN(INFO, "Added next hop: IPv6 2001:db8:1::200, MAC %s (veth: veth_srva)\n", mac);
-//   LOG_MAIN(DEBUG, "Lookup table initialization completed\n");  
+//   LOG_MAIN(DEBUG, "Lookup table initialization completed\n");
 
 //   // add_next_hop("2001:db8:1::100", "56:2a:1a:a3:0c:30");
-//   // add_next_hop("2001:db8:1::", "da:71:02:ee:a0:a3"); 
+//   // add_next_hop("2001:db8:1::", "da:71:02:ee:a0:a3");
 
-//   // add_next_hop("2001:db8:1::1", "02:b0:e0:ec:6e:a7"); 
-//   // add_next_hop("2001:db8:1::1", "4a:b7:f6:b8:4c:fe"); 
+//   // add_next_hop("2001:db8:1::1", "02:b0:e0:ec:6e:a7");
+//   // add_next_hop("2001:db8:1::1", "4a:b7:f6:b8:4c:fe");
 
-//   // add_next_hop("2001:db8:1::2", "8e:a6:41:71:19:5c"); 
-//   // add_next_hop("2001:db8:1::200", "b2:58:54:70:36:16"); 
+//   // add_next_hop("2001:db8:1::2", "8e:a6:41:71:19:5c");
+//   // add_next_hop("2001:db8:1::200", "b2:58:54:70:36:16");
 
 //   LOG_MAIN(DEBUG, "Lookup table initialization completed\n");
 // }
@@ -237,22 +242,22 @@ void init_lookup_table() {
 
   int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
   if (num_transit < 0) {
-      num_transit = 1; 
+    num_transit = 1;
   }
 
-  for (int i = 0; i < num_transit + 1; ++i) { 
-      char ipv6[64], mac[32], veth_name[32];
-      
-      // The IP suffix for the receiving end of link 'i' is (i * 2 + 2)
-      int ip_suffix = (i * 2) + 2;
-      snprintf(ipv6, sizeof(ipv6), "2001:db8:1::%d", ip_suffix);
+  for (int i = 0; i < num_transit + 1; ++i) {
+    char ipv6[64], mac[32], veth_name[32];
 
-      // The MAC address is based on the veth name 'veth_chain_{i}b'
-      snprintf(veth_name, sizeof(veth_name), "veth_chain_%db", i);
-      mac_from_name(veth_name, mac, sizeof(mac));
-      
-      add_next_hop(ipv6, mac);
-      LOG_MAIN(INFO, "Added next hop: IPv6 %s, MAC %s (veth: %s)\n", ipv6, mac, veth_name);
+    // The IP suffix for the receiving end of link 'i' is (i * 2 + 2)
+    int ip_suffix = (i * 2) + 2;
+    snprintf(ipv6, sizeof(ipv6), "2001:db8:1::%d", ip_suffix);
+
+    // The MAC address is based on the veth name 'veth_chain_{i}b'
+    snprintf(veth_name, sizeof(veth_name), "veth_chain_%db", i);
+    mac_from_name(veth_name, mac, sizeof(mac));
+
+    add_next_hop(ipv6, mac);
+    LOG_MAIN(INFO, "Added next hop: IPv6 %s, MAC %s (veth: %s)\n", ipv6, mac, veth_name);
   }
 
   // Add iperf client and server connections
@@ -264,7 +269,7 @@ void init_lookup_table() {
   mac_from_name("veth_srvb", mac, sizeof(mac));
   add_next_hop("2001:db8:1::d1", mac);
   LOG_MAIN(INFO, "Added next hop: IPv6 2001:db8:1::d1, MAC %s (veth: veth_srvb)\n", mac);
-  
+
   LOG_MAIN(DEBUG, "Lookup table initialization completed\n");
 }
 

@@ -1,27 +1,27 @@
 #include "forward.h"
+#include "node/egress.h"
+#include "node/ingress.h"
+#include "node/transit.h"
 #include "utils/logging.h"
 #include "utils/role.h"
 #include "utils/utils.h"
-#include "node/ingress.h"
-#include "node/transit.h"
-#include "node/egress.h"
-#include <sys/resource.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
+#include <sys/resource.h>
 
 // Add system health monitoring function
 static void log_system_health(uint64_t packet_count) {
   static uint64_t last_log = 0;
-  
+
   // Only log when significant packet activity occurs (every 1000 packets)
   if (packet_count - last_log >= 1) {
     last_log = packet_count;
-    
+
     // Check memory usage
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) == 0) {
-      LOG_MAIN(INFO, "Health Check: Processed %lu packets, Memory RSS: %ld KB\n", 
-               packet_count, usage.ru_maxrss);
+      LOG_MAIN(INFO, "Health Check: Processed %lu packets, Memory RSS: %ld KB\n", packet_count,
+               usage.ru_maxrss);
     }
   }
 }
@@ -60,22 +60,29 @@ int lcore_main_forward(void* arg) {
     // If no packets were received in this burst (nb_rx is 0),
     // continue to the next iteration of the loop to try again.
     // This avoids unnecessary processing when no data is available.
+    // if (nb_rx == 0) {
+    //   // Add a small delay when no packets to prevent CPU spinning
+    //   // 1 microsecond delay
+    //   rte_delay_us_block(1); 
+    //   continue;
+    // }
+
     if (nb_rx == 0) {
-      // Add a small delay when no packets to prevent CPU spinning
-      rte_delay_us_block(1); // 1 microsecond delay
+      // Pure poll: keep the core hot; optional short backoff
+      rte_pause();
+      rte_pause();
       continue;
     }
 
     // Only increment counter and log when we actually receive packets
     packet_count += nb_rx;
-    
+
     // Log health check based on packet count instead of loop iterations
     log_system_health(packet_count);
-    
+
     // Log burst info periodically for debugging
     if (packet_count % 10000 == 0 && nb_rx > 0) {
-      LOG_MAIN(DEBUG, "Received burst of %u packets, total packets: %lu\n", 
-               nb_rx, packet_count);
+      LOG_MAIN(DEBUG, "Received burst of %u packets, total packets: %lu\n", nb_rx, packet_count);
     }
 
     // This block will execute only if at least one packet was received (nb_rx > 0).
@@ -91,16 +98,10 @@ int lcore_main_forward(void* arg) {
     }
 
     switch (cur_role) {
-    case ROLE_INGRESS: 
-      process_ingress(pkts, nb_rx, rx_port_id); 
-      break;
-    case ROLE_TRANSIT: 
-      process_transit(pkts, nb_rx); 
-      break;
-    case ROLE_EGRESS: 
-      process_egress(pkts, nb_rx); 
-      break;
-    default: 
+    case ROLE_INGRESS: process_ingress(pkts, nb_rx, rx_port_id); break;
+    case ROLE_TRANSIT: process_transit(pkts, nb_rx); break;
+    case ROLE_EGRESS: process_egress(pkts, nb_rx); break;
+    default:
       // Free unprocessed packets to prevent memory leaks
       for (uint16_t i = 0; i < nb_rx; i++) {
         rte_pktmbuf_free(pkts[i]);
@@ -122,7 +123,7 @@ void launch_lcore_forwarding(uint16_t* ports) {
     LOG_MAIN(INFO, "Only one lcore available, running forwarding on master lcore %u\n", rte_lcore_id());
     lcore_main_forward((void*)ports);
     return;
-  }  
+  }
 
   LOG_MAIN(INFO, "Launching forwarding on lcore %u\n", lcore_id);
   LOG_MAIN(INFO, "Selected lcore ID: %u\n", lcore_id);
@@ -161,20 +162,19 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
   struct rte_ether_addr src_mac;
   int ret = rte_eth_macaddr_get(tx_port_id, &src_mac);
   if (ret != 0) {
-      LOG_MAIN(ERR, "Failed to get MAC address for port %u: %s\n", tx_port_id, strerror(-ret));
-      rte_pktmbuf_free(mbuf);
-      return;
-  }  
+    LOG_MAIN(ERR, "Failed to get MAC address for port %u: %s\n", tx_port_id, strerror(-ret));
+    rte_pktmbuf_free(mbuf);
+    return;
+  }
 
   rte_ether_addr_copy(&src_mac, &eth_hdr->src_addr);
-  rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);  
+  rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);
 
   LOG_MAIN(DEBUG, "Final MACs -> Src: %02x:%02x:%02x:%02x:%02x:%02x, Dst: %02x:%02x:%02x:%02x:%02x:%02x\n",
-        src_mac.addr_bytes[0], src_mac.addr_bytes[1], src_mac.addr_bytes[2],
-        src_mac.addr_bytes[3], src_mac.addr_bytes[4], src_mac.addr_bytes[5],
-        mac_addr.addr_bytes[0], mac_addr.addr_bytes[1], mac_addr.addr_bytes[2],
-        mac_addr.addr_bytes[3], mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);  
-  
+           src_mac.addr_bytes[0], src_mac.addr_bytes[1], src_mac.addr_bytes[2], src_mac.addr_bytes[3],
+           src_mac.addr_bytes[4], src_mac.addr_bytes[5], mac_addr.addr_bytes[0], mac_addr.addr_bytes[1],
+           mac_addr.addr_bytes[2], mac_addr.addr_bytes[3], mac_addr.addr_bytes[4], mac_addr.addr_bytes[5]);
+
   // Check if the Ethernet frame's EtherType field indicates that the payload
   // is an IPv6 packet.
   // rte_be_to_cpu_16() converts a 16-bit value from big-endian (network byte order)
@@ -219,11 +219,12 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
   //   rte_ether_addr_copy(&mac_addr, &eth_hdr->dst_addr);
 
   //   LOG_MAIN(
-  //       DEBUG, "New MAC Source: %02x:%02x:%02x:%02x:%02x:%02x, Destination: %02x:%02x:%02x:%02x:%02x:%02x\n",
-  //       eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1], eth_hdr->src_addr.addr_bytes[2],
-  //       eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5],
-  //       eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1], eth_hdr->dst_addr.addr_bytes[2],
-  //       eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+  //       DEBUG, "New MAC Source: %02x:%02x:%02x:%02x:%02x:%02x, Destination:
+  //       %02x:%02x:%02x:%02x:%02x:%02x\n", eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+  //       eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3], eth_hdr->src_addr.addr_bytes[4],
+  //       eth_hdr->src_addr.addr_bytes[5], eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+  //       eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3], eth_hdr->dst_addr.addr_bytes[4],
+  //       eth_hdr->dst_addr.addr_bytes[5]);
   // }
 
   // Check if the packet length is less than the size of an Ethernet header.
