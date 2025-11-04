@@ -1,5 +1,0 @@
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libprofiler.so \
-CPUPROFILE=/tmp/cpu.prof \
-CPUPROFILE_FREQUENCY=1000 \
-CPUPROFILE_REALTIME=1 \
-sudo ./build/dpdk-pot -l 0 -- --node-index 0 --num-transit 1 --type ingress --no-logging --virtual-machine --simple-forward &

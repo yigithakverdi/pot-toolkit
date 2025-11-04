@@ -2,6 +2,8 @@
 /docs/notes/*.md
 /docs/experiment.md
 
+experimentation.md
+
 # Ignore clangd cache
 .clangd/
 ./.clangd

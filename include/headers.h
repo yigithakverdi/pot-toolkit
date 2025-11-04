@@ -84,5 +84,7 @@ void add_custom_header_only_srh(struct rte_mbuf* pkt);
 void remove_headers(struct rte_mbuf* pkt);
 int load_srh_segments(const char* filepath);
 void free_srh_segments(void);
+void add_srh_only_header(struct rte_mbuf *pkt);
+void remove_srh_only_header(struct rte_mbuf* pkt);
 
 #endif // HEADERS_H
