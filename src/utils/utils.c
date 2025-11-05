@@ -142,7 +142,7 @@ uint16_t add_timestamps(uint16_t port __rte_unused, uint16_t qidx __rte_unused, 
 
 struct latency_numbers_t latency_numbers = {0, 0, 0};
 
-#define LATENCY_BATCH_SIZE 100
+#define LATENCY_BATCH_SIZE 1000
 static double latency_buffer[LATENCY_BATCH_SIZE];
 static int latency_buffer_index = 0;
 
