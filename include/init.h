@@ -17,7 +17,7 @@
 
 #define NUM_MBUFS (8192 * 4)
 #define MBUF_CACHE_SIZE 256
-#define EXTRA_SPACE 0
+#define EXTRA_SPACE 8192 * 2
 
 int init_eal(int argc, char* argv[]);
 void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role);
