@@ -121,7 +121,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // Increase segment_left by 1 to temporarly test if it is the root cause of
         // HMAC verification failure
         srh->segments_left += 1;
-        if (calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
+        if (true && calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
                            expected_hmac) != 0) {
           LOG_MAIN(ERR, "Egress: HMAC calculation failed\n");
           rte_pktmbuf_free(mbuf);
