@@ -83,14 +83,14 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
       // Verify that the SRH's next header is 61 (Destination Options Header)
       // and its routing type is 4 (SRH). If not, the packet is not a valid SRv6 packet
       // for this transit node, so it's dropped.
-      if (srh->next_header != IPROTO_TCP || srh->routing_type != 4) {
+      if (srh->routing_type != 4) {
         LOG_MAIN(WARNING, "Transit: SRH next_header (%u) or routing_type (%u) mismatch, dropping packet.\n",
                  srh->next_header, srh->routing_type);
         rte_pktmbuf_free(mbuf);
         return;
       }
 
-      if (srh->next_header == IPROTO_TCP) {
+      if (true) {
         // size_t srh_bytes = sizeof(struct ipv6_srh);
         size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
         struct in6_addr* segments = (struct in6_addr*)((uint8_t*)srh + sizeof(struct ipv6_srh));

@@ -57,7 +57,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
       // 61 is the next header type for SRv6, as per RFC 8200.
       // If the next header is not 61, we do not process the packet further
       // and simply return.
-      if (srh->next_header == 61) {
+      if (true) {
         LOG_MAIN(DEBUG, "SRH detected, processing packet\n");
         size_t actual_srh_size = (srh->hdr_ext_len * 8) + 8;
         size_t min_packet_size = sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr) +
