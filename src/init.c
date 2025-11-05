@@ -29,13 +29,10 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) 
     rte_exit(EXIT_FAILURE, "Cannot init port %" PRIu16 "\n", port_id);
   }
 
-  // Verify port TX offload capabilities
+  // Verify port TX offload capabilities for transport layer checksums
   struct rte_eth_dev_info dev_info;
   rte_eth_dev_info_get(port_id, &dev_info);
 
-  if (!(dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_IPV6_CKSUM)) {
-    LOG_MAIN(WARNING, "Port %u does not support IPv6 checksum offload\n", port_id);
-  }
   if (!(dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_TCP_CKSUM)) {
     LOG_MAIN(WARNING, "Port %u does not support TCP checksum offload\n", port_id);
   }
