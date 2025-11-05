@@ -240,10 +240,6 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
 
   // Set mbuf offload metadata for NIC hardware offload
   // Modern NICs require these flags to properly handle checksum calculation
-  mbuf->ol_flags = 0;  // Clear existing flags
-  mbuf->l2_len = sizeof(struct rte_ether_hdr);
-  mbuf->l3_len = sizeof(struct rte_ipv6_hdr);
-
   if (rte_be_to_cpu_16(eth_hdr->ether_type) == RTE_ETHER_TYPE_IPV6) {
     // Verify packet has enough data for IPv6 header
     if (rte_pktmbuf_pkt_len(mbuf) < sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv6_hdr)) {
@@ -251,13 +247,18 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
     } else {
       struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
       
+      // Set common IPv6 offload metadata
+      mbuf->ol_flags = RTE_MBUF_F_TX_IPV6;
+      mbuf->l2_len = sizeof(struct rte_ether_hdr);
+      mbuf->l3_len = sizeof(struct rte_ipv6_hdr);
+      
       if (ipv6_hdr->proto == IPPROTO_TCP) {
         mbuf->l4_len = sizeof(struct rte_tcp_hdr);
-        mbuf->ol_flags |= RTE_MBUF_F_TX_TCP_CKSUM | RTE_MBUF_F_TX_IPV6;
+        mbuf->ol_flags |= RTE_MBUF_F_TX_TCP_CKSUM;
         LOG_MAIN(DEBUG, "Set TCP checksum offload flags\n");
       } else if (ipv6_hdr->proto == IPPROTO_UDP) {
         mbuf->l4_len = sizeof(struct rte_udp_hdr);
-        mbuf->ol_flags |= RTE_MBUF_F_TX_UDP_CKSUM | RTE_MBUF_F_TX_IPV6;
+        mbuf->ol_flags |= RTE_MBUF_F_TX_UDP_CKSUM;
         LOG_MAIN(DEBUG, "Set UDP checksum offload flags\n");
       }
     }
