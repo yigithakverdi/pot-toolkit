@@ -238,6 +238,26 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
     return;
   }
 
+  // Set mbuf offload metadata for NIC hardware offload
+  // Modern NICs require these flags to properly handle checksum calculation
+  mbuf->ol_flags = 0;  // Clear existing flags
+  mbuf->l2_len = sizeof(struct rte_ether_hdr);
+  mbuf->l3_len = sizeof(struct rte_ipv6_hdr);
+
+  if (rte_be_to_cpu_16(eth_hdr->ether_type) == RTE_ETHER_TYPE_IPV6) {
+    struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+    
+    if (ipv6_hdr->proto == IPPROTO_TCP) {
+      mbuf->l4_len = sizeof(struct rte_tcp_hdr);
+      mbuf->ol_flags |= RTE_MBUF_F_TX_TCP_CKSUM | RTE_MBUF_F_TX_IPV6;
+      LOG_MAIN(DEBUG, "Set TCP checksum offload flags\n");
+    } else if (ipv6_hdr->proto == IPPROTO_UDP) {
+      mbuf->l4_len = sizeof(struct rte_udp_hdr);
+      mbuf->ol_flags |= RTE_MBUF_F_TX_UDP_CKSUM | RTE_MBUF_F_TX_IPV6;
+      LOG_MAIN(DEBUG, "Set UDP checksum offload flags\n");
+    }
+  }
+
   // Send the packet using DPDK's Ethernet transmit function.
   // rte_eth_tx_burst() attempts to send a burst of packets on the specified transmit
   // port and queue. It returns the number of packets successfully sent.

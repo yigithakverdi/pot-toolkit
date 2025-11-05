@@ -29,6 +29,20 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) 
     rte_exit(EXIT_FAILURE, "Cannot init port %" PRIu16 "\n", port_id);
   }
 
+  // Verify port TX offload capabilities
+  struct rte_eth_dev_info dev_info;
+  rte_eth_dev_info_get(port_id, &dev_info);
+
+  if (!(dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_IPV6_CKSUM)) {
+    LOG_MAIN(WARNING, "Port %u does not support IPv6 checksum offload\n", port_id);
+  }
+  if (!(dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_TCP_CKSUM)) {
+    LOG_MAIN(WARNING, "Port %u does not support TCP checksum offload\n", port_id);
+  }
+  if (!(dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_UDP_CKSUM)) {
+    LOG_MAIN(WARNING, "Port %u does not support UDP checksum offload\n", port_id);
+  }
+
   // rte_eth_add_rx_callback(port_id, 0, add_timestamps, NULL);
   // LOG_MAIN(INFO, "Added RX timestamp callback to port %u\n", port_id);
 
