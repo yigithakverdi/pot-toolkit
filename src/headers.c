@@ -150,11 +150,6 @@ void remove_headers(struct rte_mbuf* pkt) {
   rte_memcpy(tmp_payload, payload, payload_size);
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload to tmp_payload\n", payload_size);
 
-  size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
-  rte_pktmbuf_trim(pkt, trim_size);
-  ipv6_hdr->proto = original_proto;
-  LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
-
   struct in6_addr iperf_server_ipv6;
   if(g_is_virtual_machine == 0) {
     if (inet_pton(AF_INET6, "2001:db8:1::d1", &iperf_server_ipv6) != 1) {
@@ -170,6 +165,15 @@ void remove_headers(struct rte_mbuf* pkt) {
     }    
   }
 
+  size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
+  rte_pktmbuf_trim(pkt, trim_size);
+
+  // *** Re-acquire pointers after trim ***
+  eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr_6 + 1);
+  
+  ipv6_hdr->proto = original_proto;
+  LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
   rte_memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
   LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
            inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
@@ -182,6 +186,10 @@ void remove_headers(struct rte_mbuf* pkt) {
   }
   rte_memcpy(new_payload, tmp_payload, payload_size);
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
+
+  // *** CRITICAL: Re-acquire pointers after append! ***
+  eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr_6 + 1);
 
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
   if (ipv6_hdr->proto == IPPROTO_UDP && payload_size >= sizeof(struct rte_udp_hdr)) {
@@ -288,6 +296,11 @@ void add_custom_header(struct rte_mbuf *pkt) {
     LOG_MAIN(DEBUG, "No payload to save (payload_size is 0)\n");
   }
 
+  // *** Re-acquire pointers after trim ***
+  eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
+  ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
+  LOG_MAIN(DEBUG, "Re-acquired pointers after trim: eth=%p, ipv6=%p\n", eth_hdr_6, ipv6_hdr);
+
   // Append headers with NULL checks
   LOG_MAIN(DEBUG, "Appending custom headers to packet\n");
   // srh_hdr = (struct ipv6_srh *)rte_pktmbuf_append(pkt, sizeof(struct ipv6_srh));
@@ -333,6 +346,11 @@ void add_custom_header(struct rte_mbuf *pkt) {
     free(tmp_payload); 
     LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
   }
+
+  // *** CRITICAL: Re-acquire pointers after ALL appends! ***
+  eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
+  ipv6_hdr = (struct rte_ipv6_hdr *)(eth_hdr_6 + 1);
+  LOG_MAIN(DEBUG, "Re-acquired pointers after appends: eth=%p, ipv6=%p\n", eth_hdr_6, ipv6_hdr);
 
   // Initialize the POT TLV header safely
   pot_hdr->type = 1;
@@ -483,6 +501,11 @@ void add_srh_only_header(struct rte_mbuf *pkt) {
     LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
   }
 
+  // *** Re-acquire pointers after append ***
+  eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+  srh_hdr = (struct ipv6_srh*)(ipv6_hdr + 1);
+
   // Initialize SRH header only
   srh_hdr->next_header = original_proto;
   srh_hdr->hdr_ext_len = (total_srh_size - 8) / 8;
@@ -556,12 +579,13 @@ void remove_srh_only_header(struct rte_mbuf* pkt) {
 
   size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
   rte_pktmbuf_trim(pkt, trim_size);
+  
+  // *** Re-acquire pointers after trim ***
+  eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+  
   ipv6_hdr->proto = original_proto;
   LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
-
-  rte_memcpy(&ipv6_hdr->dst_addr, &ipv6_hdr->dst_addr, sizeof(struct in6_addr));
-  LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
-           inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
 
   uint8_t* new_payload = (uint8_t*)rte_pktmbuf_append(pkt, payload_size);
   if (new_payload == NULL) {
@@ -572,7 +596,10 @@ void remove_srh_only_header(struct rte_mbuf* pkt) {
   rte_memcpy(new_payload, tmp_payload, payload_size);
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
 
+  eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
+
   if (ipv6_hdr->proto == IPPROTO_UDP && payload_size >= sizeof(struct rte_udp_hdr)) {
     LOG_MAIN(DEBUG, "Updating UDP header checksum\n");
     struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)new_payload;
