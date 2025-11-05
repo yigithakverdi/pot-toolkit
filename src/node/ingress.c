@@ -47,8 +47,13 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
     // Case 0: Full processing including custom header addition, HMAC calculation, and
     // encryption.
     case 0: {
-      LOG_MAIN(DEBUG, "Processing packet with SRH for ingress.\n");
 
+      if (ip6->proto != IPPROTO_TCP) {
+          // Bypass: ND/ICMPv6/etc. must NOT be SRH/PoT-wrapped.
+          return fastpath_forward(mbuf); // or drop; just don't wrap
+      }
+            
+      LOG_MAIN(DEBUG, "Processing packet with SRH for ingress.\n");
       add_custom_header(mbuf);
 
       struct rte_ether_hdr* eth_hdr6 = rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr*);
