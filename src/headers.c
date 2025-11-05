@@ -197,6 +197,8 @@ void remove_headers(struct rte_mbuf* pkt) {
     tcp_hdr->cksum = 0;
     tcp_hdr->cksum = rte_ipv6_udptcp_cksum(ipv6_hdr, tcp_hdr);
     LOG_MAIN(DEBUG, "Updated TCP checksum: %04x\n", tcp_hdr->cksum);
+  } else {
+    LOG_MAIN(DEBUG, "No checksum update needed for protocol %u\n", ipv6_hdr->proto);
   }
 
   char dst_str[INET6_ADDRSTRLEN];
