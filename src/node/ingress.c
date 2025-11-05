@@ -7,6 +7,11 @@
 #include "utils/config.h"
 #include "utils/logging.h"
 
+// Helper function to check if an IPv6 address is link-local (fe80::/10)
+static inline int is_link_local(const struct in6_addr* addr) {
+  return (addr->s6_addr[0] == 0xfe) && ((addr->s6_addr[1] & 0xc0) == 0x80);
+}
+
 static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_port_id) {
 
   // Add bounds checking before accessing headers
@@ -37,8 +42,20 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
   }
 
   switch (ether_type) {
-  case RTE_ETHER_TYPE_IPV6:
+  case RTE_ETHER_TYPE_IPV6: {
     LOG_MAIN(DEBUG, "Ingress packet is IPv6, processing headers.\n");
+
+    // Parse IPv6 header to filter unwanted packets
+    struct rte_ipv6_hdr* ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+    
+    // Skip ICMPv6, link-local, and non-TCP packets
+    if (ipv6_hdr->proto == IPPROTO_ICMPV6 || 
+        is_link_local(&ipv6_hdr->src_addr) || 
+        is_link_local(&ipv6_hdr->dst_addr) ||
+        (ipv6_hdr->proto != IPPROTO_TCP && ipv6_hdr->proto != 43)) {
+      rte_pktmbuf_free(mbuf);
+      return;
+    }
 
     // Control flow based on a global configuration bit.
     // This allows bypassing certain operations for testing or specific use cases.
@@ -48,11 +65,6 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
     // encryption.
     case 0: {
 
-      if (ip6->proto != IPPROTO_TCP) {
-          // Bypass: ND/ICMPv6/etc. must NOT be SRH/PoT-wrapped.
-          return fastpath_forward(mbuf); // or drop; just don't wrap
-      }
-            
       LOG_MAIN(DEBUG, "Processing packet with SRH for ingress.\n");
       add_custom_header(mbuf);
 
@@ -243,6 +255,7 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
     default: LOG_MAIN(WARNING, "Unknown operation_bypass_bit value: %d\n", operation_bypass_bit); break;
     }
     break;
+  }
   default:
     LOG_MAIN(DEBUG,
              "Packet is not IPv6, not processed by ingress_packet_process. This should not be reached.\n");
