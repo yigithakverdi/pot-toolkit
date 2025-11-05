@@ -567,10 +567,6 @@ void remove_srh_only_header(struct rte_mbuf* pkt) {
   ipv6_hdr->proto = original_proto;
   LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
 
-  rte_memcpy(&ipv6_hdr->dst_addr, &ipv6_hdr->dst_addr, sizeof(struct in6_addr));
-  LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
-           inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
-
   uint8_t* new_payload = (uint8_t*)rte_pktmbuf_append(pkt, payload_size);
   if (new_payload == NULL) {
     free(tmp_payload);
