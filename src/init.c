@@ -29,6 +29,8 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) 
     rte_exit(EXIT_FAILURE, "Cannot init port %" PRIu16 "\n", port_id);
   }
 
+  // Note: Using software checksum calculation, so hardware offload capability checks are not needed
+
   // rte_eth_add_rx_callback(port_id, 0, add_timestamps, NULL);
   // LOG_MAIN(INFO, "Added RX timestamp callback to port %u\n", port_id);
 

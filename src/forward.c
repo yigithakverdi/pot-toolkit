@@ -238,6 +238,11 @@ void send_packet_to(struct rte_ether_addr mac_addr, struct rte_mbuf* mbuf, uint1
     return;
   }
 
+  // Note: We're using software checksum calculation in headers.c (remove_headers/remove_srh_only_header)
+  // so we should NOT enable hardware checksum offload flags here.
+  // Hardware offload requires a pseudo-header checksum, but we calculate the full checksum in software.
+  // Setting both would result in incorrect checksums and packet drops.
+
   // Send the packet using DPDK's Ethernet transmit function.
   // rte_eth_tx_burst() attempts to send a burst of packets on the specified transmit
   // port and queue. It returns the number of packets successfully sent.

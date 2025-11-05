@@ -152,7 +152,6 @@ void remove_headers(struct rte_mbuf* pkt) {
 
   size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
   rte_pktmbuf_trim(pkt, trim_size);
-  ipv6_hdr->proto = original_proto;
   LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
 
   struct in6_addr iperf_server_ipv6;
@@ -170,10 +169,6 @@ void remove_headers(struct rte_mbuf* pkt) {
     }    
   }
 
-  rte_memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
-  LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
-           inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
-
   uint8_t* new_payload = (uint8_t*)rte_pktmbuf_append(pkt, payload_size);
   if (new_payload == NULL) {
     free(tmp_payload);
@@ -183,7 +178,21 @@ void remove_headers(struct rte_mbuf* pkt) {
   rte_memcpy(new_payload, tmp_payload, payload_size);
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
 
+  // CRITICAL: Refresh header pointers after mbuf modification
+  // After rte_pktmbuf_trim() and rte_pktmbuf_append(), the mbuf data may be relocated
+  // causing the existing pointers to become stale and point to invalid memory
+  eth_hdr_6 = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr_6 + 1);
+  new_payload = (uint8_t*)(ipv6_hdr + 1);
+
+  // Now update header fields with VALID pointers
+  ipv6_hdr->proto = original_proto;
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
+  rte_memcpy(&ipv6_hdr->dst_addr, &iperf_server_ipv6, sizeof(struct in6_addr));
+  LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
+           inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
+
+  // Now calculate checksum with VALID pointers
   if (ipv6_hdr->proto == IPPROTO_UDP && payload_size >= sizeof(struct rte_udp_hdr)) {
     LOG_MAIN(DEBUG, "Updating UDP header checksum\n");
     struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)new_payload;
@@ -554,12 +563,7 @@ void remove_srh_only_header(struct rte_mbuf* pkt) {
 
   size_t trim_size = rte_be_to_cpu_16(ipv6_hdr->payload_len);
   rte_pktmbuf_trim(pkt, trim_size);
-  ipv6_hdr->proto = original_proto;
   LOG_MAIN(DEBUG, "Trimmed packet by %zu bytes\n", trim_size);
-
-  rte_memcpy(&ipv6_hdr->dst_addr, &ipv6_hdr->dst_addr, sizeof(struct in6_addr));
-  LOG_MAIN(DEBUG, "Updated IPv6 destination to: %s\n",
-           inet_ntop(AF_INET6, &ipv6_hdr->dst_addr, pre_dst_str, sizeof(pre_dst_str)));
 
   uint8_t* new_payload = (uint8_t*)rte_pktmbuf_append(pkt, payload_size);
   if (new_payload == NULL) {
@@ -570,7 +574,18 @@ void remove_srh_only_header(struct rte_mbuf* pkt) {
   rte_memcpy(new_payload, tmp_payload, payload_size);
   LOG_MAIN(DEBUG, "Copied %zu bytes of payload back to packet\n", payload_size);
 
+  // CRITICAL: Refresh header pointers after mbuf modification
+  // After rte_pktmbuf_trim() and rte_pktmbuf_append(), the mbuf data may be relocated
+  // causing the existing pointers to become stale and point to invalid memory
+  eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr*);
+  ipv6_hdr = (struct rte_ipv6_hdr*)(eth_hdr + 1);
+  new_payload = (uint8_t*)(ipv6_hdr + 1);
+
+  // Now update header fields with VALID pointers
+  ipv6_hdr->proto = original_proto;
   ipv6_hdr->payload_len = rte_cpu_to_be_16(payload_size);
+
+  // Now calculate checksum with VALID pointers
   if (ipv6_hdr->proto == IPPROTO_UDP && payload_size >= sizeof(struct rte_udp_hdr)) {
     LOG_MAIN(DEBUG, "Updating UDP header checksum\n");
     struct rte_udp_hdr* udp_hdr = (struct rte_udp_hdr*)new_payload;
