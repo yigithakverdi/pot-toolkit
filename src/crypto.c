@@ -401,6 +401,8 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hm
     if (enc_len < 0) { 
       return;
     }
+    LOG_MAIN(DEBUG, "PVF Encryption round %d successful. Ciphertext length: %d bytes.\n",
+             i + 1, enc_len);
     memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
   }
   LOG_MAIN(DEBUG, "PVF Encryption: All rounds completed.\n");
