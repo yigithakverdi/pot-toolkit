@@ -397,12 +397,25 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hm
   // This creates the onion layers in the correct order.
   LOG_MAIN(DEBUG, "Number of transit nodes: %d\n", num_transit_nodes);
   for (int i = 0; i <= num_transit_nodes; i++) {
+
+    // Log the key being used for this round
+    char key_hex[HMAC_MAX_LENGTH * 2 + 1];
+    for (int j = 0; j < HMAC_MAX_LENGTH; j++) {
+      sprintf(key_hex + j * 2, "%02x", k_pot_in[i][j]);
+    }
+    key_hex[HMAC_MAX_LENGTH * 2] = '\0';
+    LOG_MAIN(DEBUG, "PVF Encryption round %d using key: %s\n", i + 1, key_hex);
+
     enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out);
     if (enc_len < 0) { 
       return;
     }
     LOG_MAIN(DEBUG, "PVF Encryption round %d successful. Ciphertext length: %d bytes.\n",
-             i + 1, enc_len);
+         i + 1, enc_len);
+    
+    // Log the HMAC after encryption
+    log_hex_data("HMAC after encryption", hmac_out, HMAC_MAX_LENGTH);
+    
     memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
   }
   LOG_MAIN(DEBUG, "PVF Encryption: All rounds completed.\n");
