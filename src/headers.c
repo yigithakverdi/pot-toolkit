@@ -163,7 +163,7 @@ void remove_headers(struct rte_mbuf* pkt) {
       return;
     }
   } else {
-    if (inet_pton(AF_INET6, "2a05:d014:dc7:1252:2b91:195a:8654:28d0", &iperf_server_ipv6) != 1) {
+    if (inet_pton(AF_INET6, "2a05:d014:dc7:120f:9ebc:11e7:6b4e:f9f8", &iperf_server_ipv6) != 1) {
       free(tmp_payload);
       LOG_MAIN(ERR, "Error converting IPv6 address, freeing tmp_payload\n");
       return;
