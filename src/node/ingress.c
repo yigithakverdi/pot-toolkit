@@ -203,7 +203,7 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
     case 1: {
       // add_next_hop("2a05:d014:dc7:1281:7aa5:aa66:e3d1:d8a5", "02:56:e6:d5:57:05");
       // add_next_hop("2a05:d014:dc7:1210:818e:dec3:7ed3:a935", "02:63:a9:59:f8:8f");
-      struct rte_ether_addr mac = {{0x02, 0x56, 0xe6, 0xd5, 0x57, 0x05}};
+      struct rte_ether_addr mac = {{0x02, 0xf0, 0x41, 0x46, 0x48, 0xf7}};
       send_packet_to(mac, mbuf, 0);
       break;
     }

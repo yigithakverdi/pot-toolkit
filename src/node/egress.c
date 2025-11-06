@@ -177,7 +177,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
     case 1: {
       LOG_MAIN(DEBUG, "Bypassing all operations, forwarding packet as-is\n");
       // Simply forward the packet without any processing
-      struct rte_ether_addr iperf_mac = {{0x02, 0xca, 0x40, 0x6e, 0x9b, 0xa3}};
+      struct rte_ether_addr iperf_mac = {{0x02, 0x79, 0x1e, 0xe2, 0x80, 0xd5}};
       send_packet_to(iperf_mac, mbuf, 0);
 
       // if (g_is_virtual_machine == 0) {
