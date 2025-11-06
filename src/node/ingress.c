@@ -101,7 +101,7 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
 
       struct in6_addr ingress_addr;
       if (g_is_virtual_machine) {
-        inet_pton(AF_INET6, "2a05:d014:dc7:127a:fe22:97ab:a0a8:ff18", &ingress_addr);
+        inet_pton(AF_INET6, "2a05:d014:dc7:12a5:b23:ef06:2586:57a6", &ingress_addr);
       } else {
         inet_pton(AF_INET6, "2001:db8:1::c1", &ingress_addr);
       }
