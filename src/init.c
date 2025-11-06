@@ -51,9 +51,8 @@ void init_ports(uint16_t port_id, struct rte_mempool* mbuf_pool, PortRole role) 
 struct rte_mempool* init_mempool() {
   LOG_MAIN(DEBUG, "Creating mbuf pool\n");
 
-  struct rte_mempool* mbuf_pool =
-      rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0,
-                              RTE_MBUF_DEFAULT_BUF_SIZE + EXTRA_SPACE, rte_socket_id());
+  struct rte_mempool* mbuf_pool = rte_pktmbuf_pool_create(
+      "MBUF_POOL", NUM_MBUFS, MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE + EXTRA_SPACE, rte_socket_id());
 
   LOG_MAIN(DEBUG, "Mbuf pool created: %p\n", mbuf_pool);
 
@@ -239,6 +238,36 @@ void init_lookup_table() {
   // add_next_hop("2a05:d014:dc7:1252:d3b9:c07f:f5a5:f25", "02:72:c1:67:18:b1");
   add_next_hop("2a05:d014:dc7:1281:7aa5:aa66:e3d1:d8a5", "02:56:e6:d5:57:05");
   add_next_hop("2a05:d014:dc7:1210:818e:dec3:7ed3:a935", "02:63:a9:59:f8:8f");
+  
+  // iperf-client-c6
+  add_next_hop("2a05:d014:dc7:12a5:b23:ef06:2586:57a6", "02:47:87:ce:50:85");
+
+  // iperf-server-c6
+  add_next_hop("2a05:d014:dc7:120f:9ebc:11e7:6b4e:f9f8", "02:79:1e:e2:80:d5");
+
+  // ingress-c6  (note: same IPv6 as iperf-server-c6 per your listing)
+  add_next_hop("2a05:d014:dc7:120f:9ebc:11e7:6b4e:f9f8", "02:bb:e7:d0:c3:0b");
+
+  // egress-c6
+  add_next_hop("2a05:d014:dc7:124b:8597:d3f5:2a5a:cd28", "02:44:d4:e9:43:bd");
+
+  // pot1-c6
+  add_next_hop("2a05:d014:dc7:125b:d544:4d69:fcf3:7bd9", "02:f0:41:46:48:f7");
+
+  // pot2-c6
+  add_next_hop("2a05:d014:dc7:125f:6a54:2b3e:87bc:a0b9", "02:56:b5:6e:6c:89");
+
+  // pot3-c6
+  add_next_hop("2a05:d014:dc7:121f:a95e:770d:35bd:a7f6", "02:0d:41:2d:e0:c3");
+
+  // pot4-c6
+  add_next_hop("2a05:d014:dc7:12e1:d646:b2d4:d9af:5e69", "02:c9:64:51:65:fb");
+
+  // pot5-c6
+  add_next_hop("2a05:d014:dc7:120d:acc6:950a:928e:dda4", "02:5a:2c:b2:d7:01");
+
+  // pot6-c6
+  add_next_hop("2a05:d014:dc7:1238:6fbe:92c8:e881:d876", "02:94:c8:15:fe:0b");
 
   int num_transit = getenv_int("POT_TOPOLOGY_NUM_TRANSIT_NODES");
   if (num_transit < 0) {
