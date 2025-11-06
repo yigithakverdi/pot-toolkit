@@ -398,7 +398,7 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hm
   // 2. Then, encrypt outward with the transit keys in order (k[1], k[2], ...)
   // This creates the onion layers in the correct order.
   LOG_MAIN(DEBUG, "Number of transit nodes: %d\n", num_transit_nodes);
-  for (int i = 0; i <= num_transit_nodes; i++) {
+  for (int i = 1; i <= num_transit_nodes; i++) {
 
     // Log the key being used for this round
     char key_hex[HMAC_MAX_LENGTH * 2 + 1];
