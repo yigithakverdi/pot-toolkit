@@ -173,7 +173,9 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
     LOG_MAIN(DEBUG, "Copied HMAC digest (%u bytes) to output, padded with zeros if necessary.\n", hmac_len);
   }
 
-  LOG_MAIN(DEBUG, "HMAC calculation completed successfully.\n");
+  // Log the calculated HMAC for debugging
+  log_hex_data("Calculated HMAC", hmac_out, HMAC_MAX_LENGTH);
+
   return 0;
 }
 
