@@ -162,7 +162,7 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
 
         // Forward the packet to the iperf server
         // The MAC address of the iperf server is hardcoded here.
-        struct rte_ether_addr iperf_mac = {{0x02, 0xca, 0x40, 0x6e, 0x9b, 0xa3}};
+        struct rte_ether_addr iperf_mac = {{0x02, 0x79, 0x1e, 0xe2, 0x80, 0xd5}};
         if (g_is_virtual_machine == 0) {
           send_packet_to(iperf_mac, mbuf, 1);
         } else {
