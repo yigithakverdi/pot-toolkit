@@ -238,12 +238,6 @@ void init_lookup_table() {
   // add_next_hop("2a05:d014:dc7:1252:d3b9:c07f:f5a5:f25", "02:72:c1:67:18:b1");
   add_next_hop("2a05:d014:dc7:1281:7aa5:aa66:e3d1:d8a5", "02:56:e6:d5:57:05");
   add_next_hop("2a05:d014:dc7:1210:818e:dec3:7ed3:a935", "02:63:a9:59:f8:8f");
-  
-  // iperf-client-c6
-  add_next_hop("2a05:d014:dc7:12a5:b23:ef06:2586:57a6", "02:47:87:ce:50:85");
-
-  // iperf-server-c6
-  add_next_hop("2a05:d014:dc7:120f:9ebc:11e7:6b4e:f9f8", "02:79:1e:e2:80:d5");
 
   // ingress-c6  (note: same IPv6 as iperf-server-c6 per your listing)
   add_next_hop("2a05:d014:dc7:120f:9ebc:11e7:6b4e:f9f8", "02:bb:e7:d0:c3:0b");
