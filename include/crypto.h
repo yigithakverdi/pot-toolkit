@@ -11,7 +11,7 @@
 #include "headers.h"
 
 #define HMAC_OUTPUT_LENGTH 32   // SHA-256 HMAC output is always 32 bytes
-#define HMAC_KEY_LENGTH 64      // Key length for encryption (64 bytes)
+#define HMAC_KEY_LENGTH 8      // Key length for encryption (64 bytes)
 #define HMAC_MAX_LENGTH HMAC_KEY_LENGTH  // Keep for backward compatibility
 #define NONCE_LENGTH 16
 #define SID_NO 4
@@ -20,6 +20,20 @@
 extern uint8_t k_pot_in[MAX_POT_NODES + 1][HMAC_MAX_LENGTH];
 extern uint8_t g_key_count;
 extern int num_transit_nodes;
+
+// Cipher type configuration for benchmarking different key lengths
+typedef enum {
+    CIPHER_DES_8,           // 8 bytes (64-bit) - INSECURE, for benchmark only
+    CIPHER_AES_128_CTR,     // 16 bytes (128-bit)
+    CIPHER_AES_256_CTR,     // 32 bytes (256-bit)
+    CIPHER_CHACHA20         // 32 bytes (256-bit)
+} cipher_type_t;
+
+extern cipher_type_t g_cipher_type;
+
+void set_cipher_type(cipher_type_t type);
+const EVP_CIPHER* get_current_cipher(void);
+int get_current_key_size(void);
 
 // HMAC calculation
 int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct hmac_tlv* hmac_tlv,

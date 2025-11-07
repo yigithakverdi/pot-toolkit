@@ -29,6 +29,7 @@ void config_init(AppConfig* config) {
   config->topology.num_transit = 0;
   config->virtual_machine = 0;     // Default: not running in a VM
   config->follow_flag = 0;         // Default: do not follow log
+  config->cipher_type = CIPHER_AES_256_CTR; // Default: AES-256-CTR
 }
 
 // AppConfig tarafından ayrılan tüm dinamik belleği serbest bırakır.
@@ -64,6 +65,9 @@ void config_load_defaults(AppConfig* config) {
 
   free(config->topology.segment_list);
   config->topology.segment_list = strdup("/etc/segment/segment_list.txt");
+
+  // Cipher default setting
+  config->cipher_type = CIPHER_AES_256_CTR;
 }
 
 // For string env values, safely loads the value from the environment variable
@@ -101,6 +105,26 @@ void config_load_env(AppConfig* config) {
     } else {
       fprintf(stderr, "WARN: Invalid value for APP_TOPOLOGY_NUM_TRANSIT_NODES: '%s'. Using previous value.\n",
               env_val_num_transit);
+    }
+  }
+
+  // Read cipher type from environment variable
+  const char* env_val_cipher_type = getenv("APP_CIPHER_TYPE");
+  if (env_val_cipher_type) {
+    char* endptr;
+    errno = 0;
+    long val = strtol(env_val_cipher_type, &endptr, 10);
+
+    if (errno == 0 && *endptr == '\0' && env_val_cipher_type != endptr) {
+      if (val >= 0 && val <= 3) {
+        config->cipher_type = (cipher_type_t)val;
+      } else {
+        fprintf(stderr, "WARN: Invalid value for APP_CIPHER_TYPE: '%s'. Using previous value.\n",
+                env_val_cipher_type);
+      }
+    } else {
+      fprintf(stderr, "WARN: Invalid value for APP_CIPHER_TYPE: '%s'. Using previous value.\n",
+              env_val_cipher_type);
     }
   }
 }

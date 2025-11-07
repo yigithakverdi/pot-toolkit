@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include "crypto.h"  // For cipher_type_t
+
 typedef struct {
   char* key_locations;
   char* segment_list;
@@ -26,7 +28,8 @@ typedef struct {
   } topology;
   int follow_flag;
   int virtual_machine; // Flag to indicate if running in a virtual machine
-  int simple_forward; // Flag to indicate if running in a virtual machine
+  int simple_forward; // Flag to indicate if simple forwarding is enabled
+  cipher_type_t cipher_type; // Cipher type for encryption benchmarking
 } AppConfig;
 
 // Virtual machine global variable

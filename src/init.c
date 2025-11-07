@@ -82,6 +82,11 @@ int init_topology(AppConfig* app_config) {
   snprintf(node_index_str, sizeof(node_index_str), "%d", g_node_index);
   setenv("POT_NODE_INDEX", node_index_str, 1);
 
+  // Set the cipher type from configuration
+  set_cipher_type(app_config->cipher_type);
+  LOG_MAIN(INFO, "Cipher type configured: %d (key size: %d bytes)\n", 
+           app_config->cipher_type, get_current_key_size());
+
   LOG_MAIN(DEBUG, "Initializing topology\n");
 
   // Default number of transit node is set to 1, this is applied to the topology.ini file

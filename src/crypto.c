@@ -10,6 +10,44 @@ uint8_t g_key_count = 0;
 int num_transit_nodes = 0;
 uint8_t k_pot_in[MAX_POT_NODES + 1][HMAC_MAX_LENGTH];
 
+// Global cipher type - default to AES-256-CTR
+cipher_type_t g_cipher_type = CIPHER_AES_256_CTR;
+
+void set_cipher_type(cipher_type_t type) {
+    g_cipher_type = type;
+    LOG_MAIN(INFO, "Cipher type set to: %d (key size: %d bytes)\n", type, get_current_key_size());
+}
+
+const EVP_CIPHER* get_current_cipher(void) {
+    switch(g_cipher_type) {
+        case CIPHER_DES_8:
+            return EVP_des_cbc();  // 8-byte key (INSECURE!)
+        case CIPHER_AES_128_CTR:
+            return EVP_aes_128_ctr();  // 16-byte key
+        case CIPHER_AES_256_CTR:
+            return EVP_aes_256_ctr();  // 32-byte key
+        case CIPHER_CHACHA20:
+            return EVP_chacha20();  // 32-byte key
+        default:
+            return EVP_aes_256_ctr();
+    }
+}
+
+int get_current_key_size(void) {
+    switch(g_cipher_type) {
+        case CIPHER_DES_8:
+            return 8;   // 64 bits
+        case CIPHER_AES_128_CTR:
+            return 16;  // 128 bits
+        case CIPHER_AES_256_CTR:
+            return 32;  // 256 bits
+        case CIPHER_CHACHA20:
+            return 32;  // 256 bits (ChaCha20 requirement)
+        default:
+            return 32;
+    }
+}
+
 int load_pot_keys(const char* filepath, int keys_to_load) {
   FILE* file = fopen(filepath, "r");
   if (!file) {
@@ -232,19 +270,19 @@ int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, u
   }
   LOG_MAIN(DEBUG, "Decryption context created successfully.\n");
 
-  // Initialize the decryption operation.
-  // EVP_aes_256_ctr(): Specifies AES-256 in Counter (CTR) mode. CTR mode is a stream cipher,
-  // which means it doesn't require padding and works on arbitrary lengths of data.
-  // NULL: No engine is used (default OpenSSL implementation).
-  // key: The 256-bit (32-byte) secret key for decryption.
-  // iv: The Initialization Vector (IV). For CTR mode, this is often called a nonce,
-  // and must be unique for each encryption with the same key to ensure security.
-  if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv)) {
+  // Initialize the decryption operation with the selected cipher.
+  // The cipher is selected based on g_cipher_type (DES, AES-128, AES-256, or ChaCha20).
+  // key: The secret key for decryption (size varies by cipher type).
+  // iv: The Initialization Vector (IV), must match the IV used during encryption.
+  const EVP_CIPHER* cipher = get_current_cipher();
+  int key_size = get_current_key_size();
+  
+  if (1 != EVP_DecryptInit_ex(ctx, cipher, NULL, key, iv)) {
     LOG_MAIN(ERR, "Decryption initialization failed.\n");
     EVP_CIPHER_CTX_free(ctx);
     return -1;
   }
-  LOG_MAIN(DEBUG, "Decryption initialized with AES-256-CTR.\n");
+  LOG_MAIN(DEBUG, "Decryption initialized with selected cipher (key size: %d bytes).\n", key_size);
 
   // Perform the decryption for the main part of the ciphertext.
   // plaintext: Output buffer where the decrypted data will be written.
@@ -316,18 +354,19 @@ int encrypt(unsigned char* plaintext, int plaintext_len, unsigned char* key, uns
   }
   LOG_MAIN(DEBUG, "Encryption context created successfully.\n");
 
-  // Initialize the encryption operation.
-  // EVP_aes_256_ctr(): Specifies AES-256 in Counter (CTR) mode. CTR is a stream cipher.
-  // NULL: No specific OpenSSL engine is used.
-  // key: The 256-bit (32-byte) secret key for encryption.
-  // iv: The Initialization Vector (IV), also known as a nonce in CTR mode. It must be unique
-  //     for each encryption performed with the same key to ensure cryptographic security.
-  if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv)) {
+  // Initialize the encryption operation with the selected cipher.
+  // The cipher is selected based on g_cipher_type (DES, AES-128, AES-256, or ChaCha20).
+  // key: The secret key for encryption (size varies by cipher type).
+  // iv: The Initialization Vector (IV), must be unique for each encryption with the same key.
+  const EVP_CIPHER* cipher = get_current_cipher();
+  int key_size = get_current_key_size();
+  
+  if (1 != EVP_EncryptInit_ex(ctx, cipher, NULL, key, iv)) {
     LOG_MAIN(ERR, "Encryption initialization failed.\n");
     EVP_CIPHER_CTX_free(ctx);
     return -1;
   }
-  LOG_MAIN(DEBUG, "Encryption initialized with AES-256-CTR.\n");
+  LOG_MAIN(DEBUG, "Encryption initialized with selected cipher (key size: %d bytes).\n", key_size);
 
   // Perform the encryption for the main part of the plaintext.
   // ciphertext: Output buffer where the encrypted data will be written.

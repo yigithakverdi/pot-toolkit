@@ -37,6 +37,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       {"key-locations", required_argument, 0, 'k'},
       {"num-transit", required_argument, 0, 'n'},
       {"node-index", required_argument, 0, 'i'},
+      {"cipher-type", required_argument, 0, 'c'},
       {"no-logging", no_argument, 0, 1},
       {"help", no_argument, 0, 'h'},
       {"virtual-machine", no_argument, 0, 'v'},
@@ -48,7 +49,7 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
   int c;
 
   // Kısa opsiyon string'i
-  const char* short_options = "t:l:f:s:k:n:hF"; // added F for --follow
+  const char* short_options = "t:l:f:s:k:n:i:c:hFv"; // added c for --cipher-type
 
   while ((c = getopt_long(argc, argv, short_options, long_options, &opt_index)) != -1) {
     switch (c) {
@@ -106,17 +107,43 @@ void parse_args(AppConfig* config, int argc, char* argv[]) {
       config->topology.num_transit = atoi(optarg);
       break;
 
+    case 'c': // --cipher-type veya -c
+      {
+        int cipher_val = atoi(optarg);
+        if (cipher_val < 0 || cipher_val > 3) {
+          fprintf(stderr, "Invalid cipher type: %s (valid range: 0-3)\n", optarg);
+          fprintf(stderr, "  0: DES (8 bytes) - INSECURE\n");
+          fprintf(stderr, "  1: AES-128-CTR (16 bytes)\n");
+          fprintf(stderr, "  2: AES-256-CTR (32 bytes)\n");
+          fprintf(stderr, "  3: ChaCha20 (32 bytes)\n");
+          exit(EXIT_FAILURE);
+        }
+        config->cipher_type = (cipher_type_t)cipher_val;
+      }
+      break;
+
     case 'h': // --help veya -h
       printf("Usage: %s [options]\n\n", argv[0]);
       printf("Node Options:\n");
       printf("  -t, --type <type>             Set the node type (e.g., 'transit', 'edge').\n");
       printf("  -l, --log-level <level>         Set the log level (e.g., 'debug', 'info').\n");
-      printf("  -f, --log-file <path>           Specify a log file path.\n\n");
+      printf("  -f, --log-file <path>           Specify a log file path.\n");
+      printf("  -i, --node-index <index>        Set the node index.\n\n");
       printf("Topology Options:\n");
       printf("  -s, --segment-list <path>     Specify the segment list file.\n");
       printf("  -k, --key-locations <path>    Specify the key locations file.\n");
       printf("  -n, --num-transit <number>    Set the number of transit nodes.\n\n");
+      printf("Encryption Options:\n");
+      printf("  -c, --cipher-type <0-3>       Set encryption cipher type:\n");
+      printf("                                  0: DES (8 bytes) - INSECURE, benchmark only\n");
+      printf("                                  1: AES-128-CTR (16 bytes)\n");
+      printf("                                  2: AES-256-CTR (32 bytes) [default]\n");
+      printf("                                  3: ChaCha20 (32 bytes)\n\n");
       printf("Other Options:\n");
+      printf("  -F, --follow                    Follow log output.\n");
+      printf("  -v, --virtual-machine           Running in virtual machine mode.\n");
+      printf("      --simple-forward            Enable simple forwarding.\n");
+      printf("      --no-logging                Disable logging.\n");
       printf("  -h, --help                      Show this help message.\n");
       exit(EXIT_SUCCESS);
       break;
