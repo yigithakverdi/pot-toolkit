@@ -97,7 +97,7 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
       }
 
       uint8_t* k_hmac_ie = k_pot_in[0];
-      size_t key_len = HMAC_MAX_LENGTH;
+      size_t key_len = HMAC_KEY_LENGTH;
 
       struct in6_addr ingress_addr;
       if (g_is_virtual_machine) {
@@ -110,7 +110,7 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
       if (dump_len > 128) dump_len = 128;
       LOG_MAIN(DEBUG, "Packet length for dump: %zu\n", dump_len);
 
-      uint8_t hmac_out[HMAC_MAX_LENGTH];
+      uint8_t hmac_out[HMAC_OUTPUT_LENGTH];
 
       // Calculate the HMAC for the packet.
       // This HMAC is computed over specific packet fields (source address, SRH, HMAC TLV, etc.)
@@ -118,7 +118,7 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
       //
       // Log the inputs to HMAC calculations for verifications
       if (calculate_hmac((uint8_t*)&ingress_addr, srh, hmac, k_hmac_ie, key_len, hmac_out) == 0) {
-        rte_memcpy(hmac->hmac_value, hmac_out, HMAC_MAX_LENGTH);
+        rte_memcpy(hmac->hmac_value, hmac_out, HMAC_OUTPUT_LENGTH);
         LOG_MAIN(DEBUG, "HMAC calculated and copied to packet.\n");
       } else {
         LOG_MAIN(ERR, "HMAC calculation failed for ingress packet, dropping.\n");
@@ -133,7 +133,7 @@ static inline void process_ingress_packet(struct rte_mbuf* mbuf, uint16_t rx_por
       }
 
       encrypt_pvf(k_pot_in, nonce, hmac_out);
-      rte_memcpy(pot->encrypted_hmac, hmac_out, HMAC_MAX_LENGTH);
+      rte_memcpy(pot->encrypted_hmac, hmac_out, HMAC_OUTPUT_LENGTH);
       rte_memcpy(pot->nonce, nonce, NONCE_LENGTH);
       LOG_MAIN(DEBUG, "HMAC encrypted and Nonce added to POT TLV.\n");
 

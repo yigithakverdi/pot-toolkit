@@ -86,8 +86,8 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         }
 
         LOG_MAIN(DEBUG, "Destination IPv6 address: %s\n", dst_ip_str);
-        uint8_t hmac_out[HMAC_MAX_LENGTH];
-        memcpy(hmac_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
+        uint8_t hmac_out[HMAC_OUTPUT_LENGTH];
+        memcpy(hmac_out, pot->encrypted_hmac, HMAC_OUTPUT_LENGTH);
 
         // This code decrypts the HMAC in the PoT TLV structure that was encrypted at ingress.
         // First logs the encrypted HMAC length for debugging
@@ -101,8 +101,8 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // with a freshly calculated value to confirm path compliance
         LOG_MAIN(DEBUG, "Encrypted HMAC length: %zu\n", sizeof(pot->encrypted_hmac));
 
-        uint8_t final_hmac[HMAC_MAX_LENGTH];
-        int dec_len = decrypt(pot->encrypted_hmac, HMAC_MAX_LENGTH, k_pot_in[0], pot->nonce, final_hmac);
+        uint8_t final_hmac[HMAC_OUTPUT_LENGTH];
+        int dec_len = decrypt(pot->encrypted_hmac, HMAC_OUTPUT_LENGTH, k_pot_in[0], pot->nonce, final_hmac);
 
         if (dec_len < 0) {
           LOG_MAIN(ERR, "Egress: Final PVF decryption failed.\n");
@@ -114,14 +114,14 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         // Prepare the HMAC key for verification
         // This key is used to calculate the expected HMAC for the packet.
         uint8_t* k_hmac_ie = k_pot_in[0];
-        uint8_t expected_hmac[HMAC_MAX_LENGTH];
+        uint8_t expected_hmac[HMAC_OUTPUT_LENGTH];
         LOG_MAIN(DEBUG, "Calculating expected HMAC with key length %zu\n",
-                 HMAC_MAX_LENGTH); // Log the inputs to HMAC calculations for verifications
+                 HMAC_KEY_LENGTH); // Log the inputs to HMAC calculations for verifications
         //
         // Increase segment_left by 1 to temporarly test if it is the root cause of
         // HMAC verification failure
         srh->segments_left += 1;
-        if (calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_MAX_LENGTH,
+        if (calculate_hmac((uint8_t*)&ipv6_hdr->src_addr, srh, hmac, k_hmac_ie, HMAC_KEY_LENGTH,
                            expected_hmac) != 0) {
           LOG_MAIN(ERR, "Egress: HMAC calculation failed\n");
           rte_pktmbuf_free(mbuf);
@@ -132,11 +132,11 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
         LOG_MAIN(DEBUG, "Expected HMAC size: %zu bytes\n", sizeof(expected_hmac));
 
         LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC\n");
-        if (memcmp(final_hmac, expected_hmac, HMAC_MAX_LENGTH) != 0) {
+        if (memcmp(final_hmac, expected_hmac, HMAC_OUTPUT_LENGTH) != 0) {
           LOG_MAIN(DEBUG, "Final HMAC: ");
-          log_hex_data("Final HMAC", final_hmac, HMAC_MAX_LENGTH);
+          log_hex_data("Final HMAC", final_hmac, HMAC_OUTPUT_LENGTH);
           LOG_MAIN(DEBUG, "Expected HMAC: ");
-          log_hex_data("Expected HMAC", expected_hmac, HMAC_MAX_LENGTH);
+          log_hex_data("Expected HMAC", expected_hmac, HMAC_OUTPUT_LENGTH);
           LOG_MAIN(ERR, "Egress: HMAC verification failed, dropping packet\n");
           rte_pktmbuf_free(mbuf);
           return;

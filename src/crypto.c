@@ -163,18 +163,17 @@ int calculate_hmac(uint8_t* src_addr, const struct ipv6_srh* srh, const struct h
   // If `hmac_len` is greater than `HMAC_MAX_LENGTH`, it copies only up to `HMAC_MAX_LENGTH` bytes.
   // If `hmac_len` is less than `HMAC_MAX_LENGTH`, it copies the digest and then
   // pads the remaining bytes of `hmac_out` with zeros to ensure a consistent output size.
-  if (hmac_len > HMAC_MAX_LENGTH) {
-    LOG_MAIN(WARNING, "Calculated HMAC length (%u) exceeds HMAC_MAX_LENGTH (%d), truncating.\n", hmac_len,
-             HMAC_MAX_LENGTH);
-    memcpy(hmac_out, digest, HMAC_MAX_LENGTH);
+  if (hmac_len > HMAC_OUTPUT_LENGTH) {
+    LOG_MAIN(WARNING, "Calculated HMAC length (%u) exceeds HMAC_OUTPUT_LENGTH (%d), truncating.\n", hmac_len,
+             HMAC_OUTPUT_LENGTH);
+    memcpy(hmac_out, digest, HMAC_OUTPUT_LENGTH);
   } else {
     memcpy(hmac_out, digest, hmac_len);
-    memset(hmac_out + hmac_len, 0, HMAC_MAX_LENGTH - hmac_len);
-    LOG_MAIN(DEBUG, "Copied HMAC digest (%u bytes) to output, padded with zeros if necessary.\n", hmac_len);
+    LOG_MAIN(DEBUG, "Copied HMAC digest (%u bytes) to output.\n", hmac_len);
   }
 
   // Log the calculated HMAC for debugging
-  log_hex_data("Calculated HMAC", hmac_out, HMAC_MAX_LENGTH);
+  log_hex_data("Calculated HMAC", hmac_out, HMAC_OUTPUT_LENGTH);
 
   return 0;
 }
@@ -283,7 +282,7 @@ int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, u
 
 int decrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t pvf_out[32]) {
   uint8_t plaintext[128];
-  int cipher_len = 32;
+  int cipher_len = HMAC_OUTPUT_LENGTH;
   LOG_MAIN(DEBUG, "Decrypting PVF: Ciphertext length = %d bytes.\n", cipher_len);
 
   // Decrypt onion-style: loop from 0 to num_transit_nodes (egress to last transit)
@@ -385,15 +384,15 @@ int encrypt(unsigned char* plaintext, int plaintext_len, unsigned char* key, uns
 // }
 
 void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hmac_out[32]) {
-  uint8_t buffer[HMAC_MAX_LENGTH];
-  memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+  uint8_t buffer[HMAC_OUTPUT_LENGTH];
+  memcpy(buffer, hmac_out, HMAC_OUTPUT_LENGTH);
 
   // 1. First, encrypt the innermost layer with the Egress key (k[0])
-  int enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[0], nonce, hmac_out);
+  int enc_len = encrypt(buffer, HMAC_OUTPUT_LENGTH, k_pot_in[0], nonce, hmac_out);
   if (enc_len < 0) { 
     return;
   }
-  memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+  memcpy(buffer, hmac_out, HMAC_OUTPUT_LENGTH);
 
   // 2. Then, encrypt outward with the transit keys in order (k[1], k[2], ...)
   // This creates the onion layers in the correct order.
@@ -408,7 +407,7 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hm
     key_hex[HMAC_MAX_LENGTH * 2] = '\0';
     LOG_MAIN(DEBUG, "PVF Encryption round %d using key: %s\n", i + 1, key_hex);
 
-    enc_len = encrypt(buffer, HMAC_MAX_LENGTH, k_pot_in[i], nonce, hmac_out);
+    enc_len = encrypt(buffer, HMAC_OUTPUT_LENGTH, k_pot_in[i], nonce, hmac_out);
     if (enc_len < 0) { 
       return;
     }
@@ -416,9 +415,9 @@ void encrypt_pvf(uint8_t k_pot_in[][HMAC_MAX_LENGTH], uint8_t* nonce, uint8_t hm
          i + 1, enc_len);
     
     // Log the HMAC after encryption
-    log_hex_data("HMAC after encryption", hmac_out, HMAC_MAX_LENGTH);
+    log_hex_data("HMAC after encryption", hmac_out, HMAC_OUTPUT_LENGTH);
     
-    memcpy(buffer, hmac_out, HMAC_MAX_LENGTH);
+    memcpy(buffer, hmac_out, HMAC_OUTPUT_LENGTH);
   }
   LOG_MAIN(DEBUG, "PVF Encryption: All rounds completed.\n");
 }

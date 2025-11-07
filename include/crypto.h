@@ -10,10 +10,12 @@
 
 #include "headers.h"
 
-#define HMAC_MAX_LENGTH 64
+#define HMAC_OUTPUT_LENGTH 32   // SHA-256 HMAC output is always 32 bytes
+#define HMAC_KEY_LENGTH 64      // Key length for encryption (64 bytes)
+#define HMAC_MAX_LENGTH HMAC_KEY_LENGTH  // Keep for backward compatibility
 #define NONCE_LENGTH 16
 #define SID_NO 4
-#define HMAC_KEY_HEX_LENGTH (HMAC_MAX_LENGTH * 2)
+#define HMAC_KEY_HEX_LENGTH (HMAC_KEY_LENGTH * 2)
 
 extern uint8_t k_pot_in[MAX_POT_NODES + 1][HMAC_MAX_LENGTH];
 extern uint8_t g_key_count;

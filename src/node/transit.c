@@ -121,9 +121,9 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
         }
         LOG_MAIN(DEBUG, "Transit: Destination IPv6 address: %s\n", dst_ip_str);
 
-        uint8_t pvf_out[HMAC_MAX_LENGTH];
+        uint8_t pvf_out[HMAC_OUTPUT_LENGTH];
 
-        memcpy(pvf_out, pot->encrypted_hmac, HMAC_MAX_LENGTH);
+        memcpy(pvf_out, pot->encrypted_hmac, HMAC_OUTPUT_LENGTH);
 
         // Add bounds check for g_node_index
         if (g_node_index < 0 || g_node_index >= MAX_POT_NODES) {
@@ -133,9 +133,9 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
         }
 
         int curr_index = g_node_index;
-        uint8_t decrypted_once[HMAC_MAX_LENGTH];
+        uint8_t decrypted_once[HMAC_OUTPUT_LENGTH];
         int dec_len =
-            decrypt(pot->encrypted_hmac, HMAC_MAX_LENGTH, k_pot_in[curr_index], pot->nonce, decrypted_once);
+            decrypt(pot->encrypted_hmac, HMAC_OUTPUT_LENGTH, k_pot_in[curr_index], pot->nonce, decrypted_once);
 
         if (dec_len < 0) {
           LOG_MAIN(ERR, "Transit: PVF decryption failed for this layer.\n");
@@ -143,7 +143,7 @@ static inline void process_transit_packet(struct rte_mbuf* mbuf, int i) {
           return;
         }
 
-        memcpy(pot->encrypted_hmac, decrypted_once, HMAC_MAX_LENGTH);
+        memcpy(pot->encrypted_hmac, decrypted_once, HMAC_OUTPUT_LENGTH);
         LOG_MAIN(DEBUG, "Transit: Layer %d decrypted.\n", curr_index);
 
         // Check if 'segments_left' is 0. If it is, the packet has reached
