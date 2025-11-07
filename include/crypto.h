@@ -10,7 +10,7 @@
 
 #include "headers.h"
 
-#define HMAC_MAX_LENGTH 32
+#define HMAC_MAX_LENGTH 64
 #define NONCE_LENGTH 16
 #define SID_NO 4
 #define HMAC_KEY_HEX_LENGTH (HMAC_MAX_LENGTH * 2)
