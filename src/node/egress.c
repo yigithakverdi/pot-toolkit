@@ -128,6 +128,9 @@ static inline void process_egress_packet(struct rte_mbuf* mbuf) {
           return;
         }
 
+        LOG_MAIN(DEBUG, "Final HMAC size: %zu bytes\n", sizeof(final_hmac));
+        LOG_MAIN(DEBUG, "Expected HMAC size: %zu bytes\n", sizeof(expected_hmac));
+
         LOG_MAIN(DEBUG, "Comparing calculated HMAC with expected HMAC\n");
         if (memcmp(final_hmac, expected_hmac, HMAC_MAX_LENGTH) != 0) {
           LOG_MAIN(DEBUG, "Final HMAC: ");
