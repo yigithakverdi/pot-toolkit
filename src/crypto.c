@@ -233,13 +233,13 @@ int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, u
   LOG_MAIN(DEBUG, "Decryption context created successfully.\n");
 
   // Initialize the decryption operation.
-  // EVP_aes_256_ctr(): Specifies AES-256 in Counter (CTR) mode. CTR mode is a stream cipher,
+  // EVP_des_cbc()(): Specifies AES-256 in Counter (CTR) mode. CTR mode is a stream cipher,
   // which means it doesn't require padding and works on arbitrary lengths of data.
   // NULL: No engine is used (default OpenSSL implementation).
   // key: The 256-bit (32-byte) secret key for decryption.
   // iv: The Initialization Vector (IV). For CTR mode, this is often called a nonce,
   // and must be unique for each encryption with the same key to ensure security.
-  if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv)) {
+  if (1 != EVP_DecryptInit_ex(ctx, EVP_des_cbc()(), NULL, key, iv)) {
     LOG_MAIN(ERR, "Decryption initialization failed.\n");
     EVP_CIPHER_CTX_free(ctx);
     return -1;
@@ -317,12 +317,12 @@ int encrypt(unsigned char* plaintext, int plaintext_len, unsigned char* key, uns
   LOG_MAIN(DEBUG, "Encryption context created successfully.\n");
 
   // Initialize the encryption operation.
-  // EVP_aes_256_ctr(): Specifies AES-256 in Counter (CTR) mode. CTR is a stream cipher.
+  // EVP_des_cbc()(): Specifies AES-256 in Counter (CTR) mode. CTR is a stream cipher.
   // NULL: No specific OpenSSL engine is used.
   // key: The 256-bit (32-byte) secret key for encryption.
   // iv: The Initialization Vector (IV), also known as a nonce in CTR mode. It must be unique
   //     for each encryption performed with the same key to ensure cryptographic security.
-  if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv)) {
+  if (1 != EVP_EncryptInit_ex(ctx, EVP_des_cbc()(), NULL, key, iv)) {
     LOG_MAIN(ERR, "Encryption initialization failed.\n");
     EVP_CIPHER_CTX_free(ctx);
     return -1;
