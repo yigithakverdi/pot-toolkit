@@ -7,6 +7,79 @@
 
 int g_node_index = -1;
 
+#define PRIME 53ULL // Using the small prime from the IETF draft example
+
+typedef struct {
+    uint64_t x;             // Node's public ID / X-coordinate
+    uint64_t share_poly1;   // Node's secret Y-coordinate share
+    uint64_t lpc;           // Node's calculated weighting factor
+} pot_node_profile_t;
+
+// Standard Extended Euclidean Algorithm to calculate modular inverse: (1 / a) mod m
+uint64_t mod_inverse(int64_t a, int64_t m) {
+    int64_t m0 = m, t, q;
+    int64_t x0 = 0, x1 = 1;
+
+    if (m == 1) return 0;
+
+    while (a > 1) {
+        q = a / m;
+        t = m;
+        m = a % m;
+        a = t;
+        t = x0;
+        x0 = x1 - q * x0;
+        x1 = t;
+    }
+    if (x1 < 0) x1 += m0;
+    return (uint64_t)x1;
+}
+
+// Central Provisioning Function
+void provision_pot_path(uint64_t secret, uint64_t* x_coords, int num_nodes, pot_node_profile_t* profiles) {
+    // Hardcoded polynomial coefficients for POLY-1: 3x^2 + 3x + secret
+    uint64_t coeff_a = 3;
+    uint64_t coeff_b = 3;
+
+    // 1. Generate Secret Shares (Y-coordinates) for each node
+    for (int i = 0; i < num_nodes; i++) {
+        uint64_t x = x_coords[i];
+        profiles[i].x = x;
+
+        // Evaluate POLY-1(x) = (a*x^2 + b*x + secret) mod PRIME
+        uint64_t term1 = (coeff_a * ((x * x) % PRIME)) % PRIME;
+        uint64_t term2 = (coeff_b * x) % PRIME;
+        profiles[i].share_poly1 = (term1 + term2 + secret) % PRIME;
+    }
+
+    // 2. Calculate Lagrange Polynomial Constants (LPC weights) for each node
+    for (int i = 0; i < num_nodes; i++) {
+        uint64_t lpc = 1;
+
+        for (int j = 0; j < num_nodes; j++) {
+            if (i == j) continue; // Skip matching node
+
+            uint64_t num = x_coords[j];
+            uint64_t den;
+
+            // Handle modular subtraction to prevent negative underflow
+            if (x_coords[j] >= x_coords[i]) {
+                den = x_coords[j] - x_coords[i];
+            } else {
+                den = PRIME - (x_coords[i] - x_coords[j]);
+            }
+
+            // Term = (num * (1 / den)) mod PRIME
+            uint64_t inv_den = mod_inverse(den, PRIME);
+            uint64_t term = (num * inv_den) % PRIME;
+
+            // Accumulate into total LPC weight for this node
+            lpc = (lpc * term) % PRIME;
+        }
+        profiles[i].lpc = lpc;
+    }
+}
+
 void add_next_hop(const char* ipv6_str, const char* mac_str) {
   // Check if the maximum number of next hops has been reached.
   // If so, log a warning and return to prevent buffer overflow.
