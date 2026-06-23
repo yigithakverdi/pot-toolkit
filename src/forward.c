@@ -9,6 +9,43 @@
 #include <rte_udp.h>
 #include <sys/resource.h>
 
+// Example 64-bit Prime number for the finite field arithmetic boundary
+#define POT_PRIME 4294967291ULL 
+
+typedef struct {
+    uint64_t share_poly1;   // The node's permanent private secret point
+    uint64_t poly2_coef;    // The node's pre-evaluated public polynomial component
+    uint64_t lpc;           // The Lagrange Polynomial Constant weighting factor
+} pot_node_profile_t;
+
+uint64_t pot_sss_update(uint64_t current_cml, pot_node_profile_t node, uint64_t rnd) {
+    uint64_t share_poly2 = (rnd + node.poly2_coef) % POT_PRIME;
+    uint64_t blended_secret = (node.share_poly1 + share_poly2) % POT_PRIME;
+    uint64_t contribution = (blended_secret * node.lpc) % POT_PRIME;
+    uint64_t new_cml = (current_cml + contribution) % POT_PRIME;
+    return new_cml;
+}
+
+void calculate_pot_pvf(pot_node_profile_t* nodes, int total_nodes, uint64_t rnd, uint64_t* cml_out) {
+    uint64_t cml = 0; 
+
+    LOG_MAIN(DEBUG, "Number of transit nodes participating in POT: %d\n", total_nodes);
+    LOG_MAIN(DEBUG, "Processing packet with RND value: %lu\n", rnd);
+
+    for (int i = 0; i < total_nodes; i++) {
+        LOG_MAIN(DEBUG, "POT Calculation round %d using Share1: %lu, LPC: %lu\n", 
+                 i + 1, nodes[i].share_poly1, nodes[i].lpc);
+
+        cml = pot_sss_update(cml, nodes[i], rnd);
+
+        LOG_MAIN(DEBUG, "POT Round %d successful. Cumulative value updated.\n", i + 1);
+        LOG_MAIN(DEBUG, "CML value after round: %lu\n", cml);
+    }
+
+    *cml_out = cml;
+    LOG_MAIN(DEBUG, "POT PVF Calculation: All node rounds completed.\n");
+}
+
 // Add system health monitoring function
 static void log_system_health(uint64_t packet_count) {
   static uint64_t last_log = 0;
